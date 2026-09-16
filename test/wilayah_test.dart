@@ -95,6 +95,28 @@ void main() {
     }
   });
 
+  test('cari matches Kalitorong and an f/v desa on the real pack', () async {
+    final support = await Directory.systemTemp.createTemp('wilayah-cari-');
+    final repo = await WilayahRepo.open(
+        supportDir: support,
+        assetFile: File('${Directory.current.path}/assets/wilayah.db'),
+        bundledMeta: {'sha_sumber': 'd68e8d5516f969d1905d0b2940f20034becb0db7'},
+        factory: databaseFactoryFfi);
+    try {
+      expect(repo.available, isTrue);
+      final kal = await repo.cari('Kalitorong', level: 4);
+      expect(kal.map((w) => w.kode), contains('33.27.07.2016'));
+      // f and v normalise to p on both pack build and query sides.
+      final afang = await repo.cari('Afang');
+      expect(afang.map((w) => w.kode), contains('81.05.08.2004'));
+      final defol = await repo.cari('DEFOL');
+      expect(defol.map((w) => w.kode), contains('81.05.08.2004'));
+    } finally {
+      await repo.close();
+      await support.delete(recursive: true);
+    }
+  });
+
   test('missing wilayah asset leaves the repo unavailable', () async {
     final support = await Directory.systemTemp.createTemp('wilayah-missing-');
     final repo = await WilayahRepo.open(
