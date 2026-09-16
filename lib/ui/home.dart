@@ -80,6 +80,41 @@ class _HomeScreenState extends State<HomeScreen> {
     if (chosen != null) await _change(chosen.$1, chosen.$2);
   }
 
+  Future<void> editVillage() async {
+    final desa = TextEditingController(text: widget.session.village);
+    final chosen = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                title: const Text('Nama desa atau dusun'),
+                content: TextField(
+                    controller: desa,
+                    autofocus: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                        labelText: 'Desa',
+                        hintText: 'KALITORONG')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Batal')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(ctx, desa.text),
+                      child: const Text('SIMPAN'))
+                ]));
+    desa.dispose();
+    if (chosen == null) return;
+    setState(() => busy = true);
+    try {
+      await widget.session.setVillage(chosen);
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   RecordMap? _countFor(int rt) {
     for (final row in counts) {
       if (intValue(row['rt']) == rt) return row;
@@ -131,6 +166,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                               'RW ${widget.session.rw.toString().padLeft(2, '0')} · ${widget.session.village}',
                               style: const TextStyle(color: Colors.black54)),
+                          Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                  onPressed: busy ? null : editVillage,
+                                  child: const Text('Ganti nama desa'))),
                         ]))),
             if (busy) const LinearProgressIndicator(),
             if ((widget.session.store.startupRecovery?.failed ?? 0) > 0)
