@@ -267,24 +267,13 @@ class AppStore extends ChangeNotifier {
   Future<int> backfillKodeWilayah(String kode) async {
     final rows = await db.query('warga',
         where: "kode_wilayah IS NULL OR kode_wilayah = ''", orderBy: 'id');
-    var n = 0;
-    for (final row in rows) {
-      await saveWarga({
-        'nik': row['nik'],
-        'nama': row['nama'],
-        'jenis_kelamin': row['jenis_kelamin'],
-        'tempat_lahir': row['tempat_lahir'],
-        'tgl_lahir': row['tgl_lahir'],
-        'desa': row['desa'],
-        'kode_wilayah': kode,
-        'rt': row['rt'],
-        'rw': row['rw'],
-        'keterangan': row['keterangan'],
-        'warna': row['warna'],
-      }, id: row['id'] as int);
-      n++;
-    }
-    return n;
+    if (rows.isEmpty) return 0;
+    // One transaction, one journal event, one listener notification: per-row
+    // commits froze the UI and inflated the journal for a thousand rows.
+    final ids = [for (final row in rows) row['id'] as int];
+    await _commit('BACKFILL', 'warga',
+        (txn, ts) async => {'kode': kode, 'ids': ids});
+    return ids.length;
   }
 
   Future<bool> _hasUrutanId(DatabaseExecutor txn) async {
@@ -452,6 +441,12 @@ class AppStore extends ChangeNotifier {
         await txn.delete('warga', where: 'id = ?', whereArgs: [data['id']]);
       } else if (op == 'REORDER' || op == 'RENUMBER') {
         await _applyUrutMap(txn, data['peta'] as Map);
+      } else if (op == 'BACKFILL') {
+        final kode = '${data['kode'] ?? ''}';
+        for (final raw in data['ids'] as List) {
+          await txn.update('warga', {'kode_wilayah': kode},
+              where: 'id = ?', whereArgs: [intValue(raw)]);
+        }
       } else {
         throw AppException('Operasi warga tidak dikenal: $op');
       }

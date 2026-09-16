@@ -207,6 +207,21 @@ void main() {
     expect(await store.rtList(3), [3]);
   });
 
+  test('backfill assigns kode in one journal event', () async {
+    final a = await store.saveWarga(fields());
+    final b = await store.saveWarga(fields(name: 'KEDUA'));
+    final n = await store.backfillKodeWilayah('33.27.07.2001');
+    expect(n, 2);
+    expect((await store.warga(a['id'] as int))!['kode_wilayah'],
+        '33.27.07.2001');
+    expect((await store.warga(b['id'] as int))!['kode_wilayah'],
+        '33.27.07.2001');
+    final events = await store.db.query('log', where: "op='BACKFILL'");
+    expect(events, hasLength(1));
+    final payload = jsonDecode(events.single['payload'] as String) as Map;
+    expect(payload['ids'], containsAll([a['id'], b['id']]));
+  });
+
   test('reference import is optional, dirty, and repeatable', () async {
     final rows = await store.allReferensi(3);
     expect(rows, hasLength(3));
@@ -899,7 +914,7 @@ void main() {
     expect((await store.settings())['kode_wilayah_aktif'], '33.27.07.2016');
   });
 
-  test('backfill writes one event per row and rebuild matches', () async {
+  test('backfill writes one journal event and rebuild matches', () async {
     for (var i = 0; i < 10; i++) {
       await store.saveWarga(fields(name: 'LAMA $i', nik: null));
     }
@@ -910,7 +925,7 @@ void main() {
     });
     final beforeLog = (await store.db.query('log')).length;
     expect(await store.backfillKodeWilayah('33.27.07.2016'), 10);
-    expect((await store.db.query('log')).length, beforeLog + 10);
+    expect((await store.db.query('log')).length, beforeLog + 1);
     expect(
         (await store.db.query('warga', where: "nama LIKE 'LAMA %'"))
             .every((r) => r['kode_wilayah'] == '33.27.07.2016'),
