@@ -139,6 +139,33 @@ void main() {
     expect(note['keterangan'], isNull);
   });
 
+  test('padded NIK is stored trimmed and collides with the same digits',
+      () async {
+    final padded = await store.saveWarga(fields(nik: ' 3327071909680001 '));
+    expect(padded['nik'], '3327071909680001');
+    await store.saveWarga(fields(name: 'KEMBARAN', nik: '3327071909680001'));
+    expect(await store.duplicateRows(), hasLength(2));
+    final spaceNote = await store.saveWarga(fields(name: 'KOSONG', note: ' '));
+    expect(spaceNote['keterangan'], isNull);
+    await store.db.insert('warga', {
+      'urut_sort': 9000,
+      'nik': ' 3327074109730002 ',
+      'nama': ' SITI SALIMAH ',
+      'nama_norm': 'siti salimah',
+      'jenis_kelamin': 'P',
+      'rt': 3,
+      'rw': 3,
+      'sumber_input': 'LAPANGAN',
+      'dibuat_pada': timestamp(),
+      'diubah_pada': timestamp(),
+    });
+    expect(await store.trimStoredText(), 1);
+    expect((await store.warga(4))!['nik'], '3327074109730002');
+    final updates =
+        await store.db.query('log', where: "tabel='warga' AND op='UPDATE'");
+    expect(updates, isNotEmpty);
+  });
+
   test('insert between rows uses sparse keys and export follows that order',
       () async {
     final first = await store.saveWarga(fields());

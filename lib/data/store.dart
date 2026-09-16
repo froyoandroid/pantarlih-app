@@ -70,6 +70,7 @@ class AppStore extends ChangeNotifier {
         throw AppException('Pemeriksaan integritas database gagal');
       }
       startupRecovery = await _replay(db);
+      await trimStoredText();
     } catch (e) {
       throw AppException(
           'Database tidak dapat dibuka. Berkas aman di ${root.path}. '
@@ -362,6 +363,42 @@ class AppStore extends ChangeNotifier {
       'dibuat_pada': dibuat,
       'diubah_pada': ts,
     };
+  }
+
+  bool _needsTrim(Object? value, {bool required = false}) {
+    if (value == null) return false;
+    final raw = '$value';
+    if (required) return raw != raw.trim();
+    return raw != (nullableText(raw) ?? '');
+  }
+
+  /// One-time cleanup of padded text already on disk. Each dirty row is a
+  /// normal journaled UPDATE so replay stays the source of truth.
+  Future<int> trimStoredText() async {
+    final rows = await db.query('warga');
+    var cleaned = 0;
+    for (final row in rows) {
+      final dirty = _needsTrim(row['nik']) ||
+          _needsTrim(row['nama'], required: true) ||
+          _needsTrim(row['tempat_lahir']) ||
+          _needsTrim(row['desa']) ||
+          _needsTrim(row['keterangan']);
+      if (!dirty) continue;
+      await saveWarga({
+        'nik': row['nik'],
+        'nama': row['nama'],
+        'jenis_kelamin': row['jenis_kelamin'],
+        'tempat_lahir': row['tempat_lahir'],
+        'tgl_lahir': row['tgl_lahir'],
+        'desa': row['desa'],
+        'rt': row['rt'],
+        'rw': row['rw'],
+        'keterangan': row['keterangan'],
+        'sumber_input': row['sumber_input'],
+      }, id: row['id'] as int);
+      cleaned++;
+    }
+    return cleaned;
   }
 
   Future<RecordMap> saveWarga(RecordMap fields, {int? id, int? afterId}) async {

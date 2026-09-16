@@ -19,7 +19,10 @@ String waktuTampil(Object? raw) {
   return '${tanggalTampil(d.toIso8601String())} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} WIB';
 }
 
-String? nullableText(String value) => value.trim().isEmpty ? null : value;
+String? nullableText(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
 int intValue(Object? value, [int fallback = 0]) =>
     int.tryParse('$value') ?? fallback;
 String jkTampil(Object? value) => value == 'L'

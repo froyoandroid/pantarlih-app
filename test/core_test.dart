@@ -66,7 +66,8 @@ void main() {
   });
   test('notes preserve nonblank bytes and timestamps use explicit WIB', () {
     expect(nullableText('  '), isNull);
-    expect(nullableText('  bebas apa adanya  '), '  bebas apa adanya  ');
+    expect(nullableText('  bebas apa adanya  '), 'bebas apa adanya');
+    expect(nullableText(' 3327071909680001 '), '3327071909680001');
     expect(timestamp(DateTime.utc(2026, 9, 15, 2, 14, 22)),
         '2026-09-15T09:14:22.000+07:00');
   });
