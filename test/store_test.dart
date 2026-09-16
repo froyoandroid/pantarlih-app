@@ -167,6 +167,12 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('trim cleanup runs once per install and is marked in setelan', () async {
+    final marker = await store.db
+        .query('setelan', where: 'kunci = ?', whereArgs: ['trim_v1_selesai']);
+    expect(marker.single['nilai'], '1');
+  });
+
   test('reference import is optional, dirty, and repeatable', () async {
     final rows = await store.allReferensi(3);
     expect(rows, hasLength(3));
