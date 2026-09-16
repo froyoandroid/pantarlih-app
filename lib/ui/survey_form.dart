@@ -76,19 +76,19 @@ class _SurveyFormState extends State<SurveyForm> {
 
   void _pilihKeterangan(String? next) {
     setState(() {
-      ketChip = next;
-      if (next == null) {
+      ketChip = next ?? keteranganNormal;
+      if (ketChip == keteranganNormal) {
         note.clear();
         return;
       }
-      if (next == keteranganLainnya) {
+      if (ketChip == keteranganLainnya) {
         if (kodeKeterangan(note.text) != null) note.clear();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) noteFocus.requestFocus();
         });
         return;
       }
-      note.text = next;
+      note.text = ketChip!;
     });
   }
 
@@ -334,25 +334,32 @@ class _SurveyFormState extends State<SurveyForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(spacing: 8, runSpacing: 8, children: [
+                        ChoiceChip(
+                            label: const Text('Normal'),
+                            selected: ketChip == keteranganNormal,
+                            onSelected: (_) =>
+                                _pilihKeterangan(keteranganNormal)),
                         for (final code in keteranganKode.keys)
                           ChoiceChip(
                               label: Text(code),
                               selected: ketChip == code,
-                              onSelected: (on) =>
-                                  _pilihKeterangan(on ? code : null)),
+                              onSelected: (on) => _pilihKeterangan(
+                                  on ? code : keteranganNormal)),
                         ChoiceChip(
                             label: const Text('Lainnya'),
                             selected: ketChip == keteranganLainnya,
-                            onSelected: (on) => _pilihKeterangan(
-                                on ? keteranganLainnya : null)),
+                            onSelected: (on) => _pilihKeterangan(on
+                                ? keteranganLainnya
+                                : keteranganNormal)),
                       ]),
-                      const SizedBox(height: 8),
-                      Text(
-                          'PD pindah domisili. TMS tidak memenuhi syarat. B baru. MD meninggal dunia.',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                              height: 1.4)),
+                      if (keteranganArti(ketChip) != null) ...[
+                        const SizedBox(height: 8),
+                        Text(keteranganArti(ketChip)!,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                                height: 1.4)),
+                      ],
                     ])),
             if (ketChip == keteranganLainnya) ...[
               const SizedBox(height: 14),

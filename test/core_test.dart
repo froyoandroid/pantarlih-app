@@ -140,11 +140,14 @@ void main() {
     expect(kodeKeterangan('b'), 'B');
     expect(kodeKeterangan('md'), 'MD');
     expect(kodeKeterangan('pindah'), isNull);
-    expect(chipKeterangan(''), isNull);
+    expect(chipKeterangan(''), keteranganNormal);
     expect(chipKeterangan('PD'), 'PD');
     expect(chipKeterangan('catatan sendiri'), keteranganLainnya);
     expect(nilaiKeterangan(null, 'abaikan'), '');
+    expect(nilaiKeterangan(keteranganNormal, 'abaikan'), '');
     expect(nilaiKeterangan('PD', 'abaikan'), 'PD');
+    expect(keteranganArti('PD'), 'pindah domisili');
+    expect(keteranganArti(keteranganNormal), isNull);
     expect(nilaiKeterangan(keteranganLainnya, '  bebas  '), '  bebas  ');
     expect(keteranganTampil('TMS'), 'TMS · tidak memenuhi syarat');
     expect(keteranganTampil('catatan sendiri'), 'catatan sendiri');
