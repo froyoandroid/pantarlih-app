@@ -146,6 +146,8 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final row = rows[index];
                                   final id = row['id'] as int;
                                   final nik = '${row['nik'] ?? ''}'.trim();
+                                  final catatan =
+                                      '${row['keterangan'] ?? ''}'.trim();
                                   return Dismissible(
                                       key: ValueKey(id),
                                       direction: DismissDirection.endToStart,
@@ -179,6 +181,8 @@ class _RtListScreenState extends State<RtListScreen> {
                                                 ? const Color(0xFFE7F3EE)
                                                 : null,
                                             child: ListTile(
+                                                isThreeLine:
+                                                    catatan.isNotEmpty,
                                                 leading: ReorderableDragStartListener(
                                                     index: index,
                                                     child: Column(mainAxisAlignment:
@@ -199,15 +203,19 @@ class _RtListScreenState extends State<RtListScreen> {
                                                         fontWeight:
                                                             FontWeight.w700)),
                                                 subtitle: Text([
-                                                  nik.isEmpty
-                                                      ? '— belum ada NIK —'
-                                                      : nik,
-                                                  tanggalTampil(
-                                                      row['tgl_lahir']),
-                                                  if (row['keterangan'] !=
-                                                      null)
-                                                    'ada catatan'
-                                                ].where((s) => s.isNotEmpty).join(' · ')),
+                                                  [
+                                                    nik.isEmpty
+                                                        ? '— belum ada NIK —'
+                                                        : nik,
+                                                    tanggalTampil(
+                                                        row['tgl_lahir']),
+                                                  ]
+                                                      .where((s) =>
+                                                          s.isNotEmpty)
+                                                      .join(' · '),
+                                                  if (catatan.isNotEmpty)
+                                                    catatan,
+                                                ].join('\n')),
                                                 onTap: () => _edit(row))),
                                         Align(
                                             alignment: Alignment.centerLeft,
