@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/format.dart';
 import '../core/nik.dart';
 import 'common.dart';
@@ -201,6 +202,8 @@ class _SurveyFormState extends State<SurveyForm> {
             TextField(
                 controller: name,
                 autofocus: true,
+                autocorrect: false,
+                enableSuggestions: false,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
                 decoration: deco('NAMA *')),
@@ -209,6 +212,10 @@ class _SurveyFormState extends State<SurveyForm> {
                 controller: nik,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.next,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(16)
+                ],
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 20, letterSpacing: 2),
                 decoration: deco('NIK', hint: 'boleh kosong')),
@@ -230,6 +237,8 @@ class _SurveyFormState extends State<SurveyForm> {
             const SizedBox(height: 14),
             TextField(
                 controller: birthPlace,
+                autocorrect: false,
+                enableSuggestions: false,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
                 decoration: deco('TEMPAT LAHIR')),
@@ -243,6 +252,8 @@ class _SurveyFormState extends State<SurveyForm> {
             const SizedBox(height: 14),
             TextField(
                 controller: village,
+                autocorrect: false,
+                enableSuggestions: false,
                 textCapitalization: TextCapitalization.characters,
                 decoration: deco('DESA / DUSUN')),
             const SizedBox(height: 14),
