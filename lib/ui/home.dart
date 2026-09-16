@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: 'Beranda',
+      title: tanggalPanjang(),
       actions: [
         IconButton(
             onPressed: () => _open(AdminScreen(session: widget.session)),

@@ -1,4 +1,6 @@
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 class TanggalInputFormatter extends TextInputFormatter {
   @override
@@ -21,6 +23,12 @@ String timestamp([DateTime? value]) {
   // All persisted timestamps use the mandated WIB offset, independent of device settings.
   final d = (value ?? DateTime.now()).toUtc().add(const Duration(hours: 7));
   return '${d.toIso8601String().replaceAll('Z', '')}+07:00';
+}
+
+String tanggalPanjang() {
+  final d = DateTime.now().toUtc().add(const Duration(hours: 7));
+  initializeDateFormatting('id');
+  return DateFormat('d MMMM y', 'id').format(d);
 }
 
 String tanggalTampil(Object? iso) {
