@@ -116,7 +116,10 @@ Future<String?> bacaFolderAktif(Directory parent) async {
   }
 }
 
-Future<Directory> pilihFolderApp(Directory parent, {String? desa}) async {
+/// Single source of truth for which Pantarlih* folder holds the data:
+/// pantarlih.aktif marker first, then the freshest folder scan, then a new
+/// folder for the desa. Every reader must go through this, never scan alone.
+Future<Directory> resolveFolderAktif(Directory parent, {String? desa}) async {
   final ingin = namaFolderDesa(desa ?? '');
   final aktif = await bacaFolderAktif(parent);
   if (aktif != null) return Directory('${parent.path}/$aktif');
@@ -136,10 +139,14 @@ Future<bool> introSudahDilewati({Directory? base}) async {
       final induk = Platform.isAndroid
           ? await indukPublik(buatJikaTidakAda: false)
           : await getApplicationDocumentsDirectory();
-      if (induk != null && await cariFolderData(induk) != null) return true;
+      if (induk != null &&
+          await induk.exists() &&
+          adaBerkasSesi(await resolveFolderAktif(induk))) {
+        return true;
+      }
     }
     final internal = await getApplicationDocumentsDirectory();
-    return await cariFolderData(internal) != null;
+    return adaBerkasSesi(await resolveFolderAktif(internal));
   } catch (_) {
     return false;
   }
@@ -197,13 +204,13 @@ Future<ResolvedStorage> resolveDataRoot({
       throw const StorageAccessException(
           'Folder Documents dan Dokumen tidak dapat dibuka. Periksa izin penyimpanan.');
     }
-    final dir = await pilihFolderApp(parent, desa: desa);
+    final dir = await resolveFolderAktif(parent, desa: desa);
     await dir.create(recursive: true);
     await tulisFolderAktif(parent, basenameDir(dir));
     return ResolvedStorage(dir, usingPublic: true);
   }
   final base = internalBase ?? await getApplicationDocumentsDirectory();
-  final dir = await pilihFolderApp(base, desa: desa);
+  final dir = await resolveFolderAktif(base, desa: desa);
   await dir.create(recursive: true);
   await tulisFolderAktif(base, basenameDir(dir));
   return ResolvedStorage(dir, usingPublic: false);
