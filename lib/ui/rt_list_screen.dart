@@ -115,7 +115,7 @@ class _RtListScreenState extends State<RtListScreen> {
                   onTap: () => Navigator.pop(ctx, 'sesudah')),
               ListTile(
                   leading: const Icon(Icons.palette_outlined),
-                  title: const Text('UBAH WARNA'),
+                  title: const Text('Ubah Warna'),
                   onTap: () => Navigator.pop(ctx, 'warna')),
             ])));
     if (!mounted || pilih == null) return;
@@ -146,7 +146,7 @@ class _RtListScreenState extends State<RtListScreen> {
                   padding: EdgeInsets.fromLTRB(24, 16, 24, 4),
                   child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('UBAH WARNA',
+                      child: Text('Ubah Warna',
                           style: TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 16)))),
               ListTile(
@@ -157,7 +157,7 @@ class _RtListScreenState extends State<RtListScreen> {
               for (final e in _labelWarna.entries)
                 ListTile(
                     leading: _titikWarna(_warnaKartu[e.key]!),
-                    title: Text(e.value.toUpperCase()),
+                    title: Text(e.value),
                     selected: sekarang == e.key,
                     onTap: () => Navigator.pop(ctx, e.key)),
             ])));
