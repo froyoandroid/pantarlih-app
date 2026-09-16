@@ -23,6 +23,22 @@ void main() {
     await store.close();
   });
 
+  test('intro flag is absent until marked', () async {
+    final dir = await Directory.systemTemp.createTemp('pantarlih-intro-');
+    addTearDown(() => dir.delete(recursive: true));
+    expect(await introSudahDilewati(base: dir), isFalse);
+    await tandaiIntroSelesai(base: dir);
+    expect(await introSudahDilewati(base: dir), isTrue);
+  });
+
+  test('existing pantarlih.db counts as intro already done', () async {
+    final dir = await Directory.systemTemp.createTemp('pantarlih-intro-db-');
+    addTearDown(() => dir.delete(recursive: true));
+    expect(await introSudahDilewati(base: dir), isFalse);
+    await File('${dir.path}/pantarlih.db').writeAsString('x', flush: true);
+    expect(await introSudahDilewati(base: dir), isTrue);
+  });
+
   test('relocating internal data keeps every journal file', () async {
     final from = await Directory.systemTemp.createTemp('pantarlih-from-');
     final to = await Directory.systemTemp.createTemp('pantarlih-to-');

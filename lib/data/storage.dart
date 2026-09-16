@@ -16,12 +16,71 @@ class ResolvedStorage {
   final bool usingPublic;
 }
 
-Future<bool> requestPublicAccess() async {
-  if (!Platform.isAndroid) return true;
+Future<File> _introFlag({Directory? base}) async {
+  final dir = base ?? await getApplicationDocumentsDirectory();
+  return File('${dir.path}/intro_selesai');
+}
+
+Future<Permission> _izinPenyimpanan() async {
   const channel = MethodChannel('id.kalitorong.pantarlih/storage');
   final sdk = await channel.invokeMethod<int>('sdkVersion') ?? 30;
-  final permission =
-      sdk >= 30 ? Permission.manageExternalStorage : Permission.storage;
+  return sdk >= 30 ? Permission.manageExternalStorage : Permission.storage;
+}
+
+Future<bool> publicAccessGranted() async {
+  if (!Platform.isAndroid) return true;
+  try {
+    return await (await _izinPenyimpanan()).isGranted;
+  } catch (_) {
+    return false;
+  }
+}
+
+bool _adaBerkasSesi(Directory root) {
+  try {
+    return File('${root.path}/intro_selesai').existsSync() ||
+        File('${root.path}/pantarlih.db').existsSync();
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<bool> introSudahDilewati({Directory? base}) async {
+  if (base != null) return _adaBerkasSesi(base);
+  try {
+    if (await (await _introFlag()).exists()) return true;
+  } catch (_) {}
+  try {
+    final granted = await publicAccessGranted();
+    if (granted) {
+      final publicRoot = Platform.isAndroid
+          ? await _androidDocuments()
+          : Directory(
+              '${(await getApplicationDocumentsDirectory()).path}/PantarlihKalitorong');
+      if (publicRoot != null && _adaBerkasSesi(publicRoot)) return true;
+    }
+    final internal = Directory(
+        '${(await getApplicationDocumentsDirectory()).path}/PantarlihKalitorong');
+    return _adaBerkasSesi(internal);
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> tandaiIntroSelesai({Directory? base, Directory? dataRoot}) async {
+  if (base != null) {
+    await File('${base.path}/intro_selesai').writeAsString('1', flush: true);
+    return;
+  }
+  await (await _introFlag()).writeAsString('1', flush: true);
+  if (dataRoot != null) {
+    await File('${dataRoot.path}/intro_selesai').writeAsString('1', flush: true);
+  }
+}
+
+Future<bool> requestPublicAccess() async {
+  if (!Platform.isAndroid) return true;
+  final permission = await _izinPenyimpanan();
   if (!await permission.isGranted) await permission.request();
   return permission.isGranted;
 }

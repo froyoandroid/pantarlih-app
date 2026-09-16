@@ -24,7 +24,8 @@ void main() {
 }
 
 class PantarlihApp extends StatelessWidget {
-  const PantarlihApp({super.key});
+  const PantarlihApp({super.key, this.introSudah});
+  final Future<bool> Function()? introSudah;
   @override
   Widget build(BuildContext context) => MaterialApp(
       title: 'Pantarlih Kalitorong',
@@ -57,11 +58,12 @@ class PantarlihApp extends StatelessWidget {
         textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(minimumSize: const Size(48, 48))),
       ),
-      home: const StartupScreen());
+      home: StartupScreen(introSudah: introSudah));
 }
 
 class StartupScreen extends StatefulWidget {
-  const StartupScreen({super.key});
+  const StartupScreen({super.key, this.introSudah});
+  final Future<bool> Function()? introSudah;
   @override
   State<StartupScreen> createState() => _StartupScreenState();
 }
@@ -69,7 +71,27 @@ class StartupScreen extends StatefulWidget {
 class _StartupScreenState extends State<StartupScreen> {
   String? error;
   bool busy = false;
+  bool cekSesi = true;
+  bool langsungBuka = false;
   AppStore? store;
+
+  @override
+  void initState() {
+    super.initState();
+    _bukaSesi();
+  }
+
+  Future<void> _bukaSesi() async {
+    final cek = widget.introSudah ?? introSudahDilewati;
+    final pernah = await cek();
+    if (!mounted) return;
+    setState(() {
+      cekSesi = false;
+      langsungBuka = pernah;
+    });
+    if (pernah) await start();
+  }
+
   Future<void> start({bool recover = false}) async {
     setState(() {
       busy = true;
@@ -87,9 +109,11 @@ class _StartupScreenState extends State<StartupScreen> {
       final session =
           Session(store!, usingPublic: resolved.usingPublic, wilayah: wilayah);
       await session.load();
+      await tandaiIntroSelesai(dataRoot: resolved.root);
       if (!mounted) return;
       final home = HomeScreen(session: session);
-      if (session.kodeWilayah == null || session.kodeWilayah!.isEmpty) {
+      if (!langsungBuka &&
+          (session.kodeWilayah == null || session.kodeWilayah!.isEmpty)) {
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -110,7 +134,23 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final loading = cekSesi || (langsungBuka && busy && error == null);
+    if (loading) {
+      return const Scaffold(
+          body: SafeArea(
+              child: Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.fact_check_outlined, size: 68, color: forest),
+        SizedBox(height: 24),
+        Text('Pantarlih',
+            style: TextStyle(
+                fontSize: 36, fontWeight: FontWeight.w800, color: forest)),
+        SizedBox(height: 28),
+        CircularProgressIndicator(),
+      ]))));
+    }
+    return Scaffold(
       body: SafeArea(
           child: Center(
               child: SingleChildScrollView(
@@ -168,4 +208,5 @@ class _StartupScreenState extends State<StartupScreen> {
                                   child:
                                       const Text('Bangun ulang dari jurnal')),
                           ]))))));
+  }
 }
