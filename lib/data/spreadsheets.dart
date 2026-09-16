@@ -345,6 +345,17 @@ class ExportService {
         ],
       )
     });
+    final duplicateNames = await store.duplicateNameRows();
+    await write('DUPLIKAT_NAMA_$date.xlsx', {
+      'DUPLIKAT NAMA': (
+        dpsHeaders,
+        [
+          for (final row in duplicateNames)
+            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
+                row['rt'] as int))
+        ],
+      )
+    });
     final missing = await store.tanpaNik(rw: rw, rt: rt);
     await write('TANPA_NIK_$date.xlsx', {
       'TANPA NIK': (

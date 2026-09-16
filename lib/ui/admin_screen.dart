@@ -80,6 +80,19 @@ class _AdminScreenState extends State<AdminScreen> {
                             builder: (_) => HistoryScreen(
                                 session: widget.session,
                                 kind: SurveyListKind.duplicates))))),
+        Card(
+            child: ListTile(
+                leading: const Icon(Icons.people_outline),
+                title: const Text('Duplikat nama'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => HistoryScreen(
+                                session: widget.session,
+                                kind: SurveyListKind.duplicateNames))))),
         const SizedBox(height: 24),
         const Text('Ekspor Excel',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -96,7 +109,7 @@ class _AdminScreenState extends State<AdminScreen> {
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
         const Notice(
-            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di file mulai 1 di tiap RT. Duplikat NIK dan daftar tanpa NIK dibuat terpisah.'),
+            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di file mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK dibuat terpisah.'),
         FilledButton.icon(
             onPressed: busy
                 ? null

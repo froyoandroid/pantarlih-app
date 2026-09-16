@@ -184,6 +184,7 @@ void main() {
     expect(files.any((f) => f.path.contains('PENDING')), isFalse);
     expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
     expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
+    expect(files.any((f) => f.path.contains('DUPLIKAT_NAMA')), isTrue);
     final dps = files.firstWhere((f) => f.path.contains('DPS_RT3'));
     final book = Excel.decodeBytes(await dps.readAsBytes());
     final rows = book.tables.values.first.rows;
@@ -276,6 +277,15 @@ void main() {
     expect(payload['grup_id'], isNull);
     expect(payload['keterangan'], 'bebas');
     expect(payload.containsKey('id_lama'), isFalse);
+  });
+
+  test('same-RT name duplicates without NIK appear in duplicateNameRows',
+      () async {
+    await store.saveWarga(fields(name: 'MUHAMMAD HASSAN', nik: null));
+    await store.saveWarga(fields(name: 'MUHAMAD HASAN', nik: null));
+    final rows = await store.duplicateNameRows();
+    expect(rows.map((r) => r['nama']),
+        containsAll(['MUHAMMAD HASSAN', 'MUHAMAD HASAN']));
   });
 
   test('deleted ids are not reused and rebuild keeps the same ids', () async {

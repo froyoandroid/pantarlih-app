@@ -122,11 +122,11 @@ class _SearchScreenState extends State<SearchScreen> {
         existing = _score(
                 warga.where((r) => r['rt'] == session.rt && r['rw'] == session.rw).toList(),
                 q)
-            .where((e) => e.$2 >= 40)
-            .take(8)
+            .where((e) => e.$2 >= 30)
+            .take(10)
             .toList();
         if (existing.isEmpty) {
-          existing = _score(warga, q).where((e) => e.$2 >= 40).take(8).toList();
+          existing = _score(warga, q).where((e) => e.$2 >= 30).take(10).toList();
         }
         var pool = referensi.where((r) => r['rt'] == session.rt).toList();
         if (pool.isEmpty) {
