@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../core/format.dart';
+import '../data/exchange.dart';
 import '../data/spreadsheets.dart';
 import 'common.dart';
 import 'history_screen.dart';
@@ -75,7 +76,6 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
       title: 'Ekspor & pemulihan',
-      storageBanner: true,
       child: ListView(padding: const EdgeInsets.all(20), children: [
         const Text('Pemeriksaan data',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -132,13 +132,16 @@ class _AdminScreenState extends State<AdminScreen> {
             onPressed: busy
                 ? null
                 : () => run(() async {
+                      final folder =
+                          await widget.session.folderPertukaran(minta: true);
                       files = await ExportService(widget.session.store)
                           .generate(
+                              tujuan: folder!.ekspor,
                               rw: widget.session.rw,
                               rt: allRt ? null : widget.session.rt,
                               combined: combined,
                               kop: kop);
-                      return '${files.length} berkas Excel dibuat. Belum dibagikan ke siapa pun.';
+                      return '${files.length} berkas Excel dibuat di ${folder.label}/ekspor. Belum dibagikan ke siapa pun.';
                     }),
             icon: const Icon(Icons.table_view_outlined),
             label: const Text('BUAT FILE EXCEL')),
@@ -201,14 +204,18 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Ketahanan & pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
-            'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 cadangan terbaru, snapshot paling lama dirotasi otomatis. Jurnal tidak pernah dihapus.',
+            'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 salinan terbaru di dalam aplikasi, yang paling lama dirotasi otomatis. Setiap snapshot juga dibundel bersama jurnal ke folder cadangan publik bila izin berkas sudah diberikan. Jurnal tidak pernah dihapus.',
             icon: Icons.shield_outlined),
         OutlinedButton.icon(
             onPressed: busy
                 ? null
                 : () => run(() async {
                       final f = await widget.session.store.snapshot();
-                      return 'Snapshot tersimpan: ${f.path}';
+                      final folder =
+                          await widget.session.folderPertukaran(minta: true);
+                      final zip = await tulisCadangan(
+                          widget.session.store, f, folder!.cadangan);
+                      return 'Snapshot tersimpan. Cadangan ${zip.uri.pathSegments.last} ditulis ke ${folder.label}/cadangan.';
                     }),
             icon: const Icon(Icons.save_alt),
             label: const Text('BUAT SNAPSHOT SEKARANG')),
@@ -251,12 +258,14 @@ class _AdminScreenState extends State<AdminScreen> {
                   tooltip: 'Bagikan snapshot',
                   onPressed: busy ? null : () => share([file]),
                   icon: const Icon(Icons.share_outlined))),
-        const SizedBox(height: 16),
-        SelectableText('Lokasi berkas\n${widget.session.store.root.path}',
-            style: const TextStyle(fontSize: 12)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 28),
+        const Text('Folder pertukaran',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        Notice(
+            'Excel, cadangan, dan berkas impor berada di ${widget.session.labelFolderPertukaran}. Database, jurnal, dan snapshot tersimpan di dalam aplikasi dan tidak butuh izin. Izin akses berkas diminta saat pertama kali ekspor atau impor, setelah itu setiap pergantian RT menulis cadangan otomatis ke folder yang sama.',
+            icon: Icons.folder_outlined),
         const Text(
-            'Salin folder ini lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan cadangan di lokasi yang aman.',
+            'Salin folder cadangan lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan di lokasi yang aman. Data di dalam aplikasi ikut hilang bila aplikasi dihapus, cadangan di folder publik tidak.',
             style: TextStyle(fontSize: 12, color: Colors.black54)),
         const SizedBox(height: 28),
         const Text('Tentang',

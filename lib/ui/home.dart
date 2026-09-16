@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
-import '../data/storage.dart';
 import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
@@ -157,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
       session: widget.session,
       title: 'Beranda',
       subtitle: tanggalPanjang(),
-      storageBanner: true,
       child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(padding: const EdgeInsets.all(20), children: [
@@ -181,15 +179,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w700)),
                     subtitle: Text(_lokasiSub),
                     trailing: const Icon(Icons.chevron_right))),
-            Padding(
-                padding: const EdgeInsets.only(left: 10, top: 4, bottom: 8),
-                child: Text(
-                    'Folder data: ${basenameDir(widget.session.store.root)}',
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade700))),
             const SizedBox(height: 8),
             _kartuRtRw(),
             if (busy) const LinearProgressIndicator(),
+            if (widget.session.peringatanCadangan != null)
+              Notice(widget.session.peringatanCadangan!,
+                  warning: true, icon: Icons.folder_off_outlined),
             if ((widget.session.store.startupRecovery?.showNotice ?? false))
               Notice(
                   'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Buka laporan di aplikasi, atau hapus pemberitahuan ini.',

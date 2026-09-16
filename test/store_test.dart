@@ -421,7 +421,8 @@ void main() {
         ['MUHAMAD HASAN', 'ORANG DUA', 'ORANG TIGA']);
     await store.reorderWarga(third['id'] as int, null, first['id'] as int);
     expect((await store.wargaRt(3, 3)).first['nama'], 'ORANG TIGA');
-    final files = await ExportService(store).generate(rw: 3, rt: 3);
+    final files = await ExportService(store)
+        .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
     expect(files.any((f) => f.path.contains('PENDING')), isFalse);
     expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
     expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
@@ -556,16 +557,17 @@ void main() {
     await store
         .saveWarga(fields(name: 'ORANG RT4', rt: 4, nik: '3327071909680099'));
     await store.setSession(3, 3);
-    final session = Session(store);
+    final induk = await Directory.systemTemp.createTemp('pantarlih-tukar-');
+    addTearDown(() => induk.delete(recursive: true));
+    final session = Session(store, pertukaranInduk: induk);
     await session.load();
     for (var i = 0; i < 12; i++) {
       await session
           .focusRt(session.rt == 3 ? const RtRw(3, 4) : const RtRw(3, 3));
     }
-    final folders = Directory('${root.path}/export/auto')
-        .listSync()
-        .whereType<Directory>()
-        .toList()
+    final otomatis =
+        (await session.folderPertukaran(minta: false))!.eksporOtomatis;
+    final folders = otomatis.listSync().whereType<Directory>().toList()
       ..sort((a, b) => b.path.compareTo(a.path));
     expect(folders, hasLength(10));
     final names = folders.first
@@ -581,18 +583,42 @@ void main() {
 
   test('session changes create snapshot and automatic exports', () async {
     await store.setSession(3, 3);
-    final session = Session(store);
+    final induk = await Directory.systemTemp.createTemp('pantarlih-tukar-');
+    addTearDown(() => induk.delete(recursive: true));
+    final session = Session(store, pertukaranInduk: induk);
     await session.load();
     expect(session.rt, 3);
     await session.focusRt(const RtRw(3, 4));
     expect(await store.snapshots(), hasLength(1));
-    expect(await Directory('${root.path}/export/auto').list().toList(),
-        isNotEmpty);
+    final folder = (await session.folderPertukaran(minta: false))!;
+    expect(await folder.eksporOtomatis.list().toList(), isNotEmpty);
+    expect(
+        folder.cadangan
+            .listSync()
+            .where((f) => f.path.endsWith('.zip'))
+            .toList(),
+        hasLength(1));
+    // Nothing public-facing is written into the private root.
+    expect(await Directory('${root.path}/export').exists(), isFalse);
     for (var i = 0; i < 21; i++) {
       await store.snapshot();
     }
     expect(await store.snapshots(), hasLength(20));
     expect((await store.settings())['rt_aktif'], '4');
+  });
+
+  test('RT switch survives an unwritable public folder and warns', () async {
+    await store.setSession(3, 3);
+    // A file where the exchange parent should be: every mkdir fails.
+    final palsu = File('${root.path}/bukan_folder');
+    await palsu.writeAsString('x', flush: true);
+    final session = Session(store, pertukaranInduk: Directory(palsu.path));
+    await session.load();
+    await session.focusRt(const RtRw(3, 4));
+    expect(session.rt, 4);
+    expect(await store.snapshots(), hasLength(1));
+    expect(session.peringatanCadangan, isNotNull);
+    expect(session.peringatanCadangan, isNot(contains(';')));
   });
 
   test('journal payload is the full warga row, not a delta', () async {
@@ -1219,7 +1245,8 @@ void main() {
       'nama_prov': 'Jawa Tengah',
       'manual': 1,
     });
-    final files = await ExportService(store).generate(rw: 3, rt: 3);
+    final files = await ExportService(store)
+        .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
     final dps = files.firstWhere((f) {
       final n = f.path.split(Platform.pathSeparator).last;
       // Manual lokasi exports carry the slug of their kode, not a shared

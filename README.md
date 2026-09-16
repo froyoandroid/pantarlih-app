@@ -35,9 +35,9 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 
 ## Penggunaan
 
-1. Instal APK (Android 7.0+), buka aplikasi, izinkan akses berkas. Pada Android 11+, aktifkan “Izinkan akses untuk mengelola semua file”, lalu kembali ke aplikasi. Android 7–10 menggunakan izin penyimpanan biasa.
+1. Instal APK (Android 7.0+) dan buka aplikasi. Tidak ada izin yang diminta saat membuka. Izin akses berkas (Android 11+: “Izinkan akses untuk mengelola semua file”, Android 7–10: izin penyimpanan biasa) baru diminta saat pertama kali ekspor Excel, membuat cadangan, atau impor.
 2. Impor referensi bersifat opsional. Bila ada workbook lama, pilih sheet `RT 03`, `RT 04`, dan `RT 05` satu per satu. Jangan impor `REKAP`. Kolom dipetakan di layar. Impor ulang diperbolehkan. Ada menu hapus semua referensi.
-3. Saat pertama dibuka, pilih Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan, atau ketik manual, atau lewati. RT/RW tetap diketik petugas (data Kemendagri berhenti di desa). Pergantian RT/RW membuat snapshot dan Excel otomatis lokal. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
+3. Saat pertama dibuka, pilih Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan, atau ketik manual, atau lewati. RT/RW tetap diketik petugas (data Kemendagri berhenti di desa). Pergantian RT/RW membuat snapshot di dalam aplikasi, dan bila izin berkas sudah ada, juga bundel cadangan plus Excel otomatis di folder publik. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
 4. Daftar RT adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
 5. Ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
 6. Isi nama dulu, lalu NIK, JK, tempat/tanggal lahir. NIK boleh kosong. NIK yang bukan 16 digit, tanggal/JK yang tidak cocok, dan NIK duplikat hanya peringatan dan tetap bisa disimpan. Keterangan teks bebas, tidak dikelompokkan atau dinilai.
@@ -45,21 +45,28 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 
 ## Lokasi dan keamanan data
 
-Semua berkas berada di penyimpanan publik `Documents/PantarlihKalitorong/`:
+Data aplikasi berada di penyimpanan privat aplikasi dan tidak membutuhkan izin apa pun:
 
 ```text
 pantarlih.db           SQLite (WAL)
-journal/               JSONL append-only, per tanggal WIB
+journal/               JSONL append-only, per tanggal WIB, tidak pernah dihapus
+snapshot/              20 snapshot terbaru, yang tertua dirotasi
 import/raw/            file sumber utuh; subfolder unik per percobaan
 import/parsed/         sel sebelum normalisasi + pemetaan sheet
 import/ready/          record hasil normalisasi
-snapshot/              20 snapshot terbaru, yang tertua dirotasi
-export/auto/           Excel saat pindah RT/RW
-export/manual/         hasil ekspor pengguna
 recovered/             database lama dan laporan baris jurnal rusak
 ```
 
-Folder tidak terenkripsi. Lindungi HP dengan kunci layar dan cadangkan lewat USB ke media aman. Berkas publik tetap ada setelah uninstall; jangan membagikan seluruh folder ke penerima yang tidak berwenang. Aplikasi tidak meminta INTERNET, tidak menyimpan foto KK, dan menonaktifkan Android auto-backup. Aplikasi lain yang dipilih pada dialog bagikan dapat mengunggah berkas atas tindakan pengguna.
+Folder publik `Documents/Pantarlih<Desa>_<kode>/` hanya untuk pertukaran dengan dunia luar dan hanya disentuh setelah pengguna memberi izin berkas:
+
+```text
+ekspor/                hasil ekspor pengguna, satu subfolder per ekspor
+ekspor/otomatis/       Excel saat pindah RT/RW, 10 terbaru
+cadangan/              cadangan_<stamp>.zip berisi snapshot + seluruh jurnal, 10 terbaru
+impor/                 tempat menaruh workbook lama agar mudah ditemukan
+```
+
+Data privat ikut hilang saat aplikasi dihapus. Cadangan di folder publik tidak, dan setiap bundel bisa dipulihkan karena memuat jurnal lengkap. Folder tidak terenkripsi. Lindungi HP dengan kunci layar dan salin folder cadangan lewat USB ke media aman. Aplikasi tidak meminta INTERNET, tidak menyimpan foto KK, dan menonaktifkan Android auto-backup. Aplikasi lain yang dipilih pada dialog bagikan dapat mengunggah berkas atas tindakan pengguna.
 
 Workbook pribadi di `data-exel/` diabaikan Git dan tidak dibundel ke APK. Impor membutuhkan file di perangkat. Tes workbook asli berjalan bila file tersedia lokal; tes sintetis tetap berjalan tanpa data pribadi.
 

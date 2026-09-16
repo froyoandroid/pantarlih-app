@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mcp_toolkit/mcp_toolkit.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'core/format.dart';
 import 'data/storage.dart';
@@ -43,8 +42,7 @@ void _catatCrash(Object error, StackTrace? stack) {
   try {
     unawaited(() async {
       try {
-        final dir = Directory(
-            '${(await getApplicationDocumentsDirectory()).path}/recovered');
+        final dir = Directory('${(await akarData()).path}/recovered');
         await dir.create(recursive: true);
         await File('${dir.path}/crash_${fileStamp()}.log')
             .writeAsString('$error\n\n$stack', flush: true);
@@ -128,26 +126,17 @@ class _StartupScreenState extends State<StartupScreen> {
       error = null;
     });
     try {
-      final resolved = await resolveDataRoot();
-      if (store == null || store!.root.path != resolved.root.path) {
-        // Retry after a failed attempt may resolve a different root (e.g. the
-        // user just granted storage permission). A cached store pointing at
-        // the old root would keep failing, so reopen on the new root.
-        await store?.close();
-        store = AppStore(resolved.root);
-      }
+      final root = await akarData();
+      store ??= AppStore(root);
       if (recover) {
         await store!.rebuild();
       } else {
         await store!.open();
       }
       final wilayah = await WilayahRepo.open();
-      final session =
-          Session(store!, usingPublic: resolved.usingPublic, wilayah: wilayah);
+      final session = Session(store!, wilayah: wilayah);
       await session.pastikanWorkspace();
-      await session.selaraskanFolderDesa();
-      store = session.store;
-      await tandaiIntroSelesai(dataRoot: session.store.root);
+      await tandaiIntroSelesai(base: root);
       if (!mounted) return;
       final home = HomeScreen(session: session);
       if (!langsungBuka &&
@@ -219,10 +208,10 @@ class _StartupScreenState extends State<StartupScreen> {
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(height: 14),
                               const Text(
-                                  'Data disimpan di folder Documents atau Dokumen. Nama foldernya Pantarlih diikuti nama desa. Berikan izin akses berkas agar jurnal, Excel, dan cadangan tetap bisa diambil lewat USB.',
+                                  'Data tersimpan di dalam aplikasi dan tidak butuh izin apa pun. Excel, cadangan, dan impor memakai folder Documents dengan nama Pantarlih diikuti nama desa. Izin akses berkas baru diminta saat pertama kali ekspor atau impor.',
                                   textAlign: TextAlign.center),
                               const Notice(
-                                  'Folder ini berisi data pribadi warga. Lindungi perangkat dan cadangan. Tidak ada pengiriman otomatis ke internet.',
+                                  'Data warga bersifat pribadi. Lindungi perangkat dan folder cadangan. Tidak ada pengiriman otomatis ke internet.',
                                   icon: Icons.lock_outline),
                               if (error != null) Notice(error!, error: true),
                               const SizedBox(height: 16),
