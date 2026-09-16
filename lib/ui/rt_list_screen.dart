@@ -85,11 +85,12 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _edit(RecordMap row) async {
-    await Navigator.push(
+    final saved = await Navigator.push<int>(
         context,
         MaterialPageRoute(
             builder: (_) =>
                 SurveyForm(session: widget.session, warga: row)));
+    if (!mounted || saved == null) return;
     await _load();
   }
 
@@ -248,8 +249,10 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final warnaKode = '${row['warna'] ?? ''}';
                                   final warnaKartu =
                                       _warnaKartu[warnaKode] ?? Colors.white;
-                                  return Dismissible(
+                                  return KeyedSubtree(
                                       key: ValueKey(id),
+                                      child: Dismissible(
+                                          key: ValueKey('hapus-$id'),
                                       direction: DismissDirection.endToStart,
                                       background: Container(
                                           alignment: Alignment.centerRight,
@@ -318,7 +321,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                               ].join('\n')),
                                               onTap: () => _edit(row),
                                               onLongPress: () =>
-                                                  _opsiKartu(row))));
+                                                  _opsiKartu(row)))));
                                 })),
                       ])));
   }

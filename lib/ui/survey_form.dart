@@ -198,6 +198,7 @@ class _SurveyFormState extends State<SurveyForm> {
       feedback(context,
           wargaId == null ? 'Data tersimpan.' : 'Perubahan tersimpan.');
       if (lanjut) {
+        FocusManager.instance.primaryFocus?.unfocus();
         Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -213,6 +214,7 @@ class _SurveyFormState extends State<SurveyForm> {
                     })));
         return;
       }
+      FocusManager.instance.primaryFocus?.unfocus();
       Navigator.pop(context, saved['id'] as int);
     } catch (e) {
       if (mounted) {
@@ -258,7 +260,7 @@ class _SurveyFormState extends State<SurveyForm> {
             const SizedBox(height: 18),
             TextField(
                 controller: name,
-                autofocus: true,
+                autofocus: widget.warga == null,
                 autocorrect: false,
                 enableSuggestions: false,
                 textInputAction: TextInputAction.next,
