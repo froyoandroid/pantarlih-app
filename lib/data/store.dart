@@ -635,6 +635,12 @@ class AppStore extends ChangeNotifier {
     JOIN v_duplikat_nik d ON w.nik = d.nik
     ORDER BY w.nik, w.urut_sort, w.id''');
 
+  Future<List<RecordMap>> duplicateNameRows() => db.rawQuery('''
+    SELECT w.* FROM warga w
+    JOIN v_duplikat_nama d
+      ON w.nama_norm = d.nama_norm AND w.rw = d.rw AND w.rt = d.rt
+    ORDER BY w.rw, w.rt, w.nama_norm, w.urut_sort, w.id''');
+
   Future<List<RecordMap>> tanpaNik({int? rw, int? rt}) => db.query('warga',
       where: [
         "(nik IS NULL OR nik = '')",
