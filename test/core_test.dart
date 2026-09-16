@@ -33,6 +33,13 @@ void main() {
     expect(levenshtein('kitten', 'sitting'), 3);
     expect(skorNama('emi', 'EMI'), 100);
   });
+  test('date formatter inserts dashes and still parses to ISO', () {
+    final formatted = TanggalInputFormatter().formatEditUpdate(
+        TextEditingValue.empty, const TextEditingValue(text: '19091968'));
+    expect(formatted.text, '19-09-1968');
+    expect(parseTanggal(formatted.text), '1968-09-19');
+  });
+
   test('strict day-first date parsing and leap years', () {
     for (final d in ['11/09/1973', '11-09-1973', '11.09.1973']) {
       expect(parseTanggal(d), '1973-09-11');

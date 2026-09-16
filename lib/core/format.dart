@@ -1,3 +1,22 @@
+import 'package:flutter/services.dart';
+
+class TanggalInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final clipped = digits.length > 8 ? digits.substring(0, 8) : digits;
+    final buffer = StringBuffer();
+    for (var i = 0; i < clipped.length; i++) {
+      if (i == 2 || i == 4) buffer.write('-');
+      buffer.write(clipped[i]);
+    }
+    final text = buffer.toString();
+    return TextEditingValue(
+        text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
+}
+
 String timestamp([DateTime? value]) {
   // All persisted timestamps use the mandated WIB offset, independent of device settings.
   final d = (value ?? DateTime.now()).toUtc().add(const Duration(hours: 7));
