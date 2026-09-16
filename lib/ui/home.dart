@@ -122,6 +122,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return null;
   }
 
+  /// Pairs holding typed warga but outside the workspace. Without this the
+  /// rows are invisible in every screen yet still exist and still export.
+  List<RtRw> get _luarWilayah => [
+        for (final row in counts)
+          if (!widget.session.workspace.any((p) =>
+              p.rw == intValue(row['rw']) && p.rt == intValue(row['rt'])))
+            RtRw(intValue(row['rw']), intValue(row['rt']))
+      ]..sort();
+
+  Future<void> _tambahkanLuar(RtRw pair) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await widget.session.addRtRw(pair.rt, pair.rw);
+      await _load();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   String get _lokasiSub {
     final loc = widget.session.lokasi;
     if (loc == null) return 'Pilih desa, lalu nama pada formulir';
@@ -275,6 +297,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Text(
                                         'RT ${pair.rt.toString().padLeft(2, '0')} · ${_countFor(pair)?['jumlah'] ?? 0} warga · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK')),
                             ],
+                          if (_luarWilayah.isNotEmpty) ...[
+                            const SizedBox(height: 14),
+                            const Text('Di luar wilayah kerja',
+                                style: TextStyle(fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 2),
+                            const Text(
+                                'Data tersimpan tetapi tidak tampil di daftar. Ketuk untuk menambahkan ke wilayah kerja.',
+                                style: TextStyle(color: Colors.black54)),
+                            for (final pair in _luarWilayah)
+                              ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  title: Text(
+                                      '${pair.label} · ${_countFor(pair)?['jumlah'] ?? 0} warga · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK'),
+                                  trailing: const Icon(Icons.add_circle_outline,
+                                      size: 20),
+                                  onTap:
+                                      busy ? null : () => _tambahkanLuar(pair)),
+                          ],
                         ]))),
             const SizedBox(height: 8),
             _action(
