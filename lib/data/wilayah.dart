@@ -198,12 +198,19 @@ class WilayahRepo {
     return rows.isEmpty ? null : Wilayah.fromRow(rows.first);
   }
 
+  /// Province, kabupaten, kecamatan chain of a kode. Depth is capped and
+  /// visited codes tracked so a corrupt pack (self- or cyclic induk) cannot
+  /// spin the UI forever.
   Future<List<Wilayah>> leluhur(String kode) async {
     final chain = <Wilayah>[];
+    final seen = <String>{kode};
     var current = await byKode(kode);
-    while (current?.induk != null) {
-      final parent = await byKode(current!.induk!);
+    while (current != null && current.induk != null && chain.length < 4) {
+      final parentKode = current.induk!;
+      if (seen.contains(parentKode)) break;
+      final parent = await byKode(parentKode);
       if (parent == null) break;
+      seen.add(parentKode);
       chain.insert(0, parent);
       current = parent;
     }

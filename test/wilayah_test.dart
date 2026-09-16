@@ -68,6 +68,33 @@ void main() {
     }
   });
 
+  test('leluhur stops on a corrupt cyclic pack', () async {
+    final support = await Directory.systemTemp.createTemp('wilayah-cycle-');
+    final copy = File('${support.path}/wilayah_cycle.db');
+    await File('${Directory.current.path}/assets/wilayah.db').copy(copy.path);
+    final db = await databaseFactoryFfi.openDatabase(copy.path,
+        options: OpenDatabaseOptions(singleInstance: false));
+    // Provinces 11 and 12 point at each other.
+    await db.update('wilayah', {'induk': '12'},
+        where: 'kode = ?', whereArgs: ['11']);
+    await db.update('wilayah', {'induk': '11'},
+        where: 'kode = ?', whereArgs: ['12']);
+    await db.close();
+    final repo = await WilayahRepo.open(
+        supportDir: support,
+        assetFile: copy,
+        bundledMeta: {'sha_sumber': 'x'},
+        factory: databaseFactoryFfi);
+    try {
+      expect(repo.available, isTrue);
+      final chain = await repo.leluhur('11');
+      expect(chain.length, lessThanOrEqualTo(4));
+    } finally {
+      await repo.close();
+      await support.delete(recursive: true);
+    }
+  });
+
   test('missing wilayah asset leaves the repo unavailable', () async {
     final support = await Directory.systemTemp.createTemp('wilayah-missing-');
     final repo = await WilayahRepo.open(
