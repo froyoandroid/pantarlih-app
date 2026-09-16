@@ -284,6 +284,26 @@ void main() {
     expect(cellText(rows[2][1]), 'MUHAMAD HASAN');
   });
 
+  test('insert before a row uses the gap before that row', () async {
+    final first = await store.saveWarga(fields());
+    final second = await store.saveWarga(fields(name: 'KEDUA'));
+    await store.saveWarga(fields(name: 'DEPAN', nik: null),
+        beforeId: first['id'] as int);
+    expect((await store.wargaRt(3, 3)).map((r) => r['nama']),
+        ['DEPAN', 'MUHAMAD HASAN', 'KEDUA']);
+    await store.saveWarga(fields(name: 'TENGAH', nik: null),
+        beforeId: second['id'] as int);
+    expect((await store.wargaRt(3, 3)).map((r) => r['nama']),
+        ['DEPAN', 'MUHAMAD HASAN', 'TENGAH', 'KEDUA']);
+  });
+
+  test('card warna persists on save', () async {
+    final saved = await store.saveWarga(fields(name: 'WARNA', nik: null));
+    await store.saveWarga({...fields(name: 'WARNA', nik: null), 'warna': 'kuning'},
+        id: saved['id'] as int);
+    expect((await store.warga(saved['id'] as int))!['warna'], 'kuning');
+  });
+
   test('renumber runs when the gap is exhausted', () async {
     final a = await store.saveWarga(fields());
     await store.saveWarga(fields(name: 'B'));
@@ -686,6 +706,27 @@ void main() {
       expect(report.failed, 0);
       final rebuilt = await newer.db.query('warga', orderBy: 'id');
       expect(rebuilt.first['nama'], saved['nama']);
+    } finally {
+      await newer.close();
+      await isolated.delete(recursive: true);
+    }
+  });
+
+  test('opening a v5 database on v6 adds warna and keeps rows', () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v5-open-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 5);
+    await older.open();
+    final saved = await older.saveWarga(fields());
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 6);
+    await newer.open();
+    try {
+      final after = await newer.db.query('warga');
+      expect(after, hasLength(1));
+      expect(after.first['id'], saved['id']);
+      expect(after.first['nama'], saved['nama']);
+      expect(after.first['warna'], isNull);
     } finally {
       await newer.close();
       await isolated.delete(recursive: true);

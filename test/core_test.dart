@@ -107,12 +107,15 @@ void main() {
     expect(raised5['schema_v'], 5);
     expect((raised5['data'] as Map)['nama'], 'SITI');
     expect((raised5['data'] as Map).containsKey('sumber_input'), isFalse);
+    final raised6 = migrateEvent(withSource, target: 6);
+    expect(raised6['schema_v'], 6);
+    expect((raised6['data'] as Map)['warna'], isNull);
     expect(
-        () => migrateEvent({'schema_v': 5, 'data': {}}, target: 4),
+        () => migrateEvent({'schema_v': 6, 'data': {}}, target: 5),
         throwsA(isA<JournalVersionException>().having((e) => e.message,
             'message', contains('lebih baru'))));
     expect(
-        () => migrateEvent({'schema_v': 6, 'data': {}}, target: 5),
+        () => migrateEvent({'schema_v': 7, 'data': {}}, target: 6),
         throwsA(isA<JournalVersionException>().having((e) => e.message,
             'message', contains('lebih baru'))));
   });

@@ -13,12 +13,14 @@ class SurveyForm extends StatefulWidget {
       this.seed,
       this.initialName,
       this.afterId,
+      this.beforeId,
       this.chainCount = 1});
   final Session session;
   final RecordMap? warga;
   final RecordMap? seed;
   final String? initialName;
   final int? afterId;
+  final int? beforeId;
   final int chainCount;
   @override
   State<SurveyForm> createState() => _SurveyFormState();
@@ -123,6 +125,7 @@ class _SurveyFormState extends State<SurveyForm> {
         'rt': int.tryParse(rt.text),
         'rw': int.tryParse(rw.text),
         'keterangan': nilaiKeterangan(ketChip, note.text),
+        'warna': widget.warga?['warna'],
       };
       final warnings = periksaNik(
           nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender,
@@ -189,7 +192,8 @@ class _SurveyFormState extends State<SurveyForm> {
         }
       }
       final saved = await widget.session.store
-          .saveWarga(data, id: wargaId, afterId: widget.afterId);
+          .saveWarga(data, id: wargaId, afterId: widget.afterId,
+              beforeId: widget.beforeId);
       if (!mounted) return;
       feedback(context,
           wargaId == null ? 'Data tersimpan.' : 'Perubahan tersimpan.');

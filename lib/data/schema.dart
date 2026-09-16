@@ -1,4 +1,4 @@
-const schemaVersion = 5;
+const schemaVersion = 6;
 const schemaBaseVersion = 2;
 const appVersion = '1.0.0+1';
 
@@ -96,6 +96,7 @@ const wargaColumns = <String>[
   'rt',
   'rw',
   'keterangan',
+  'warna',
   'dibuat_pada',
   'diubah_pada',
 ];

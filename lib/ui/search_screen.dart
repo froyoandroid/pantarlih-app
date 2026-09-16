@@ -7,9 +7,11 @@ import 'common.dart';
 import 'survey_form.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.session, this.afterId});
+  const SearchScreen(
+      {super.key, required this.session, this.afterId, this.beforeId});
   final Session session;
   final int? afterId;
+  final int? beforeId;
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
@@ -77,6 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 warga: wargaRow,
                 seed: seed,
                 afterId: wargaRow == null ? widget.afterId : null,
+                beforeId: wargaRow == null ? widget.beforeId : null,
                 initialName: wargaRow == null && seed == null && !byDate
                     ? query.text
                     : null)));
