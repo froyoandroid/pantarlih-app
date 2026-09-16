@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "id.kalitorong.pantarlih_kalitorong"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android 14 requires compileSdk 37 (AGP 9.0.1 caps
+    // its recommendation at 36 — verified building fine with 37).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
