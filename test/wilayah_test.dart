@@ -30,10 +30,11 @@ void main() {
               where: 'kode = ?', whereArgs: ['33.27.07.2016']))
           .single;
       expect(kalitorong['nama'], 'Kalitorong');
-      final metaFile = jsonDecode(
-          await File('assets/wilayah.meta.json').readAsString()) as Map;
-      final counts = await db.rawQuery(
-          'SELECT level, COUNT(*) AS n FROM wilayah GROUP BY level');
+      final metaFile =
+          jsonDecode(await File('assets/wilayah.meta.json').readAsString())
+              as Map;
+      final counts = await db
+          .rawQuery('SELECT level, COUNT(*) AS n FROM wilayah GROUP BY level');
       final byLevel = {
         for (final r in counts) r['level'] as int: r['n'] as int
       };
@@ -53,9 +54,7 @@ void main() {
     final repo = await WilayahRepo.open(
         supportDir: support,
         assetFile: File('${Directory.current.path}/assets/wilayah.db'),
-        bundledMeta: {
-          'sha_sumber': 'd68e8d5516f969d1905d0b2940f20034becb0db7'
-        },
+        bundledMeta: {'sha_sumber': 'd68e8d5516f969d1905d0b2940f20034becb0db7'},
         factory: databaseFactoryFfi);
     try {
       expect(repo.available, isTrue);

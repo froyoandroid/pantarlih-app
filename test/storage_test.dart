@@ -30,10 +30,12 @@ void main() {
     final documents = Directory('${root.path}/Documents');
     final dokumen = Directory('${root.path}/Dokumen');
     await dokumen.create();
-    expect((await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
+    expect(
+        (await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
         dokumen.path);
     await documents.create();
-    expect((await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
+    expect(
+        (await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
         documents.path);
   });
 
@@ -93,13 +95,16 @@ void main() {
     expect(await File('${to.path}/journal/2026-09-16.jsonl').readAsString(),
         '{"event_id":2,"op":"UPDATE"}\n');
     // Origin is kept aside, staging is gone, marker never leaks.
-    expect(await Directory('${parent.path}/PantarlihLama.lama').exists(), isTrue);
-    expect(await Directory('${parent.path}/PantarlihBaru.partial').exists(), isFalse);
+    expect(
+        await Directory('${parent.path}/PantarlihLama.lama').exists(), isTrue);
+    expect(await Directory('${parent.path}/PantarlihBaru.partial').exists(),
+        isFalse);
     expect(await File('${to.path}/PINDAH_SELESAI').exists(), isFalse);
     expect(await Directory(from.path).exists(), isFalse);
   });
 
-  test('relocation into a folder that already holds jsonl appends, not clobbers',
+  test(
+      'relocation into a folder that already holds jsonl appends, not clobbers',
       () async {
     final parent = await Directory.systemTemp.createTemp('pantarlih-merge-');
     addTearDown(() => parent.delete(recursive: true));
@@ -107,10 +112,13 @@ void main() {
     final to = Directory('${parent.path}/PantarlihB');
     await Directory('${from.path}/journal').create(recursive: true);
     await Directory('${to.path}/journal').create(recursive: true);
-    await File('${from.path}/journal/hari.jsonl').writeAsString('a\n', flush: true);
-    await File('${to.path}/journal/hari.jsonl').writeAsString('b\n', flush: true);
+    await File('${from.path}/journal/hari.jsonl')
+        .writeAsString('a\n', flush: true);
+    await File('${to.path}/journal/hari.jsonl')
+        .writeAsString('b\n', flush: true);
     await relocateDataRoot(from, to);
-    expect(await File('${to.path}/journal/hari.jsonl').readAsString(), 'b\na\n');
+    expect(
+        await File('${to.path}/journal/hari.jsonl').readAsString(), 'b\na\n');
   });
 
   test('cariFolderData ignores .partial and .lama folders', () async {
@@ -119,7 +127,8 @@ void main() {
     final asli = Directory('${parent.path}/PantarlihDesa')..create();
     await File('${asli.path}/pantarlih.db').writeAsString('x', flush: true);
     final partial = Directory('${parent.path}/PantarlihDesa.partial')..create();
-    await File('${partial.path}/pantarlih.db').writeAsString('baru', flush: true);
+    await File('${partial.path}/pantarlih.db')
+        .writeAsString('baru', flush: true);
     await Directory('${parent.path}/PantarlihDesa.lama').create();
     final chosen = await cariFolderData(parent);
     expect(chosen!.path, asli.path);

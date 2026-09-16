@@ -189,62 +189,64 @@ class _StartupScreenState extends State<StartupScreen> {
       ]))));
     }
     return Scaffold(
-      body: SafeArea(
-          child: Center(
-              child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(28),
-                  child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Icon(Icons.fact_check_outlined,
-                                size: 68, color: forest),
-                            const SizedBox(height: 24),
-                            const Text('Pantarlih',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: forest)),
-                            const Text('PENDATAAN DPS OFFLINE',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    letterSpacing: 1.7, fontSize: 12)),
-                            const SizedBox(height: 30),
-                            const Text('Siap mendata, bahkan tanpa sinyal.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 14),
-                            const Text(
-                                'Data disimpan di folder Documents atau Dokumen. Nama foldernya Pantarlih diikuti nama desa. Berikan izin akses berkas agar jurnal, Excel, dan cadangan tetap bisa diambil lewat USB.',
-                                textAlign: TextAlign.center),
-                            const Notice(
-                                'Folder ini berisi data pribadi warga. Lindungi perangkat dan cadangan. Tidak ada pengiriman otomatis ke internet.',
-                                icon: Icons.lock_outline),
-                            if (error != null) Notice(error!, error: true),
-                            const SizedBox(height: 16),
-                            FilledButton.icon(
-                                onPressed: busy ? null : start,
-                                icon: const Icon(Icons.arrow_forward),
-                                label: Text(
-                                    busy ? 'Membuka data…' : 'BUKA APLIKASI')),
-                            if (error != null && store != null)
-                              TextButton(
-                                  onPressed: busy
-                                      ? null
-                                      : () async {
-                                          if (await confirm(
-                                              context,
-                                              'Pulihkan database?',
-                                              'Database lama dipertahankan di folder recovered. Jurnal akan diputar ulang.',
-                                              action: 'PULIHKAN')) {
-                                            await start(recover: true);
-                                          }
-                                        },
-                                  child:
-                                      const Text('Bangun ulang dari jurnal')),
-                          ]))))));
+        body: SafeArea(
+            child: Center(
+                child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(28),
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Icon(Icons.fact_check_outlined,
+                                  size: 68, color: forest),
+                              const SizedBox(height: 24),
+                              const Text('Pantarlih',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: forest)),
+                              const Text('PENDATAAN DPS OFFLINE',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      letterSpacing: 1.7, fontSize: 12)),
+                              const SizedBox(height: 30),
+                              const Text('Siap mendata, bahkan tanpa sinyal.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 14),
+                              const Text(
+                                  'Data disimpan di folder Documents atau Dokumen. Nama foldernya Pantarlih diikuti nama desa. Berikan izin akses berkas agar jurnal, Excel, dan cadangan tetap bisa diambil lewat USB.',
+                                  textAlign: TextAlign.center),
+                              const Notice(
+                                  'Folder ini berisi data pribadi warga. Lindungi perangkat dan cadangan. Tidak ada pengiriman otomatis ke internet.',
+                                  icon: Icons.lock_outline),
+                              if (error != null) Notice(error!, error: true),
+                              const SizedBox(height: 16),
+                              FilledButton.icon(
+                                  onPressed: busy ? null : start,
+                                  icon: const Icon(Icons.arrow_forward),
+                                  label: Text(busy
+                                      ? 'Membuka data…'
+                                      : 'BUKA APLIKASI')),
+                              if (error != null && store != null)
+                                TextButton(
+                                    onPressed: busy
+                                        ? null
+                                        : () async {
+                                            if (await confirm(
+                                                context,
+                                                'Pulihkan database?',
+                                                'Database lama dipertahankan di folder recovered. Jurnal akan diputar ulang.',
+                                                action: 'PULIHKAN')) {
+                                              await start(recover: true);
+                                            }
+                                          },
+                                    child:
+                                        const Text('Bangun ulang dari jurnal')),
+                            ]))))));
   }
 }

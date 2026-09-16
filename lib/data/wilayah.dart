@@ -123,8 +123,7 @@ class WilayahRepo {
           }
           await assetFile.copy(dest.path);
         } else {
-          final data =
-              await (bundle ?? rootBundle).load('assets/wilayah.db');
+          final data = await (bundle ?? rootBundle).load('assets/wilayah.db');
           await dest.writeAsBytes(
               data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
               flush: true);
@@ -140,7 +139,8 @@ class WilayahRepo {
     }
   }
 
-  static Future<Map<String, String>> _metaFromBundle(AssetBundle? bundle) async {
+  static Future<Map<String, String>> _metaFromBundle(
+      AssetBundle? bundle) async {
     try {
       final raw =
           await (bundle ?? rootBundle).loadString('assets/wilayah.meta.json');

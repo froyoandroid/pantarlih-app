@@ -112,12 +112,12 @@ void main() {
     expect((raised6['data'] as Map)['warna'], isNull);
     expect(
         () => migrateEvent({'schema_v': 6, 'data': {}}, target: 5),
-        throwsA(isA<JournalVersionException>().having((e) => e.message,
-            'message', contains('lebih baru'))));
+        throwsA(isA<JournalVersionException>()
+            .having((e) => e.message, 'message', contains('lebih baru'))));
     expect(
         () => migrateEvent({'schema_v': 7, 'data': {}}, target: 6),
-        throwsA(isA<JournalVersionException>().having((e) => e.message,
-            'message', contains('lebih baru'))));
+        throwsA(isA<JournalVersionException>()
+            .having((e) => e.message, 'message', contains('lebih baru'))));
   });
 
   test('onReorder index correction keeps the same beforeId and afterId', () {

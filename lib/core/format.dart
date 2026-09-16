@@ -50,6 +50,7 @@ String? nullableText(String value) {
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
 }
+
 int intValue(Object? value, [int fallback = 0]) =>
     int.tryParse('$value') ?? fallback;
 String jkTampil(Object? value) => value == 'L'

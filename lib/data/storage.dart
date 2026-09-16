@@ -90,8 +90,9 @@ Future<Directory?> cariFolderData(Directory parent) async {
     if (nama.endsWith('.partial') || nama.endsWith('.lama')) continue;
     if (!adaBerkasSesi(entity)) continue;
     final db = File('${entity.path}/pantarlih.db');
-    final diubah =
-        await db.exists() ? await db.lastModified() : DateTime.fromMillisecondsSinceEpoch(0);
+    final diubah = await db.exists()
+        ? await db.lastModified()
+        : DateTime.fromMillisecondsSinceEpoch(0);
     if (terbaik == null || diubah.isAfter(terbaru!)) {
       terbaik = entity;
       terbaru = diubah;
@@ -159,7 +160,8 @@ Future<void> tandaiIntroSelesai({Directory? base, Directory? dataRoot}) async {
   }
   await (await _introFlag()).writeAsString('1', flush: true);
   if (dataRoot != null) {
-    await File('${dataRoot.path}/intro_selesai').writeAsString('1', flush: true);
+    await File('${dataRoot.path}/intro_selesai')
+        .writeAsString('1', flush: true);
     await tulisFolderAktif(dataRoot.parent, basenameDir(dataRoot));
   }
 }
@@ -172,8 +174,7 @@ Future<bool> requestPublicAccess() async {
 }
 
 Future<Directory?> indukPublik({bool buatJikaTidakAda = true}) async {
-  final path =
-      await _channelPenyimpanan.invokeMethod<String>('documentsPath');
+  final path = await _channelPenyimpanan.invokeMethod<String>('documentsPath');
   final documents = Directory(path ?? '/storage/emulated/0/Documents');
   final dokumen = Directory('${documents.parent.path}/Dokumen');
   if (!buatJikaTidakAda) {
@@ -241,7 +242,8 @@ Future<void> relocateDataRoot(Directory from, Directory to) async {
     }
   }
   final staged = <String>{};
-  await for (final entity in partial.list(recursive: true, followLinks: false)) {
+  await for (final entity
+      in partial.list(recursive: true, followLinks: false)) {
     if (entity is File) staged.add(entity.path.substring(partial.path.length));
   }
   const gagal = StorageAccessException(
@@ -264,7 +266,8 @@ Future<void> relocateDataRoot(Directory from, Directory to) async {
     // Target already exists (resolveDataRoot pre-creates it, or an older
     // desa folder is being reused): merge staging in, jsonl files append
     // so no journalled record from either side is lost.
-    await for (final entity in partial.list(recursive: true, followLinks: false)) {
+    await for (final entity
+        in partial.list(recursive: true, followLinks: false)) {
       final relative = entity.path.substring(partial.path.length);
       if (entity is Directory) {
         await Directory('${to.path}$relative').create(recursive: true);

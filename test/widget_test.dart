@@ -6,8 +6,7 @@ void main() {
   testWidgets(
       'offline startup explains public files and requests explicit access',
       (tester) async {
-    await tester.pumpWidget(
-        PantarlihApp(introSudah: () async => false));
+    await tester.pumpWidget(PantarlihApp(introSudah: () async => false));
     await tester.pump();
     expect(find.text('Pantarlih'), findsOneWidget);
     expect(find.text('BUKA APLIKASI'), findsOneWidget);

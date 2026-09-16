@@ -51,9 +51,10 @@ class _SurveyFormState extends State<SurveyForm> {
     nik = TextEditingController(
         text: '${edit?['nik'] ?? ''}' == 'null' ? '' : '${edit?['nik'] ?? ''}');
     birthPlace = TextEditingController(
-        text: '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}' == 'null'
-            ? ''
-            : '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}');
+        text:
+            '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}' == 'null'
+                ? ''
+                : '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}');
     birthDate = TextEditingController(
         text: edit?['tgl_lahir'] != null
             ? tanggalTampil(edit?['tgl_lahir'])
@@ -120,8 +121,8 @@ class _SurveyFormState extends State<SurveyForm> {
         'tempat_lahir': nullableText(birthPlace.text),
         'tgl_lahir': iso,
         'desa': nullableText(village.text),
-        'kode_wilayah': widget.warga?['kode_wilayah'] ??
-            widget.session.kodeWilayah,
+        'kode_wilayah':
+            widget.warga?['kode_wilayah'] ?? widget.session.kodeWilayah,
         'rt': int.tryParse(rt.text),
         'rw': int.tryParse(rw.text),
         'keterangan': nilaiKeterangan(ketChip, note.text),
@@ -193,9 +194,8 @@ class _SurveyFormState extends State<SurveyForm> {
           return;
         }
       }
-      final saved = await widget.session.store
-          .saveWarga(data, id: wargaId, afterId: widget.afterId,
-              beforeId: widget.beforeId);
+      final saved = await widget.session.store.saveWarga(data,
+          id: wargaId, afterId: widget.afterId, beforeId: widget.beforeId);
       if (!mounted) return;
       feedback(context,
           wargaId == null ? 'Data tersimpan.' : 'Perubahan tersimpan.');
@@ -205,15 +205,15 @@ class _SurveyFormState extends State<SurveyForm> {
             context,
             MaterialPageRoute(
                 builder: (_) => SurveyForm(
-                    session: widget.session,
-                    afterId: saved['id'] as int,
-                    chainCount: widget.chainCount + 1,
-                    seed: {
-                      'desa': nullableText(village.text) ??
-                          widget.session.village,
-                      'rt': int.tryParse(rt.text),
-                      'rw': int.tryParse(rw.text),
-                    })));
+                        session: widget.session,
+                        afterId: saved['id'] as int,
+                        chainCount: widget.chainCount + 1,
+                        seed: {
+                          'desa': nullableText(village.text) ??
+                              widget.session.village,
+                          'rt': int.tryParse(rt.text),
+                          'rw': int.tryParse(rw.text),
+                        })));
         return;
       }
       FocusManager.instance.primaryFocus?.unfocus();
@@ -356,9 +356,8 @@ class _SurveyFormState extends State<SurveyForm> {
                         ChoiceChip(
                             label: const Text('Lainnya'),
                             selected: ketChip == keteranganLainnya,
-                            onSelected: (on) => _pilihKeterangan(on
-                                ? keteranganLainnya
-                                : keteranganNormal)),
+                            onSelected: (on) => _pilihKeterangan(
+                                on ? keteranganLainnya : keteranganNormal)),
                       ]),
                       if (keteranganArti(ketChip) != null) ...[
                         const SizedBox(height: 8),

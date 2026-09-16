@@ -61,9 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _lepas(RtRw pair) async {
-    if (!await confirm(
-        context,
-        'Lepas dari wilayah kerja?',
+    if (!await confirm(context, 'Lepas dari wilayah kerja?',
         '${pair.label} dilepas dari wilayah kerja. Data yang sudah diketik tetap ada.',
         action: 'LEPAS')) {
       return;
@@ -90,8 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.maxFinite,
                     child: SingleChildScrollView(
                         child: SelectableText(text,
-                            style: const TextStyle(
-                                fontSize: 12, height: 1.4)))),
+                            style:
+                                const TextStyle(fontSize: 12, height: 1.4)))),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx),
@@ -100,12 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _hapusLaporanJurnal() async {
-    if (!await confirm(
-        context,
-        'Hapus pemberitahuan ini?',
+    if (!await confirm(context, 'Hapus pemberitahuan ini?',
         'Laporan di layar dihilangkan. Baris jurnal yang rusak tetap di folder journal dan tidak ikut dihapus.',
-        action: 'HAPUS',
-        dangerous: true)) {
+        action: 'HAPUS', dangerous: true)) {
       return;
     }
     setState(() => busy = true);
@@ -167,7 +162,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(left: 10, top: 4, bottom: 8),
                 child: Text(
                     'Folder data: ${basenameDir(widget.session.store.root)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700))),
+                    style:
+                        TextStyle(fontSize: 12, color: Colors.grey.shade700))),
             const SizedBox(height: 8),
             Card(
                 child: Padding(
@@ -203,8 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               if (rw !=
                                   widget.session.workspaceByRw.keys.first) ...[
                                 const SizedBox(height: 12),
-                                Text(
-                                    'RW ${rw.toString().padLeft(2, '0')}',
+                                Text('RW ${rw.toString().padLeft(2, '0')}',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                               ],
@@ -213,15 +208,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 for (final pair
                                     in widget.session.workspaceByRw[rw]!)
                                   GestureDetector(
-                                      onLongPress: busy
-                                          ? null
-                                          : () => _lepas(pair),
+                                      onLongPress:
+                                          busy ? null : () => _lepas(pair),
                                       child: ChoiceChip(
                                           label: Text(
                                               'RT ${pair.rt.toString().padLeft(2, '0')}'),
-                                          selected: widget.session.rt ==
-                                                  pair.rt &&
-                                              widget.session.rw == pair.rw,
+                                          selected:
+                                              widget.session.rt == pair.rt &&
+                                                  widget.session.rw == pair.rw,
                                           onSelected: busy
                                               ? null
                                               : (_) => _focus(pair))),
@@ -343,8 +337,8 @@ class _TambahRtRwDialog extends StatefulWidget {
 }
 
 class _TambahRtRwDialogState extends State<_TambahRtRwDialog> {
-  late final TextEditingController rw =
-      TextEditingController(text: widget.rwAwal == null ? '' : '${widget.rwAwal}');
+  late final TextEditingController rw = TextEditingController(
+      text: widget.rwAwal == null ? '' : '${widget.rwAwal}');
   final rt = TextEditingController();
 
   @override
@@ -385,7 +379,6 @@ class _TambahRtRwDialogState extends State<_TambahRtRwDialog> {
             TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Batal')),
-            FilledButton(
-                onPressed: _simpan, child: const Text('TAMBAHKAN')),
+            FilledButton(onPressed: _simpan, child: const Text('TAMBAHKAN')),
           ]);
 }

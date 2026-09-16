@@ -107,23 +107,23 @@ class _ImportScreenState extends State<ImportScreen> {
           await showDialog<void>(
               context: context,
               builder: (ctx) => AlertDialog(
-                  title: Text(
-                      '${prep.records.length} baris masuk, ${prep.skipped.length} dilewati'),
-                  content: SizedBox(
-                      width: 420,
-                      height: 320,
-                      child: ListView(children: [
-                        for (final row in prep.skipped)
-                          ListTile(
-                              dense: true,
-                              title: Text('Baris ${row['baris']}'),
-                              subtitle: Text('${row['alasan']}')),
-                      ])),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Tutup'))
-                  ]));
+                      title: Text(
+                          '${prep.records.length} baris masuk, ${prep.skipped.length} dilewati'),
+                      content: SizedBox(
+                          width: 420,
+                          height: 320,
+                          child: ListView(children: [
+                            for (final row in prep.skipped)
+                              ListTile(
+                                  dense: true,
+                                  title: Text('Baris ${row['baris']}'),
+                                  subtitle: Text('${row['alasan']}')),
+                          ])),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Tutup'))
+                      ]));
         }
       }
     } catch (e) {
@@ -134,12 +134,9 @@ class _ImportScreenState extends State<ImportScreen> {
   }
 
   Future<void> clearAll() async {
-    if (!await confirm(
-        context,
-        'Hapus semua referensi?',
+    if (!await confirm(context, 'Hapus semua referensi?',
         'Data hasil ketikan tidak ikut terhapus. Saran pengetikan akan kosong sampai Anda impor lagi.',
-        action: 'HAPUS SEMUA',
-        dangerous: true)) {
+        action: 'HAPUS SEMUA', dangerous: true)) {
       return;
     }
     setState(() => busy = true);
@@ -236,7 +233,8 @@ class _ImportScreenState extends State<ImportScreen> {
                   child: DropdownButtonFormField<int>(
                       key:
                           ValueKey('$sheet:${entry.key}:${mapping[entry.key]}'),
-                      value: mapping[entry.key] ?? -1, // ignore: deprecated_member_use
+                      initialValue: mapping[entry.key] ??
+                          -1, // ignore: deprecated_member_use
                       isExpanded: true,
                       decoration: InputDecoration(labelText: entry.value),
                       items: [

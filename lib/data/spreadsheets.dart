@@ -195,13 +195,8 @@ abstract class TabularSource {
 
   String get nameForStorage => name.split(RegExp(r'[/\\]')).last;
 
-  Future<void> archiveAndImport(
-      AppStore store,
-      String sheet,
-      List<RecordMap> records,
-      Map<String, int> mapping,
-      int startRow,
-      int rt,
+  Future<void> archiveAndImport(AppStore store, String sheet,
+      List<RecordMap> records, Map<String, int> mapping, int startRow, int rt,
       {List<RecordMap> skipped = const []}) async {
     // Unique archive directory keeps repeated attempts and original basename intact.
     final batch =
@@ -227,15 +222,11 @@ abstract class TabularSource {
         .writeAsString('${parsed.map(jsonEncode).join('\n')}\n', flush: true);
     await File('${store.root.path}/import/ready/$batch/$nameForStorage.jsonl')
         .writeAsString(
-            records.isEmpty
-                ? ''
-                : '${records.map(jsonEncode).join('\n')}\n',
+            records.isEmpty ? '' : '${records.map(jsonEncode).join('\n')}\n',
             flush: true);
     await File('${store.root.path}/import/ready/$batch/dilewati.jsonl')
         .writeAsString(
-            skipped.isEmpty
-                ? ''
-                : '${skipped.map(jsonEncode).join('\n')}\n',
+            skipped.isEmpty ? '' : '${skipped.map(jsonEncode).join('\n')}\n',
             flush: true);
     if (records.isNotEmpty) {
       await store.importRows(records, nameForStorage);
@@ -287,9 +278,9 @@ String decodeCsvBytes(Uint8List bytes) {
 }
 
 List<List<String>> parseCsv(String text) {
-  final first = text.split(RegExp(r'\r\n|\n|\r')).firstWhere(
-      (line) => line.trim().isNotEmpty,
-      orElse: () => '');
+  final first = text
+      .split(RegExp(r'\r\n|\n|\r'))
+      .firstWhere((line) => line.trim().isNotEmpty, orElse: () => '');
   final comma = _countUnquoted(first, ',');
   final semi = _countUnquoted(first, ';');
   final separator = semi > comma ? ';' : ',';
@@ -315,7 +306,8 @@ List<List<String>> parseCsv(String text) {
     } else if (ch == separator) {
       row.add(field.toString());
       field = StringBuffer();
-    } else if (ch == '\n' || (ch == '\r' && (i + 1 >= text.length || text[i + 1] != '\n'))) {
+    } else if (ch == '\n' ||
+        (ch == '\r' && (i + 1 >= text.length || text[i + 1] != '\n'))) {
       row.add(field.toString());
       field = StringBuffer();
       if (row.any((c) => c.isNotEmpty)) rows.add(row);
@@ -431,8 +423,7 @@ class ExportService {
     }
     for (var i = 0; i < headers.length; i++) {
       sheet
-              .cell(CellIndex.indexByColumnRow(
-                  columnIndex: i, rowIndex: headerRow))
+              .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: headerRow))
               .cellStyle =
           CellStyle(
               bold: true,
@@ -471,9 +462,8 @@ class ExportService {
       int? rt,
       required int jumlah,
       required int tanpaNik}) {
-    final kode = intValue(lokasi?['manual']) == 1
-        ? '(manual)'
-        : (lokasi?['kode'] ?? '');
+    final kode =
+        intValue(lokasi?['manual']) == 1 ? '(manual)' : (lokasi?['kode'] ?? '');
     return (
       ['Label', 'Nilai'],
       [
@@ -513,8 +503,8 @@ class ExportService {
     final files = <File>[];
     final metadata = <RecordMap>[];
     final lokasiRow = (await store.activeLokasi())?.toRow();
-    Future<void> write(String name,
-        Map<String, (List<String>, List<List<Object?>>)> sheets,
+    Future<void> write(
+        String name, Map<String, (List<String>, List<List<Object?>>)> sheets,
         {List<List<Object?>> kopRows = const []}) async {
       final book = Excel.createExcel();
       final initial = book.getDefaultSheet();
@@ -563,19 +553,20 @@ class ExportService {
           tanpaNik: warga
               .where((r) => r['nik'] == null || '${r['nik']}'.isEmpty)
               .length);
-      final kopRows = kop ? _kop(lokasiRow, rw, selectedRt) : const <List<Object?>>[];
+      final kopRows =
+          kop ? _kop(lokasiRow, rw, selectedRt) : const <List<Object?>>[];
       if (combined) {
         dpsSheets['RT $selectedRt'] = (dpsHeaders, rows);
       } else {
         await write(
             '${namaBerkasBagian([
-              'DPS',
-              code,
-              slugFrom(warga),
-              'RT${selectedRt.toString().padLeft(2, '0')}',
-              'RW$rwPad',
-              date
-            ])}.xlsx',
+                  'DPS',
+                  code,
+                  slugFrom(warga),
+                  'RT${selectedRt.toString().padLeft(2, '0')}',
+                  'RW$rwPad',
+                  date
+                ])}.xlsx',
             {'RT $selectedRt': (dpsHeaders, rows), 'INFO': info},
             kopRows: kopRows);
       }
@@ -588,12 +579,7 @@ class ExportService {
           jumlah: combinedRows,
           tanpaNik: combinedMissing);
       await write(
-          '${namaBerkasBagian([
-            'DPS_GABUNGAN',
-            code,
-            'RW$rwPad',
-            date
-          ])}.xlsx',
+          '${namaBerkasBagian(['DPS_GABUNGAN', code, 'RW$rwPad', date])}.xlsx',
           {...dpsSheets, 'INFO': info},
           kopRows: kop && rts.isNotEmpty
               ? _kop(lokasiRow, rw, rts.first)
@@ -610,8 +596,10 @@ class ExportService {
         dpsHeaders,
         [
           for (final row in duplicateRows)
-            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
-                row['rt'] as int))
+            dpsRow(
+                row,
+                await store.posisi(
+                    row['id'] as int, row['rw'] as int, row['rt'] as int))
         ],
       ),
       'INFO': _info(
@@ -627,8 +615,10 @@ class ExportService {
         dpsHeaders,
         [
           for (final row in duplicateNames)
-            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
-                row['rt'] as int))
+            dpsRow(
+                row,
+                await store.posisi(
+                    row['id'] as int, row['rw'] as int, row['rt'] as int))
         ],
       ),
       'INFO': _info(
@@ -644,8 +634,10 @@ class ExportService {
         dpsHeaders,
         [
           for (final row in missing)
-            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
-                row['rt'] as int))
+            dpsRow(
+                row,
+                await store.posisi(
+                    row['id'] as int, row['rw'] as int, row['rt'] as int))
         ],
       ),
       'INFO': _info(

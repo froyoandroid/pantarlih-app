@@ -214,8 +214,7 @@ void main() {
         store.saveWarga(fields(), id: id),
         throwsA(isA<AppException>()
             .having((e) => e.message, 'message', contains('sudah dihapus'))));
-    await expectLater(
-        store.reorderWarga(kedua['id'] as int, id, null),
+    await expectLater(store.reorderWarga(kedua['id'] as int, id, null),
         throwsA(isA<AppException>()));
   });
 
@@ -246,7 +245,8 @@ void main() {
   });
 
   testWidgets('new form shows SIMPAN & LANJUT', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: SurveyForm(session: Session(store))));
+    await tester
+        .pumpWidget(MaterialApp(home: SurveyForm(session: Session(store))));
     expect(find.text('SIMPAN & LANJUT'), findsOneWidget);
     expect(find.textContaining('orang ke-1'), findsOneWidget);
   });
@@ -258,7 +258,8 @@ void main() {
           afterId: previous?['id'] as int?);
     }
     final rows = await store.wargaRt(3, 3);
-    expect(rows.map((r) => r['nama']), ['SATU', 'DUA', 'TIGA', 'EMPAT', 'LIMA']);
+    expect(
+        rows.map((r) => r['nama']), ['SATU', 'DUA', 'TIGA', 'EMPAT', 'LIMA']);
     final sorts = rows.map((r) => r['urut_sort'] as int).toList();
     expect(sorts, sorts.toList()..sort());
     expect(sorts.toSet(), hasLength(5));
@@ -314,7 +315,8 @@ void main() {
 
   test('card warna persists on save', () async {
     final saved = await store.saveWarga(fields(name: 'WARNA', nik: null));
-    await store.saveWarga({...fields(name: 'WARNA', nik: null), 'warna': 'kuning'},
+    await store.saveWarga(
+        {...fields(name: 'WARNA', nik: null), 'warna': 'kuning'},
         id: saved['id'] as int);
     expect((await store.warga(saved['id'] as int))!['warna'], 'kuning');
   });
@@ -324,15 +326,16 @@ void main() {
     await store.saveWarga(fields(name: 'B'));
     var after = a['id'] as int;
     for (var i = 0; i < 12; i++) {
-      final inserted = await store.saveWarga(fields(name: 'SISIP $i'),
-          afterId: after);
+      final inserted =
+          await store.saveWarga(fields(name: 'SISIP $i'), afterId: after);
       after = inserted['id'] as int;
     }
     final rows = await store.wargaRt(3, 3);
     expect(rows, hasLength(14));
     final sorts = rows.map((r) => r['urut_sort'] as int).toList();
     expect(sorts.toSet().length, sorts.length);
-    final log = await store.db.query('log', where: 'op=?', whereArgs: ['RENUMBER']);
+    final log =
+        await store.db.query('log', where: 'op=?', whereArgs: ['RENUMBER']);
     expect(log, isNotEmpty);
   });
 
@@ -408,7 +411,8 @@ void main() {
   test('twelve RT changes keep ten auto-export folders for the left RT',
       () async {
     await store.saveWarga(fields());
-    await store.saveWarga(fields(name: 'ORANG RT4', rt: 4, nik: '3327071909680099'));
+    await store
+        .saveWarga(fields(name: 'ORANG RT4', rt: 4, nik: '3327071909680099'));
     await store.setSession(3, 3);
     final session = Session(store);
     await session.load();
@@ -450,8 +454,8 @@ void main() {
 
   test('journal payload is the full warga row, not a delta', () async {
     final saved = await store.saveWarga(fields(note: 'bebas'));
-    final log = await store.db
-        .query('log', where: "tabel='warga' AND op='INSERT'");
+    final log =
+        await store.db.query('log', where: "tabel='warga' AND op='INSERT'");
     final payload = jsonDecode(log.first['payload'] as String) as Map;
     expect(payload['id'], saved['id']);
     expect(payload.containsKey('grup_id'), isTrue);
@@ -514,13 +518,15 @@ void main() {
 
   test('opening a v2 database on v3 keeps every row and snapshots first',
       () async {
-    final isolated = await Directory.systemTemp.createTemp('pantarlih-v2-open-');
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v2-open-');
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
     await older.open();
     final saved = await older.saveWarga(fields());
     final before = await older.db.query('warga');
     await older.close();
-    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+    final newer =
+        AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
       2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
     });
     await newer.open();
@@ -552,7 +558,8 @@ void main() {
     await older.saveWarga(fields(name: 'ORANG DUA'));
     final before = await older.db.query('warga');
     await older.close();
-    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+    final newer =
+        AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
       2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
     });
     await newer.open();
@@ -571,15 +578,17 @@ void main() {
 
   test('semicolon CSV with BOM matches the equivalent xlsx fixture', () async {
     final xlsx = fixture();
-    const csvText = '\uFEFFNO;NAMA PEMILIH;NIK;Jenis Kelamin;TEMPAT LAHIR;TANGGAL LAHIR;DUSUN;RT;RW;KET\r\n'
+    const csvText =
+        '\uFEFFNO;NAMA PEMILIH;NIK;Jenis Kelamin;TEMPAT LAHIR;TANGGAL LAHIR;DUSUN;RT;RW;KET\r\n'
         '70;MUHAMAD HASAN;332707**********;LAKI-LAKI;PEMALANG;19-09-1968;KALITORONG;3;3;\r\n'
         '71;SITI SALIMAH;332707**********;PEREMPUAN;PEMALANG;11/09/1973;KALITORONG;3;3;\r\n'
         '72;MUHAMAD NAZWA BAIHAKY;332707**********;LAKI-LAKI;PEMALANG;19-09-2007;KALITORONG;3;3;\r\n';
-    final csv = CsvSource('fixture.csv', Uint8List.fromList(utf8.encode(csvText)));
+    final csv =
+        CsvSource('fixture.csv', Uint8List.fromList(utf8.encode(csvText)));
     final fromXlsx =
         xlsx.prepare('RT 03', xlsx.suggestedMapping('RT 03'), 2, 3, 3);
-    final fromCsv =
-        csv.prepare(csv.sheets.first, csv.suggestedMapping(csv.sheets.first), 2, 3, 3);
+    final fromCsv = csv.prepare(
+        csv.sheets.first, csv.suggestedMapping(csv.sheets.first), 2, 3, 3);
     expect(fromCsv.records.map((r) => r['nama']),
         fromXlsx.records.map((r) => r['nama']));
     expect(fromCsv.records.map((r) => r['tgl_lahir']),
@@ -595,8 +604,8 @@ void main() {
         source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3);
     expect(prep.records, hasLength(3));
     expect(prep.skipped, hasLength(2));
-    await source.archiveAndImport(store, 'RT 03', prep.records,
-        source.suggestedMapping('RT 03'), 2, 3,
+    await source.archiveAndImport(
+        store, 'RT 03', prep.records, source.suggestedMapping('RT 03'), 2, 3,
         skipped: prep.skipped);
     expect(await store.allReferensi(3), hasLength(6));
     final skippedFiles = Directory('${root.path}/import/ready')
@@ -642,7 +651,8 @@ void main() {
     }
   });
 
-  test('opening a v3 database on v4 keeps rows, null kode_wilayah, empty lokasi',
+  test(
+      'opening a v3 database on v4 keeps rows, null kode_wilayah, empty lokasi',
       () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v3-open-');
@@ -796,8 +806,7 @@ void main() {
     expect(await store.backfillKodeWilayah('33.27.07.2016'), 10);
     expect((await store.db.query('log')).length, beforeLog + 10);
     expect(
-        (await store.db.query('warga',
-                where: "nama LIKE 'LAMA %'"))
+        (await store.db.query('warga', where: "nama LIKE 'LAMA %'"))
             .every((r) => r['kode_wilayah'] == '33.27.07.2016'),
         isTrue);
     final before = await store.db.query('warga', orderBy: 'id');
@@ -826,8 +835,8 @@ void main() {
     expect(cellText(data.rows[0][0]), 'NO');
     expect(data.rows[0].length, 10);
     final info = book.tables['INFO']!;
-    final kodeRow = info.rows.firstWhere(
-        (r) => cellText(r[0]) == 'Kode wilayah');
+    final kodeRow =
+        info.rows.firstWhere((r) => cellText(r[0]) == 'Kode wilayah');
     expect(cellText(kodeRow[1]), '(manual)');
   });
 
