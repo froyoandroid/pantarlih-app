@@ -1,25 +1,22 @@
-List<String> periksaNik(
-    String nik, DateTime? tgl, String? jk, String? prefixLama) {
-  final warnings = <String>[];
+/// Empty is clean. Length and date/JK mismatches are warnings and never block save.
+List<String> periksaNik(String nik, DateTime? tgl, String? jk) {
+  if (nik.isEmpty) return [];
   if (!RegExp(r'^\d{16}$').hasMatch(nik)) {
-    warnings.add('NIK bukan 16 digit angka');
-    return warnings;
+    return ['NIK bukan 16 digit angka'];
   }
-  if (prefixLama != null &&
-      prefixLama.length == 6 &&
-      !nik.startsWith(prefixLama)) {
-    warnings.add('Prefix wilayah beda dari data lama ($prefixLama)');
-  }
-  if (tgl != null && jk != null) {
+  final warnings = <String>[];
+  if (tgl != null) {
     var day = int.parse(nik.substring(6, 8));
     final month = int.parse(nik.substring(8, 10));
     final year = int.parse(nik.substring(10, 12));
-    final female = day > 40;
-    if (female) day -= 40;
+    final perempuan = day > 40;
+    if (perempuan) day -= 40;
     if (day != tgl.day || month != tgl.month || year != tgl.year % 100) {
       warnings.add('Tanggal lahir di NIK tidak cocok');
     }
-    if (female != (jk == 'P')) warnings.add('Jenis kelamin di NIK tidak cocok');
+    if (jk != null && perempuan != (jk == 'P')) {
+      warnings.add('Jenis kelamin di NIK tidak cocok');
+    }
   }
   return warnings;
 }
@@ -40,10 +37,4 @@ String? parseTanggal(String raw) {
   } catch (_) {
     return null;
   }
-}
-
-String? prefixNik(String? nik) {
-  if (nik == null) return null;
-  final match = RegExp(r'^\d+').firstMatch(nik);
-  return match?.group(0);
 }

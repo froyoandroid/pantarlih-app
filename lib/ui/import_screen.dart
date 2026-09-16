@@ -18,11 +18,18 @@ class _ImportScreenState extends State<ImportScreen> {
   final start = TextEditingController(text: '2');
   late final TextEditingController rt, rw;
   bool rowRt = false, confirmed = false, busy = false;
+  int referensiCount = 0;
   @override
   void initState() {
     super.initState();
     rt = TextEditingController(text: '${widget.session.rt}');
     rw = TextEditingController(text: '${widget.session.rw}');
+    _count();
+  }
+
+  Future<void> _count() async {
+    referensiCount = await widget.session.store.referensiCount();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -75,21 +82,44 @@ class _ImportScreenState extends State<ImportScreen> {
       if (!mounted) return;
       if (!await confirm(
           context,
-          'Impor ${records.length} warga?',
-          'Sheet $sheet · RT ${rt.text} / RW ${rw.text}\n'
-              '${records.where((r) => r['perlu_review'] == 1).length} baris perlu diperiksa.\n\n'
-              'Data lama tidak dapat diubah setelah impor. Berkas asli dan tahapan parsing akan diarsipkan.',
+          'Impor ${records.length} referensi?',
+          'Sheet $sheet · RT ${rt.text} / RW ${rw.text}\n\n'
+              'Referensi hanya bantuan pengetikan. Impor ulang file yang sama diperbolehkan.',
           action: 'IMPOR SEKARANG')) {
         return;
       }
       await source!.archiveAndImport(widget.session.store, sheet!, records,
           mapping, intValue(start.text), intValue(rt.text));
+      await _count();
       if (mounted) {
         setState(() {
-          report = '${records.length} warga berhasil diimpor dari $sheet. '
-              '${records.where((r) => r['perlu_review'] == 1).length} perlu review. Pilih sheet berikutnya untuk melanjutkan.';
+          report =
+              '${records.length} referensi masuk dari $sheet. Pilih sheet berikutnya bila perlu.';
           confirmed = false;
         });
+      }
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> clearAll() async {
+    if (!await confirm(
+        context,
+        'Hapus semua referensi?',
+        'Data hasil ketikan tidak ikut terhapus. Saran pengetikan akan kosong sampai Anda impor lagi.',
+        action: 'HAPUS SEMUA',
+        dangerous: true)) {
+      return;
+    }
+    setState(() => busy = true);
+    try {
+      await widget.session.store.clearReferensi();
+      await _count();
+      if (mounted) {
+        setState(() => report = 'Semua referensi dihapus.');
       }
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
@@ -108,13 +138,25 @@ class _ImportScreenState extends State<ImportScreen> {
         : rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
     return AppPage(
         session: widget.session,
-        title: 'Impor data lama',
+        title: 'Impor referensi',
         child: ListView(padding: const EdgeInsets.all(20), children: [
+          Text('Referensi tersimpan: $referensiCount baris',
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          const Text(
+              'Aplikasi tetap berfungsi tanpa impor. Referensi hanya mengisi saran ketik.'),
+          const SizedBox(height: 12),
+          if (referensiCount > 0)
+            OutlinedButton.icon(
+                onPressed: busy ? null : clearAll,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('HAPUS SEMUA REFERENSI')),
+          const SizedBox(height: 20),
           const Text('1. Pilih workbook',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           const Text(
-              'Workbook gabungan didukung. Impor sheet RT satu per satu; jangan pilih sheet REKAP.'),
+              'Workbook gabungan didukung. Impor sheet RT satu per satu, jangan pilih sheet REKAP.'),
           const SizedBox(height: 14),
           OutlinedButton.icon(
               onPressed: busy ? null : pick,
@@ -233,11 +275,11 @@ class _ImportScreenState extends State<ImportScreen> {
             FilledButton.icon(
                 onPressed: busy || !confirmed ? null : import,
                 icon: const Icon(Icons.download_done),
-                label: Text(busy ? 'Memproses…' : 'IMPOR DATA LAMA')),
+                label: Text(busy ? 'Memproses…' : 'IMPOR REFERENSI')),
           ],
           const SizedBox(height: 12),
           const Notice(
-              'NIK tersamar tetap tersimpan sebagai jejak, bukan NIK survei. Kolom KET lama tidak dipakai untuk menandai atau menilai warga.',
+              'NIK tersamar disimpan apa adanya. Referensi tidak dihubungkan ke data hasil, tidak diubah, dan boleh kotor.',
               icon: Icons.shield_outlined),
         ]));
   }

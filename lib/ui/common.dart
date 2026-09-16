@@ -10,14 +10,14 @@ const amber = Color(0xFF95641A);
 class Session extends ChangeNotifier {
   Session(this.store);
   final AppStore store;
-  int rt = 1, rw = 3;
+  int rt = 3, rw = 3;
   String source = 'LAPANGAN';
   String village = 'KALITORONG';
   String get label =>
       'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
   Future<void> load() async {
     final values = await store.settings();
-    rt = intValue(values['rt_aktif'], 1);
+    rt = intValue(values['rt_aktif'], 3);
     rw = intValue(values['rw_aktif'], 3);
     village = values['desa_default']!;
     notifyListeners();
@@ -164,68 +164,64 @@ class ResidentCard extends StatelessWidget {
       this.onTap,
       this.label,
       this.trailing,
-      this.grey = false});
+      this.highlight = false});
   final RecordMap row;
   final double? score;
   final VoidCallback? onTap;
   final String? label;
   final Widget? trailing;
-  final bool grey;
+  final bool highlight;
   @override
-  Widget build(BuildContext context) => Opacity(
-      opacity: grey ? .5 : 1,
-      child: Card(
-          child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(children: [
-                    Expanded(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                          if (label != null)
-                            Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Text(label!,
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        color: amber))),
-                          Text('${row['nama']}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w700, fontSize: 16)),
-                          const SizedBox(height: 6),
-                          Text(
-                              '${row['tgl_lahir_raw'] ?? tanggalTampil(row['tgl_lahir'])} · ${jkTampil(row['jenis_kelamin'])}',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey.shade700)),
-                          const SizedBox(height: 4),
-                          Text(
-                              'RT ${row['rt'] ?? row['rt_baru']} / RW ${row['rw'] ?? row['rw_baru']}'
-                              '${row['urut_asli'] == null ? '' : ' · No. lama ${row['urut_asli']}'}',
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey.shade700)),
-                          if (row['dibuat_pada'] != null)
-                            Text(
-                                '${row['sumber_input']} · ${waktuTampil(row['dibuat_pada'])}',
-                                style: const TextStyle(fontSize: 11)),
-                          if (row['perlu_review'] == 1)
-                            const Text('Periksa tanggal / JK pada data lama',
-                                style: TextStyle(fontSize: 11, color: amber)),
-                        ])),
-                    if (score != null)
-                      Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                              color: (score! < 60 ? amber : forest)
-                                  .withValues(alpha: .1),
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Text('${score!.round()}%',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: score! < 60 ? amber : forest))),
-                    if (trailing != null) trailing!,
-                  ])))));
+  Widget build(BuildContext context) => Card(
+      color: highlight ? const Color(0xFFFFF4D6) : null,
+      child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      if (label != null)
+                        Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(label!,
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: amber))),
+                      Text('${row['nama']}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 16)),
+                      const SizedBox(height: 6),
+                      Text(
+                          '${row['tgl_lahir_raw'] ?? tanggalTampil(row['tgl_lahir'])} · ${jkTampil(row['jenis_kelamin'])}',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade700)),
+                      const SizedBox(height: 4),
+                      Text(
+                          'RT ${row['rt']} / RW ${row['rw']}'
+                          '${row['urut_asli'] == null ? '' : ' · No. ${row['urut_asli']}'}'
+                          '${row['nik'] == null || '${row['nik']}'.isEmpty ? '' : ' · ${row['nik']}'}',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade700)),
+                      if (row['dibuat_pada'] != null)
+                        Text(waktuTampil(row['dibuat_pada']),
+                            style: const TextStyle(fontSize: 11)),
+                    ])),
+                if (score != null)
+                  Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: (score! < 60 ? amber : forest)
+                              .withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text('${score!.round()}%',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: score! < 60 ? amber : forest))),
+                if (trailing != null) trailing!,
+              ]))));
 }

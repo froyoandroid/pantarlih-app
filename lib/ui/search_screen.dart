@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
@@ -6,14 +7,9 @@ import 'common.dart';
 import 'survey_form.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen(
-      {super.key,
-      required this.session,
-      this.pickOnly = false,
-      this.currentSurveyId});
+  const SearchScreen({super.key, required this.session, this.afterId});
   final Session session;
-  final bool pickOnly;
-  final int? currentSurveyId;
+  final int? afterId;
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
@@ -21,10 +17,14 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final query = TextEditingController();
   final focus = FocusNode();
-  List<RecordMap> residents = [];
+  List<RecordMap> referensi = [];
+  List<RecordMap> warga = [];
   bool byDate = false, loading = true;
+  String typed = '';
   String? error;
+  Timer? debounce;
   Session get session => widget.session;
+
   @override
   void initState() {
     super.initState();
@@ -33,10 +33,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _load() async {
     try {
-      final rows = await session.store.allLegacy(session.rw);
+      final refs = await session.store.allReferensi(session.rw);
+      final rows = await session.store.allWarga();
       if (mounted) {
         setState(() {
-          residents = rows;
+          referensi = refs;
+          warga = rows;
           loading = false;
           error = null;
         });
@@ -53,94 +55,110 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    debounce?.cancel();
     query.dispose();
     focus.dispose();
     super.dispose();
   }
 
-  Future<void> _open(RecordMap? row) async {
-    if (widget.pickOnly) {
-      Navigator.pop(context, row);
+  void _onChanged(String value) {
+    debounce?.cancel();
+    debounce = Timer(const Duration(milliseconds: 60), () {
+      if (mounted) setState(() => typed = value);
+    });
+  }
+
+  Future<void> _openForm({RecordMap? wargaRow, RecordMap? seed}) async {
+    final saved = await Navigator.push<int>(
+        context,
+        MaterialPageRoute(
+            builder: (_) => SurveyForm(
+                session: session,
+                warga: wargaRow,
+                seed: seed,
+                afterId: wargaRow == null ? widget.afterId : null,
+                initialName: wargaRow == null && seed == null && !byDate
+                    ? query.text
+                    : null)));
+    if (!mounted) return;
+    if (saved != null && wargaRow == null) {
+      Navigator.pop(context, saved);
       return;
     }
-    if (row?['survey_id'] != null) {
-      final survey = await session.store.survey(row!['survey_id'] as int);
-      if (!mounted || survey == null) return;
-      await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => SurveyForm(session: session, survey: survey)));
-    } else {
-      await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => SurveyForm(
-                  session: session,
-                  legacy: row,
-                  initialName: row == null && !byDate ? query.text : null)));
-    }
-    if (!mounted) return;
     query.clear();
+    typed = '';
     await _load();
     focus.requestFocus();
   }
 
+  List<(RecordMap, double)> _score(List<RecordMap> pool, String q) {
+    final ranked = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
+    ranked.sort((a, b) {
+      final cmp = b.$2.compareTo(a.$2);
+      return cmp != 0
+          ? cmp
+          : intValue(a.$1['id']).compareTo(intValue(b.$1['id']));
+    });
+    return ranked;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final q = query.text.trim();
+    final q = typed.trim();
     final active = byDate ? parseTanggal(q) != null : q.length >= 3;
-    var candidates = <(RecordMap, double)>[];
+    var existing = <(RecordMap, double)>[];
+    var refs = <(RecordMap, double)>[];
     var expanded = false;
     if (active) {
       if (byDate) {
-        candidates = residents
-            .where((r) => r['tgl_lahir'] == parseTanggal(q))
+        final iso = parseTanggal(q);
+        refs = referensi
+            .where((r) => r['tgl_lahir'] == iso)
             .map((r) => (r, 100.0))
             .toList();
-        candidates.sort((a, b) => (a.$1['rt'] == session.rt ? 0 : 1)
+        refs.sort((a, b) => (a.$1['rt'] == session.rt ? 0 : 1)
             .compareTo(b.$1['rt'] == session.rt ? 0 : 1));
       } else {
-        var pool = residents.where((r) => r['rt'] == session.rt).toList();
-        if (pool.isEmpty) {
-          pool = residents;
-          expanded = true;
+        existing = _score(
+                warga.where((r) => r['rt'] == session.rt && r['rw'] == session.rw).toList(),
+                q)
+            .where((e) => e.$2 >= 40)
+            .take(8)
+            .toList();
+        if (existing.isEmpty) {
+          existing = _score(warga, q).where((e) => e.$2 >= 40).take(8).toList();
         }
-        candidates = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
-        candidates.sort((a, b) {
-          final cmp = b.$2.compareTo(a.$2);
-          return cmp != 0
-              ? cmp
-              : intValue(a.$1['id']).compareTo(intValue(b.$1['id']));
-        });
-        candidates = candidates.take(5).toList();
+        var pool = referensi.where((r) => r['rt'] == session.rt).toList();
+        if (pool.isEmpty) {
+          pool = referensi;
+          expanded = referensi.isNotEmpty;
+        }
+        refs = _score(pool, q).take(5).toList();
       }
     }
     return AppPage(
         session: session,
-        title: widget.pickOnly ? 'Pilih tautan data lama' : 'Cari & input',
+        title: 'Ketik nama',
         child: Column(children: [
           Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (!widget.pickOnly)
-                      SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(
-                                value: 'LAPANGAN',
-                                label: Text('Lapangan'),
-                                icon: Icon(Icons.directions_walk)),
-                            ButtonSegment(
-                                value: 'KERTAS',
-                                label: Text('Dari kertas'),
-                                icon: Icon(Icons.description_outlined)),
-                          ],
-                          selected: {
-                            session.source
-                          },
-                          onSelectionChanged: (value) =>
-                              setState(() => session.source = value.first)),
+                    SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(
+                              value: 'LAPANGAN',
+                              label: Text('Lapangan'),
+                              icon: Icon(Icons.directions_walk)),
+                          ButtonSegment(
+                              value: 'KERTAS',
+                              label: Text('Dari kertas'),
+                              icon: Icon(Icons.description_outlined)),
+                        ],
+                        selected: {session.source},
+                        onSelectionChanged: (value) =>
+                            setState(() => session.source = value.first)),
                     const SizedBox(height: 16),
                     TextField(
                         controller: query,
@@ -153,22 +171,26 @@ class _SearchScreenState extends State<SearchScreen> {
                         decoration: InputDecoration(
                             labelText: byDate
                                 ? 'Tanggal lahir · DD-MM-YYYY'
-                                : 'Cari nama di data lama',
+                                : 'Cari nama',
                             prefixIcon: Icon(byDate
                                 ? Icons.calendar_today_outlined
                                 : Icons.search),
                             suffixIcon: q.isEmpty
                                 ? null
                                 : IconButton(
-                                    onPressed: () => setState(query.clear),
+                                    onPressed: () {
+                                      query.clear();
+                                      setState(() => typed = '');
+                                    },
                                     icon: const Icon(Icons.close))),
-                        onChanged: (_) => setState(() {})),
+                        onChanged: _onChanged),
                     Align(
                         alignment: Alignment.centerRight,
                         child: TextButton.icon(
                             onPressed: () => setState(() {
                                   byDate = !byDate;
                                   query.clear();
+                                  typed = '';
                                 }),
                             icon: Icon(
                                 byDate
@@ -197,40 +219,58 @@ class _SearchScreenState extends State<SearchScreen> {
                                 icon: Icons.person_search_outlined),
                           if (expanded)
                             const Notice(
-                                'RT aktif tidak memiliki data lama. Pencarian diperluas ke seluruh RW aktif.',
+                                'RT aktif tidak memiliki referensi. Pencarian diperluas ke seluruh RW aktif.',
                                 warning: true),
-                          if (active && candidates.isEmpty)
-                            const EmptyState('Belum ada kandidat',
-                                'Anda tetap dapat membuat data baru.'),
-                          for (final candidate in candidates)
-                            ResidentCard(candidate.$1,
-                                score: byDate ? null : candidate.$2,
-                                label: candidate.$1['survey_id'] != null
-                                    ? 'SUDAH TERCATAT DI RT ${candidate.$1['rt_baru']} / RW ${candidate.$1['rw_baru']}'
-                                    : candidate.$1['rt'] != session.rt
-                                        ? 'DITEMUKAN DI RT ${candidate.$1['rt']}'
-                                        : null,
-                                onTap: widget.pickOnly &&
-                                        candidate.$1['survey_id'] != null &&
-                                        candidate.$1['survey_id'] !=
-                                            widget.currentSurveyId
-                                    ? null
-                                    : () => _open(candidate.$1)),
-                          if (!widget.pickOnly)
-                            Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: FilledButton.icon(
-                                    onPressed: () => _open(null),
-                                    icon: const Icon(Icons.person_add_alt_1),
-                                    label: const Text('BUAT BARU'))),
-                          if (!widget.pickOnly)
+                          if (active && existing.isNotEmpty) ...[
                             const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Text(
-                                    'Tidak menemukan orang yang sama? Buat baris baru sesuai KK.',
-                                    textAlign: TextAlign.center,
+                                padding: EdgeInsets.only(top: 8, bottom: 4),
+                                child: Text('SUDAH DIINPUT',
                                     style: TextStyle(
-                                        fontSize: 12, color: Colors.black54))),
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: .6))),
+                            for (final candidate in existing)
+                              ResidentCard(candidate.$1,
+                                  highlight: true,
+                                  score: byDate ? null : candidate.$2,
+                                  label: candidate.$1['rt'] != session.rt
+                                      ? 'SUDAH DIINPUT · RT ${candidate.$1['rt']}'
+                                      : 'SUDAH DIINPUT',
+                                  onTap: () =>
+                                      _openForm(wargaRow: candidate.$1)),
+                          ],
+                          if (active) ...[
+                            const Padding(
+                                padding: EdgeInsets.only(top: 12, bottom: 4),
+                                child: Text('REFERENSI',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: .6))),
+                            if (refs.isEmpty)
+                              const Text(
+                                  'Tidak ada saran referensi. Ketik manual lewat TAMBAH BARU.',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.black54)),
+                            for (final candidate in refs)
+                              ResidentCard(candidate.$1,
+                                  score: byDate ? null : candidate.$2,
+                                  label: candidate.$1['rt'] != session.rt
+                                      ? 'REFERENSI · RT ${candidate.$1['rt']}'
+                                      : null,
+                                  onTap: () => _openForm(seed: candidate.$1)),
+                          ],
+                          Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: FilledButton.icon(
+                                  onPressed: () => _openForm(),
+                                  icon: const Icon(Icons.person_add_alt_1),
+                                  label: const Text('TAMBAH BARU'))),
+                          const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Text(
+                                  'Saran hanya mengisi field. Setelah dipilih, baris berdiri sendiri.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.black54))),
                         ])),
         ]));
   }

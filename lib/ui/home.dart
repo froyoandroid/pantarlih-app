@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
-import 'common.dart';
-import 'import_screen.dart';
-import 'search_screen.dart';
-import 'remaining_screen.dart';
-import 'history_screen.dart';
 import 'admin_screen.dart';
+import 'common.dart';
+import 'history_screen.dart';
+import 'import_screen.dart';
+import 'rt_list_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.session});
@@ -15,8 +15,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<int> rts = [], selected = [];
-  Map<String, Object?>? progress;
+  List<int> rts = [];
+  List<RecordMap> counts = [];
   bool busy = false;
   @override
   void initState() {
@@ -25,12 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    if (!mounted) return;
-    setState(() {});
     rts = await widget.session.store.rtList(widget.session.rw);
-    selected = [widget.session.rt];
-    progress = await widget.session.store
-        .progress(widget.session.rt, widget.session.rw);
+    counts = await widget.session.store.countsByRt(widget.session.rw);
     if (mounted) setState(() {});
   }
 
@@ -81,8 +77,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       child: const Text('AKTIFKAN'))
                 ]));
-    // Controllers are owned by the dialog until its closing animation finishes.
     if (chosen != null) await _change(chosen.$1, chosen.$2);
+  }
+
+  RecordMap? _countFor(int rt) {
+    for (final row in counts) {
+      if (intValue(row['rt']) == rt) return row;
+    }
+    return null;
   }
 
   @override
@@ -115,11 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               ]),
                           const SizedBox(height: 10),
                           Wrap(spacing: 8, runSpacing: 8, children: [
-                            for (final rt in rts)
+                            for (final rt in {
+                              ...rts,
+                              widget.session.rt,
+                            })
                               ChoiceChip(
                                   label: Text(
                                       'RT ${rt.toString().padLeft(2, '0')}'),
-                                  selected: selected.contains(rt),
+                                  selected: widget.session.rt == rt,
                                   onSelected: (_) => _change(rt))
                           ]),
                           const SizedBox(height: 10),
@@ -132,47 +137,44 @@ class _HomeScreenState extends State<HomeScreen> {
               Notice(
                   'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Periksa laporan di folder recovered.',
                   warning: true),
-            if (progress != null)
-              Card(
-                  child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Progres RT aktif',
-                                style: TextStyle(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 14),
-                            Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  _stat('${progress!['surveyed']}', 'tertaut'),
-                                  _stat('${progress!['remaining']}', 'sisa'),
-                                  _stat('${progress!['grey']}', 'abu-abu'),
-                                  _stat('${progress!['inputs']}', 'input baru')
-                                ]),
-                            const SizedBox(height: 14),
-                            LinearProgressIndicator(
-                                value: intValue(progress!['total']) == 0
-                                    ? 0
-                                    : intValue(progress!['surveyed']) /
-                                        intValue(progress!['total'])),
-                            const SizedBox(height: 8),
-                            Text(
-                                '${progress!['surveyed']} / ${progress!['total']} data lama tertaut',
-                                style: const TextStyle(fontSize: 12)),
-                          ]))),
+            Card(
+                child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Jumlah baris per RT',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 12),
+                          if (counts.isEmpty)
+                            const Text('Belum ada data yang diketik.',
+                                style: TextStyle(color: Colors.black54)),
+                          for (final row in counts)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Text(
+                                    'RT ${intValue(row['rt']).toString().padLeft(2, '0')} · ${row['jumlah']} baris · ${row['tanpa_nik']} tanpa NIK')),
+                          if (_countFor(widget.session.rt) == null)
+                            Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                child: Text(
+                                    'RT ${widget.session.rt.toString().padLeft(2, '0')} · 0 baris · 0 tanpa NIK',
+                                    style: const TextStyle(
+                                        color: Colors.black54))),
+                        ]))),
             const SizedBox(height: 8),
             _action(
-                Icons.person_search,
-                'Cari & Input',
-                'Isi data sesuai KK satu per satu',
-                () => _open(SearchScreen(session: widget.session))),
+                Icons.list_alt,
+                'Daftar RT',
+                'Urutan, sisip, geser, dan hapus',
+                () => _open(RtListScreen(session: widget.session))),
             _action(
-                Icons.pending_actions_outlined,
-                'Daftar Sisa',
-                'Warga lama yang belum ditautkan',
-                () => _open(RemainingScreen(session: widget.session))),
+                Icons.person_search,
+                'Ketik data',
+                'Cari saran lalu isi satu orang',
+                () => _open(SearchScreen(session: widget.session))),
             _action(
                 Icons.history,
                 'Riwayat',
@@ -180,8 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 () => _open(HistoryScreen(session: widget.session))),
             _action(
                 Icons.file_upload_outlined,
-                'Impor Data Lama',
-                'Mulai dari workbook Excel',
+                'Impor referensi',
+                'Bantuan pengetikan dari workbook lama',
                 () => _open(ImportScreen(session: widget.session))),
             _action(
                 Icons.admin_panel_settings_outlined,
@@ -193,12 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Mode offline. Tidak ada jaringan keluar, foto KK, penilaian umur, atau keputusan kelayakan di aplikasi ini.',
                 icon: Icons.shield_outlined),
           ])));
-  Widget _stat(String value, String label) => Column(children: [
-        Text(value,
-            style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w800, color: forest)),
-        Text(label, style: const TextStyle(fontSize: 11))
-      ]);
+
   Widget _action(
           IconData icon, String title, String detail, VoidCallback onTap) =>
       Card(
@@ -212,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: Text(detail),
               trailing: const Icon(Icons.chevron_right),
               onTap: onTap));
+
   void _open(Widget page) {
     if (busy) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => page))

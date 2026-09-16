@@ -1,6 +1,6 @@
 # Pantarlih Kalitorong
 
-Aplikasi Flutter/Dart untuk Android, satu pengguna dan perangkat, sepenuhnya offline. Mendata sesuai KK asli tanpa menghitung umur atau menentukan kelayakan warga.
+Aplikasi Flutter/Dart untuk Android, satu pengguna dan perangkat, sepenuhnya offline. Alat entri data DPS: mengetik sesuai KK asli, dengan saran dari data lama bila diimpor. Tidak menghitung umur dan tidak menentukan kelayakan warga.
 
 ## Jalankan / build
 
@@ -10,20 +10,23 @@ Toolchain: Flutter 3.35.7 / Dart 3.9.2, Java 21, Android SDK 36, NDK 27.0.120779
 flutter pub get
 flutter analyze
 flutter test --concurrency=1
-flutter build apk --release
+flutter run -d 127.0.0.1:5555       # pengembangan: build debug (default), mendukung hot reload
+flutter build apk --release --split-per-abi   # produksi
 ```
 
-APK: `build/app/outputs/flutter-apk/app-release.apk`. Build release lokal menggunakan signing key debug Android; cocok untuk sideload/perangkat tunggal, bukan publikasi Play Store. Gunakan keystore produksi yang dipertahankan untuk distribusi dan pembaruan jangka panjang. Jangan uninstall untuk memperbarui; install APK dengan tanda tangan yang sama di atas versi lama.
+Build debug (`flutter run`) adalah default untuk pengembangan — ukuran besar (~69 MB) karena JIT, jangan dipakai untuk dipasang di lapangan.
+
+APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB, HP arm64 modern; `armeabi-v7a` untuk HP lama). Build release lokal menggunakan signing key debug Android; cocok untuk sideload/perangkat tunggal, bukan publikasi Play Store. Gunakan keystore produksi yang dipertahankan untuk distribusi dan pembaruan jangka panjang. Jangan uninstall untuk memperbarui; install APK dengan tanda tangan yang sama di atas versi lama.
 
 ## Penggunaan
 
 1. Instal APK (Android 7.0+), buka aplikasi, izinkan akses berkas. Pada Android 11+, aktifkan “Izinkan akses untuk mengelola semua file”, lalu kembali ke aplikasi. Android 7–10 menggunakan izin penyimpanan biasa.
-2. Impor workbook. Untuk file yang diberikan, pilih sheet `RT 03` (189 warga), `RT 04` (123), dan `RT 05` (192) satu per satu: total 504. Jangan impor `REKAP`. Kolom disarankan otomatis, baris data pertama adalah 2. Periksa pratinjau dan konfirmasi RT setiap sheet.
-3. Beranda → Ganti RT/RW. Pilih wilayah yang sedang dikerjakan. Pergantian wilayah membuat snapshot dan Excel otomatis lokal sebelum menerapkan sesi baru.
-4. Cari nama minimal 3 karakter, pilih kandidat atau BUAT BARU. Jalur tanggal lahir menampilkan semua kecocokan di RW aktif. Isi nama, NIK, JK, tempat/tanggal lahir sesuai KK. Mode kertas dipilih di layar pencarian.
-5. Simpan langsung per orang. NIK harus 16 digit angka; prefix, tanggal/JK, dan duplikat hanya peringatan. Duplikat dapat dibuka untuk koreksi atau tetap disimpan. Catatan bebas tidak dikategorikan, diparsing, atau digunakan untuk pencarian/penilaian.
-6. Daftar Sisa memungkinkan tanda abu-abu manual. Riwayat menampilkan 20 input terakhir; edit, lepas tautan, dan tautkan ulang tersedia di form.
-7. Ekspor & Pemulihan → pilih cakupan dan buat Excel. File DPS, PENDING, DUPLIKAT_NIK, dan KONFLIK_RT dibuat bersama. Berbagi selalu memerlukan aksi dan konfirmasi eksplisit.
+2. Impor referensi bersifat opsional. Bila ada workbook lama, pilih sheet `RT 03`, `RT 04`, dan `RT 05` satu per satu. Jangan impor `REKAP`. Kolom dipetakan di layar. Impor ulang diperbolehkan. Ada menu hapus semua referensi.
+3. Beranda → pilih RT/RW aktif (bawaan 3 / 3). Pergantian wilayah membuat snapshot dan Excel otomatis lokal. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
+4. Daftar RT adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
+5. Ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
+6. Isi nama dulu, lalu NIK, JK, tempat/tanggal lahir. NIK boleh kosong. NIK yang bukan 16 digit, tanggal/JK yang tidak cocok, dan NIK duplikat hanya peringatan dan tetap bisa disimpan. Keterangan teks bebas, tidak dikelompokkan atau dinilai.
+7. Riwayat menampilkan 20 input terakhir. Ekspor membuat DPS per RT atau gabungan, plus DUPLIKAT_NIK dan TANPA_NIK. Tidak ada file pending atau konflik RT. Berbagi selalu memerlukan aksi dan konfirmasi eksplisit.
 
 ## Lokasi dan keamanan data
 
@@ -47,16 +50,15 @@ Workbook pribadi di `data-exel/` diabaikan Git dan tidak dibundel ke APK. Impor 
 
 ## Ketahanan dan keputusan implementasi
 
-- Satu penulis terserialisasi, satu transaksi SQLite per aksi. Event lengkap (termasuk null) di-flush ke JSONL sebelum SQLite; impor mencatat seluruh record dalam satu event agar data lama juga dapat dipulihkan.
+- Satu penulis terserialisasi, satu transaksi SQLite per aksi. Event lengkap (termasuk null) di-flush ke JSONL sebelum SQLite.
 - Startup memutar ulang event jurnal yang belum ada di database. Jika database hilang, ia dibangun ulang. Pemulihan eksplisit membangun kandidat terlebih dulu dan memindahkan DB lama beserta sidecar WAL/SHM ke `recovered`.
 - Baris JSONL rusak dilaporkan dan dilewati. Pemulihan tidak dapat mengembalikan informasi yang hilang dari jurnal rusak; periksa laporan sebelum melanjutkan pendataan.
-- Spec NIK bertentangan di satu paragraf; implementasi mengikuti kriteria terima: panjang/nonangka memblokir, peringatan lainnya tidak.
-- Normalisasi `ABDURROHMAN` mengikuti algoritme: `abdurohman`, bukan typo contoh `aburohman`. Penggabungan huruf menggunakan `replaceAllMapped`, karena Dart tidak mengekspansi `$1` pada `replaceAll`.
+- NIK kosong dan NIK bukan 16 digit tetap dapat disimpan. Panjang, tanggal, JK, dan duplikat hanya peringatan.
+- `urut_sort` sparse kelipatan 1000. Sisip memakai titik tengah. Bila celah habis, renumber otomatis ke 1000, 2000, 3000. Nomor NO di ekspor adalah posisi, bukan nilai tersimpan.
+- Referensi read-only di aplikasi, tanpa relasi ke `warga`, tanpa unique constraint. Boleh kotor dan diimpor berulang.
+- Normalisasi `ABDURROHMAN` mengikuti algoritme: `abdurohman`. Penggabungan huruf menggunakan `replaceAllMapped`, karena Dart tidak mengekspansi `$1` pada `replaceAll`.
 - `excel` 4.x tidak menangani worksheet relationship absolut dan inline-string kosong dari openpyxl. Salinan parsing di memori dinormalkan; byte sumber tetap utuh di arsip.
-- Data lama dilindungi trigger SQLite dari UPDATE/DELETE. Satu data lama tidak boleh ditautkan ke dua survei. NIK tidak memiliki unique constraint.
-- Pending mencakup seluruh data lama belum tertaut, termasuk tanda abu-abu manual; tanda hanya mempengaruhi penghitung sisa. Konflik yang sudah tertaut bukan pending.
-- Audit duplikat dan konflik mencakup seluruh database, meskipun ekspor DPS dibatasi RT/RW.
 
 ## Pengujian
 
-Tes meliputi normalisasi, fuzzy matching, tanggal DD-first, NIK, impor workbook 504 baris, imutabilitas, duplikat, konflik, unlink/relink, replay identik, baris jurnal terpotong, database hilang, kegagalan penulisan jurnal, urutan/tipe sel Excel, snapshot dan perubahan sesi. Lakukan uji singkat izin, impor, simpan, ekspor, dan pemulihan di HP sasaran sebelum dipakai di lapangan.
+Tes meliputi normalisasi, fuzzy matching, tanggal DD-first, NIK sebagai peringatan, impor referensi 504 baris, sisip/geser/renumber, duplikat, replay identik termasuk `urut_sort`, baris jurnal terpotong, database hilang, kegagalan penulisan jurnal, urutan sel Excel, snapshot dan perubahan sesi. Lakukan uji singkat izin, impor, simpan, sisip, ekspor, dan pemulihan di HP sasaran sebelum dipakai di lapangan.
