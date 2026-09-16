@@ -142,9 +142,12 @@ class _SurveyFormState extends State<SurveyForm> {
               .posisi(row['id'] as int, row['rw'] as int, row['rt'] as int);
         }
         if (!mounted) return;
-        final duplicateText = duplicates.isEmpty
-            ? ''
-            : '\n\nNIK ini sudah dipakai oleh:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}\n\n';
+        final isi = [
+          if (warnings.isNotEmpty) warnings.join('\n'),
+          if (duplicates.isNotEmpty)
+            'NIK ini sudah dipakai oleh:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
+          'Peringatan ini boleh diabaikan',
+        ].join('\n');
         final decision = await showDialog<String>(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -159,8 +162,7 @@ class _SurveyFormState extends State<SurveyForm> {
                     content: SingleChildScrollView(
                         child:
                             Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(
-                          '${warnings.map((w) => '• $w').join('\n')}${duplicateText}Peringatan ini boleh diabaikan.'),
+                      Text(isi),
                       for (final row in duplicates)
                         TextButton(
                             onPressed: () =>

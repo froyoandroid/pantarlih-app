@@ -72,7 +72,7 @@ void main() {
         periksaNik('3327995109730002', DateTime(1973, 9, 11), 'P',
             prefixWilayah: '332707'),
         contains(
-            'Enam digit awal NIK (332799) berbeda dari kecamatan lokasi (332707). Wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain.'));
+            'Enam digit awal NIK (332799) berbeda dari kecamatan lokasi (332707), wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain'));
     expect(
         periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P',
             prefixWilayah: null),

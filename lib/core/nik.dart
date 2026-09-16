@@ -27,7 +27,7 @@ List<String> periksaNik(String nik, DateTime? tgl, String? jk,
       prefixWilayah.length == 6 &&
       nik.substring(0, 6) != prefixWilayah) {
     warnings.add(
-        'Enam digit awal NIK (${nik.substring(0, 6)}) berbeda dari kecamatan lokasi ($prefixWilayah). Wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain.');
+        'Enam digit awal NIK (${nik.substring(0, 6)}) berbeda dari kecamatan lokasi ($prefixWilayah), wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain');
   }
   return warnings;
 }
