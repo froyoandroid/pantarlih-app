@@ -152,8 +152,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (wargaBaris.isEmpty) {
       final rwBaris = [
         for (final r in warga)
-          if (teks(r['tgl_lahir']) == iso && r['rw'] == session.rw)
-            (r, 100.0),
+          if (teks(r['tgl_lahir']) == iso && r['rw'] == session.rw) (r, 100.0),
       ];
       if (rwBaris.isNotEmpty) {
         wargaBaris = rwBaris;
