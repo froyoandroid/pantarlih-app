@@ -42,6 +42,8 @@ class Session extends ChangeNotifier {
     return grouped;
   }
 
+  /// Read-only state refresh. Safe from anywhere: startup, after saving a
+  /// lokasi, after a folder move, after a rebuild.
   Future<void> load() async {
     final values = await store.settings();
     rt = intValue(values['rt_aktif']);
@@ -50,12 +52,18 @@ class Session extends ChangeNotifier {
     lokasi = await store.activeLokasi();
     village = values['desa_default'] ?? '';
     workspace = RtRw.decode(values['ruang_kerja'] ?? '');
+    notifyListeners();
+  }
+
+  /// Reconstructs a lost workspace and persists it. This writes a setelan
+  /// row through the journal, so it belongs to startup only - load() stays
+  /// read-only for every other caller.
+  Future<void> pastikanWorkspace() async {
+    await load();
     var persist = false;
     if (workspace.isEmpty && rt > 0 && rw > 0) {
       final known = await store.rtListReferensi(rw);
-      workspace = [
-        for (final n in {...known, rt}) RtRw(rw, n)
-      ]..sort();
+      workspace = [for (final n in {...known, rt}) RtRw(rw, n)]..sort();
       persist = true;
     } else if (rt > 0 && rw > 0 && !workspace.contains(RtRw(rw, rt))) {
       workspace = [...workspace, RtRw(rw, rt)]..sort();
@@ -63,8 +71,8 @@ class Session extends ChangeNotifier {
     }
     if (persist) {
       await store.setSession(rt, rw, ruangKerja: RtRw.encode(workspace));
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> saveLokasi(Lokasi next) async {

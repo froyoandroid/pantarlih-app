@@ -616,7 +616,12 @@ void main() {
   test('adding RT keeps previous RT in the workspace', () async {
     await store.setSession(3, 3);
     final session = Session(store);
+    // load() itself is read-only: no journal row for a plain state refresh.
+    final logSebelum = (await store.db.query('log')).length;
     await session.load();
+    expect((await store.db.query('log')).length, logSebelum);
+    await session.pastikanWorkspace();
+    expect((await store.db.query('log')).length, logSebelum + 1);
     expect(session.workspace, contains(const RtRw(3, 3)));
     await session.addRtRw(4, 3);
     await session.addRtRw(5, 3);
