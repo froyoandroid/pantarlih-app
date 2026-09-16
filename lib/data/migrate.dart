@@ -41,6 +41,8 @@ RecordMap _migrateStep(RecordMap event, int from) {
       return _migrate4to5(event);
     case 5:
       return _migrate5to6(event);
+    case 6:
+      return _migrate6to7(event);
     default:
       throw JournalVersionException(
           'Tidak ada jalur migrasi jurnal dari versi $from');
@@ -120,6 +122,14 @@ RecordMap _migrate5to6(RecordMap event) {
   return next;
 }
 
+/// 6→7: no payload change. The version bump rides along with the database
+/// schema rebuild of v_duplikat_nama from per-RT to per-RW grouping.
+RecordMap _migrate6to7(RecordMap event) {
+  final next = Map<String, Object?>.from(event);
+  next['schema_v'] = 7;
+  return next;
+}
+
 const builtinUpgrades = <int, List<String>>{
   2: [
     '''CREATE TABLE IF NOT EXISTS urutan_id (
@@ -154,6 +164,16 @@ const builtinUpgrades = <int, List<String>>{
   ],
   5: [
     'ALTER TABLE warga ADD COLUMN warna TEXT',
+  ],
+  6: [
+    // Views hold no data, so rebuilding one is lossless. The old definition
+    // grouped per RT, which hid exactly the case the report exists for:
+    // one person typed twice in different RTs of the same RW.
+    'DROP VIEW IF EXISTS v_duplikat_nama',
+    '''CREATE VIEW v_duplikat_nama AS
+    SELECT nama_norm, rw, GROUP_CONCAT(DISTINCT rt) AS rt, COUNT(*) AS jumlah
+    FROM warga
+    GROUP BY nama_norm, rw HAVING COUNT(*) > 1''',
   ],
 };
 

@@ -1,5 +1,5 @@
-const schemaVersion = 6;
-const schemaBaseVersion = 6;
+const schemaVersion = 7;
+const schemaBaseVersion = 7;
 
 /// The complete, current database shape. Fresh installs run only these
 /// statements; existing databases upgrade stepwise via builtinUpgrades in
@@ -83,9 +83,9 @@ const schemaStatements = <String>[
     WHERE nik IS NOT NULL AND nik <> ''
     GROUP BY nik HAVING COUNT(*) > 1''',
   '''CREATE VIEW v_duplikat_nama AS
-    SELECT nama_norm, rw, rt, COUNT(*) AS jumlah
+    SELECT nama_norm, rw, GROUP_CONCAT(DISTINCT rt) AS rt, COUNT(*) AS jumlah
     FROM warga
-    GROUP BY nama_norm, rw, rt HAVING COUNT(*) > 1''',
+    GROUP BY nama_norm, rw HAVING COUNT(*) > 1''',
 ];
 
 const wargaColumns = <String>[

@@ -701,6 +701,22 @@ void main() {
         containsAll(['MUHAMMAD HASSAN', 'MUHAMAD HASAN']));
   });
 
+  test('same name in different RTs of one RW appears in duplicateNameRows',
+      () async {
+    await store.saveWarga(fields(name: 'MUHAMAD HASAN', nik: null, rt: 3));
+    await store.saveWarga(fields(name: 'MUHAMAD HASAN', nik: null, rt: 5));
+    final rows = await store.duplicateNameRows();
+    expect(rows, hasLength(2));
+    expect(rows.every((r) => r['rt'] == 3 || r['rt'] == 5), isTrue);
+    // Scoped to one RT, only that RT's row appears.
+    final scoped = await store.duplicateNameRows(rw: 3, rt: 3);
+    expect(scoped.single['rt'], 3);
+    // The upgraded view definition matches the fresh one.
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect(await store.duplicateNameRows(), hasLength(2));
+  });
+
   test('deleted ids are not reused and rebuild keeps the same ids', () async {
     final first = await store.saveWarga(fields());
     await store.deleteWarga(first['id'] as int);
