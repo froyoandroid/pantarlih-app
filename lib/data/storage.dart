@@ -20,10 +20,15 @@ class ResolvedStorage {
   final bool usingPublic;
 }
 
-String namaFolderDesa(String desa) {
+String namaFolderDesa(String desa, {String? kodeWilayah}) {
   final huruf = desa.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '');
-  if (huruf.isEmpty) return 'Pantarlih';
-  return 'Pantarlih${huruf[0].toUpperCase()}${huruf.substring(1).toLowerCase()}';
+  final dasar = huruf.isEmpty
+      ? 'Pantarlih'
+      : 'Pantarlih${huruf[0].toUpperCase()}${huruf.substring(1).toLowerCase()}';
+  // Suffix the wilayah kode so names that normalize identically (Sido Mulyo
+  // and Sidomulyo) land in separate folders instead of merging datasets.
+  final polos = (kodeWilayah ?? '').trim().replaceAll(RegExp(r'[^A-Za-z0-9]+'), '');
+  return polos.isEmpty ? dasar : '${dasar}_$polos';
 }
 
 String basenameDir(Directory dir) {
