@@ -224,8 +224,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       onSelected:
                                           busy ? null : (_) => _focus(pair),
                                       showCheckmark: false,
-                                      deleteIcon: const Icon(Icons.close,
-                                          size: 16),
+                                      deleteIcon:
+                                          const Icon(Icons.close, size: 16),
                                       deleteButtonTooltipMessage:
                                           'Lepas dari wilayah kerja',
                                       onDeleted: !busy &&
