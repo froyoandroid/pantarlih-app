@@ -820,15 +820,24 @@ class AppStore extends ChangeNotifier {
   Future<List<RecordMap>> history() =>
       db.query('warga', orderBy: 'dibuat_pada DESC, id DESC', limit: 20);
 
-  Future<List<RecordMap>> duplicateRows() => db.rawQuery('''
+  /// Duplicate NIK rows, optionally scoped to one RW (or RT within it) so a
+  /// per-RT export only shows conflicts inside the exported area.
+  Future<List<RecordMap>> duplicateRows({int? rw, int? rt}) => db.rawQuery('''
     SELECT w.* FROM warga w
     JOIN v_duplikat_nik d ON w.nik = d.nik
+    WHERE 1 = 1
+      ${rw == null ? '' : 'AND w.rw = $rw'}
+      ${rt == null ? '' : 'AND w.rt = $rt'}
     ORDER BY w.nik, w.urut_sort, w.id''');
 
-  Future<List<RecordMap>> duplicateNameRows() => db.rawQuery('''
+  Future<List<RecordMap>> duplicateNameRows({int? rw, int? rt}) =>
+      db.rawQuery('''
     SELECT w.* FROM warga w
     JOIN v_duplikat_nama d
       ON w.nama_norm = d.nama_norm AND w.rw = d.rw AND w.rt = d.rt
+    WHERE 1 = 1
+      ${rw == null ? '' : 'AND w.rw = $rw'}
+      ${rt == null ? '' : 'AND w.rt = $rt'}
     ORDER BY w.rw, w.rt, w.nama_norm, w.urut_sort, w.id''');
 
   Future<List<RecordMap>> tanpaNik({int? rw, int? rt}) => db.query('warga',
