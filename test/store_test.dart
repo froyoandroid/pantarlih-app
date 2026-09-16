@@ -278,12 +278,27 @@ void main() {
     expect(payload.containsKey('id_lama'), isFalse);
   });
 
+  test('deleted ids are not reused and rebuild keeps the same ids', () async {
+    final first = await store.saveWarga(fields());
+    await store.deleteWarga(first['id'] as int);
+    final second = await store.saveWarga(fields(name: 'PENGGANTI'));
+    expect(second['id'] as int, greaterThan(first['id'] as int));
+    final before = await store.db.query('warga');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect(await store.db.query('warga'), before);
+    expect((await store.warga(second['id'] as int))!['nama'], 'PENGGANTI');
+  });
+
   test('opening a v2 database on v3 keeps every row and snapshots first',
       () async {
-    final saved = await store.saveWarga(fields());
-    final before = await store.db.query('warga');
-    await store.close();
-    final newer = AppStore(root, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+    final isolated = await Directory.systemTemp.createTemp('pantarlih-v2-open-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
+    await older.open();
+    final saved = await older.saveWarga(fields());
+    final before = await older.db.query('warga');
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
       2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
     });
     await newer.open();
@@ -294,23 +309,28 @@ void main() {
       expect(after.first['nama'], saved['nama']);
       expect(after.first['kolom_baru'], isNull);
       expect(
-          Directory('${root.path}/snapshot')
+          Directory('${isolated.path}/snapshot')
               .listSync()
               .whereType<File>()
               .where((f) => f.path.contains('pre_migrasi_')),
           isNotEmpty);
     } finally {
       await newer.close();
+      await isolated.delete(recursive: true);
     }
   });
 
   test('rebuild from v2 journal onto v3 keeps rows with the new column null',
       () async {
-    await store.saveWarga(fields());
-    await store.saveWarga(fields(name: 'ORANG DUA'));
-    final before = await store.db.query('warga');
-    await store.close();
-    final newer = AppStore(root, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v2-rebuild-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
+    await older.open();
+    await older.saveWarga(fields());
+    await older.saveWarga(fields(name: 'ORANG DUA'));
+    final before = await older.db.query('warga');
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
       2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
     });
     await newer.open();
@@ -323,6 +343,7 @@ void main() {
       expect(after.every((r) => r['kolom_baru'] == null), isTrue);
     } finally {
       await newer.close();
+      await isolated.delete(recursive: true);
     }
   });
 
