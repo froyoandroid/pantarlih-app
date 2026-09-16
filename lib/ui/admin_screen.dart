@@ -312,6 +312,9 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Tentang',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
+            'Mode offline. Tidak ada jaringan keluar, foto KK, penilaian umur, atau keputusan kelayakan di aplikasi ini.',
+            icon: Icons.shield_outlined),
+        const Notice(
             'Pantarlih memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
             icon: Icons.info_outline),
       ]));
