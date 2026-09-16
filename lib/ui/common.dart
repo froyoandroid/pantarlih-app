@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../data/storage.dart';
@@ -65,6 +67,26 @@ class Session extends ChangeNotifier {
 
   Future<void> saveLokasi(Lokasi next) async {
     await store.setLokasi(next.toRow());
+    await load();
+    await selaraskanFolderDesa();
+  }
+
+  Future<void> selaraskanFolderDesa() async {
+    final nama = (lokasi?.namaDesa ?? village).trim();
+    if (nama.isEmpty) return;
+    final ingin = namaFolderDesa(nama);
+    if (basenameDir(store.root) == ingin) {
+      await tulisFolderAktif(store.root.parent, ingin);
+      return;
+    }
+    final next = Directory('${store.root.parent.path}/$ingin');
+    await store.recordStorageMove(store.root.path, next.path);
+    final lama = store.root;
+    await store.close();
+    await relocateDataRoot(lama, next);
+    store = AppStore(next);
+    await store.open();
+    await tulisFolderAktif(next.parent, ingin);
     await load();
   }
 
@@ -136,6 +158,7 @@ class Session extends ChangeNotifier {
     store = AppStore(resolved.root);
     await store.open();
     usingPublic = true;
+    await tulisFolderAktif(resolved.root.parent, basenameDir(resolved.root));
     await load();
     return true;
   }
@@ -206,7 +229,7 @@ class _PrivateStorageBanner extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: Column(children: [
               const Text(
-                  'Cadangan tidak tersimpan ke Documents. Ekspor manual dan bagikan berkas secara berkala.',
+                  'Cadangan tidak tersimpan ke Documents atau Dokumen. Ekspor manual dan bagikan berkas secara berkala.',
                   style: TextStyle(color: Colors.white, height: 1.35)),
               Align(
                   alignment: Alignment.centerLeft,

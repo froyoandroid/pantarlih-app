@@ -109,7 +109,9 @@ class _StartupScreenState extends State<StartupScreen> {
       final session =
           Session(store!, usingPublic: resolved.usingPublic, wilayah: wilayah);
       await session.load();
-      await tandaiIntroSelesai(dataRoot: resolved.root);
+      await session.selaraskanFolderDesa();
+      store = session.store;
+      await tandaiIntroSelesai(dataRoot: session.store.root);
       if (!mounted) return;
       final home = HomeScreen(session: session);
       if (!langsungBuka &&
@@ -180,7 +182,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                     fontSize: 20, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 14),
                             const Text(
-                                'Data disimpan di Documents/PantarlihKalitorong. Berikan izin akses berkas agar jurnal, Excel, dan cadangan tetap bisa diambil lewat USB.',
+                                'Data disimpan di folder Documents atau Dokumen. Nama foldernya Pantarlih diikuti nama desa. Berikan izin akses berkas agar jurnal, Excel, dan cadangan tetap bisa diambil lewat USB.',
                                 textAlign: TextAlign.center),
                             const Notice(
                                 'Folder ini berisi data pribadi warga. Lindungi perangkat dan cadangan. Tidak ada pengiriman otomatis ke internet.',
