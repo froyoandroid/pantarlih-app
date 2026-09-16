@@ -49,7 +49,7 @@ class _RtListScreenState extends State<RtListScreen> {
   Future<void> _load({int? scrollTo}) async {
     final s = widget.session;
     final loaded = await s.store.wargaRt(s.rw, s.rt);
-    final c = await s.store.counts(s.rt, s.rw);
+    final c = await s.store.counts(s.rw, s.rt);
     if (!mounted) return;
     setState(() {
       rows = loaded;
