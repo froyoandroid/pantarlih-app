@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
+import 'migrate.dart';
 import 'order.dart';
 import 'schema.dart';
 
@@ -28,10 +29,15 @@ class RecoveryReport {
 
 /// One serialized writer. Journal is appended first, then SQLite commits.
 class AppStore extends ChangeNotifier {
-  AppStore(this.root, {DatabaseFactory? factory})
+  AppStore(this.root,
+      {DatabaseFactory? factory,
+      this.schemaV = schemaVersion,
+      this.upgrades = const {}})
       : factory = factory ?? databaseFactory;
   final Directory root;
   final DatabaseFactory factory;
+  final int schemaV;
+  final Map<int, List<String>> upgrades;
   late Database db;
   Future<void> _tail = Future<void>.value();
   bool _recoveryRequired = false;
@@ -64,6 +70,7 @@ class AppStore extends ChangeNotifier {
       await Directory('${root.path}/$path').create(recursive: true);
     }
     try {
+      await _snapshotBeforeUpgrade(dbPath);
       db = await _openDatabase(dbPath);
       final check = await db.rawQuery('PRAGMA quick_check');
       if (check.any((row) => row.values.first != 'ok')) {
@@ -78,23 +85,44 @@ class AppStore extends ChangeNotifier {
     }
   }
 
+  Future<int?> _userVersion(String path) async {
+    final file = File(path);
+    if (!await file.exists() || await file.length() < 64) return null;
+    final bytes = await file.openRead(60, 64).first;
+    return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  }
+
+  Future<void> _snapshotBeforeUpgrade(String path) async {
+    final current = await _userVersion(path);
+    if (current == null || current >= schemaV) return;
+    final stamp = fileStamp();
+    for (final suffix in ['', '-wal', '-shm']) {
+      final source = File('$path$suffix');
+      if (!await source.exists()) continue;
+      await source.copy('${root.path}/snapshot/pre_migrasi_$stamp.db$suffix');
+    }
+  }
+
+  Future<void> _applySchema(Database db, int version) async {
+    for (final sql in schemaStatements) {
+      await db.execute(sql);
+    }
+    for (final sql in upgradeStatements(schemaVersion, version, upgrades)) {
+      await db.execute(sql);
+    }
+  }
+
   Future<Database> _openDatabase(String path) => factory.openDatabase(path,
       options: OpenDatabaseOptions(
-          version: schemaVersion,
+          version: schemaV,
           onConfigure: (db) async {
             await db.execute('PRAGMA foreign_keys = ON');
             await db.rawQuery('PRAGMA journal_mode = WAL');
           },
-          onCreate: (db, _) async {
-            for (final sql in schemaStatements) {
-              await db.execute(sql);
-            }
-          },
+          onCreate: (db, version) => _applySchema(db, version),
           onUpgrade: (db, oldVersion, newVersion) async {
-            for (final sql in dropStatements) {
-              await db.execute(sql);
-            }
-            for (final sql in schemaStatements) {
+            for (final sql
+                in upgradeStatements(oldVersion, newVersion, upgrades)) {
               await db.execute(sql);
             }
           }));
@@ -105,7 +133,7 @@ class AppStore extends ChangeNotifier {
       'rt_aktif': '3',
       'rw_aktif': '3',
       'desa_default': 'KALITORONG',
-      'schema_v': '$schemaVersion',
+      'schema_v': '$schemaV',
       for (final row in rows)
         row['kunci'] as String: row['nilai'] as String? ?? ''
     };
@@ -120,7 +148,7 @@ class AppStore extends ChangeNotifier {
                 {'kunci': 'rt_aktif', 'nilai': '$rt'},
                 {'kunci': 'rw_aktif', 'nilai': '$rw'},
                 {'kunci': 'desa_default', 'nilai': 'KALITORONG'},
-                {'kunci': 'schema_v', 'nilai': '$schemaVersion'},
+                {'kunci': 'schema_v', 'nilai': '$schemaV'},
               ]
             });
   }
@@ -151,7 +179,7 @@ class AppStore extends ChangeNotifier {
             final events = <RecordMap>[
               if (extras != null) ...extras(payload),
               {
-                'schema_v': schemaVersion,
+                'schema_v': schemaV,
                 'ts': ts,
                 'op': op,
                 'tabel': table,
@@ -160,7 +188,7 @@ class AppStore extends ChangeNotifier {
               }
             ];
             for (final event in events) {
-              event['schema_v'] = schemaVersion;
+              event['schema_v'] = schemaV;
               event['ts'] = event['ts'] ?? ts;
               event['event_id'] = await _nextId(txn, 'log');
               await _appendJournal(event);
@@ -205,7 +233,14 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> _applyEvent(DatabaseExecutor txn, RecordMap event) async {
-    if (event['schema_v'] != schemaVersion) {
+    late RecordMap migrated;
+    try {
+      migrated = migrateEvent(event, target: schemaV);
+    } catch (e) {
+      throw AppException('$e');
+    }
+    event = migrated;
+    if (event['schema_v'] != schemaV) {
       throw AppException('Versi jurnal tidak didukung');
     }
     final data = Map<String, Object?>.from(event['data'] as Map);
@@ -638,9 +673,14 @@ class AppStore extends ChangeNotifier {
         if (line.trim().isEmpty) continue;
         report.processed++;
         try {
-          final event = Map<String, Object?>.from(jsonDecode(line) as Map);
-          if (event['event_id'] is! int || event['schema_v'] != schemaVersion) {
-            throw AppException('ID atau versi jurnal tidak valid');
+          var event = Map<String, Object?>.from(jsonDecode(line) as Map);
+          if (event['event_id'] is! int) {
+            throw AppException('ID jurnal tidak valid');
+          }
+          try {
+            event = migrateEvent(event, target: schemaV);
+          } catch (e) {
+            throw AppException('$e');
           }
           if (known.contains(event['event_id'])) continue;
           await target.transaction((txn) => _applyEvent(txn, event));
@@ -690,6 +730,8 @@ class AppStore extends ChangeNotifier {
 
   Future<void> close() async {
     await _tail;
-    await db.close();
+    try {
+      await db.close();
+    } catch (_) {/* Already closed after a swap or a second close. */}
   }
 }
