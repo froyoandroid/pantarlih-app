@@ -139,3 +139,26 @@ RingkasanWarga ringkasWarga(List<RecordMap> counts, List<RtRw> workspace) {
   return RingkasanWarga(
       rt: workspace.length, jumlah: jumlah, tanpaNik: tanpaNik);
 }
+
+String ukuranTampil(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+/// Indonesian labels for warga columns, used when listing what changed.
+const _labelKolom = <String, String>{
+  'nik': 'NIK',
+  'nama': 'nama',
+  'jenis_kelamin': 'jenis kelamin',
+  'tempat_lahir': 'tempat lahir',
+  'tgl_lahir': 'tanggal lahir',
+  'desa': 'desa',
+  'kode_wilayah': 'kode wilayah',
+  'rt': 'RT',
+  'rw': 'RW',
+  'keterangan': 'keterangan',
+  'warna': 'warna',
+};
+
+String namaKolomTampil(String kolom) => _labelKolom[kolom] ?? kolom;

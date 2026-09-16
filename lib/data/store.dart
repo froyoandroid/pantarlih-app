@@ -21,6 +21,10 @@ class RecoveryReport {
   int processed = 0;
   int applied = 0;
   int failed = 0;
+
+  /// Lines inside a RESTORE range: valid events that a later snapshot
+  /// rollback deliberately undid. Not failures, not applied.
+  int dilewati = 0;
   String? failurePath;
   String? previousDatabase;
   List<String> details = [];
@@ -28,7 +32,39 @@ class RecoveryReport {
   String get fingerprint => details.join('\n');
   @override
   String toString() =>
-      '$processed baris diproses · $applied diterapkan · $failed gagal';
+      '$processed baris diproses · $applied diterapkan · $failed gagal'
+      '${dilewati > 0 ? ' · $dilewati dilewati karena pemulihan snapshot' : ''}';
+}
+
+/// Read-only facts about one snapshot file, for the snapshot list.
+class SnapshotInfo {
+  const SnapshotInfo(
+      {required this.file,
+      required this.jumlah,
+      required this.tanpaNik,
+      required this.eventTerakhir,
+      required this.waktuEvent,
+      required this.ukuran,
+      required this.dibuat});
+  final File file;
+  final int jumlah;
+  final int tanpaNik;
+  final int eventTerakhir;
+  final String waktuEvent;
+  final int ukuran;
+  final DateTime dibuat;
+}
+
+/// Difference between a snapshot and the live database, keyed by warga id.
+class PerbandinganSnapshot {
+  const PerbandinganSnapshot(
+      {required this.ditambah, required this.dihapus, required this.berubah});
+  final List<RecordMap> ditambah;
+  final List<RecordMap> dihapus;
+
+  /// Pairs of (snapshot row, live row) plus the names of columns that differ.
+  final List<(RecordMap, RecordMap, List<String>)> berubah;
+  bool get kosong => ditambah.isEmpty && dihapus.isEmpty && berubah.isEmpty;
 }
 
 /// One serialized writer. Journal is appended first, then SQLite commits.
@@ -93,7 +129,7 @@ class AppStore extends ChangeNotifier {
       // Advance the checkpoint only after a clean replay, so damaged lines
       // keep being retried on the next launch.
       if (startupRecovery == null || startupRecovery!.failed == 0) {
-        await _perbaruiCheckpoint();
+        await exclusive(_perbaruiCheckpoint);
       }
       // One-time cleanup: scan warga only until the marker is journaled.
       final trimMarker = await db
@@ -351,53 +387,59 @@ class AppStore extends ChangeNotifier {
   Future<RecordMap> _commit(String op, String table,
           Future<RecordMap> Function(Transaction txn, String ts) prepare,
           {List<RecordMap> Function(RecordMap payload)? extras}) =>
-      exclusive(() async {
-        if (_recoveryRequired) {
-          throw AppException(
-              'Pulihkan database dari jurnal sebelum melanjutkan.');
-        }
-        var journalWritten = false;
-        try {
-          final result = await db.transaction((txn) async {
-            final ts = timestamp();
-            final payload = await prepare(txn, ts);
-            final events = <RecordMap>[
-              if (extras != null) ...extras(payload),
-              {
-                'schema_v': schemaV,
-                'ts': ts,
-                'op': op,
-                'tabel': table,
-                'row_id': payload['id'] ?? payload['row_id'],
-                'data': payload,
-              }
-            ];
-            for (final event in events) {
-              event['schema_v'] = schemaV;
-              event['ts'] = event['ts'] ?? ts;
-              event['event_id'] = await _nextId(txn, 'log');
-            }
-            final counters = await _idCounters(txn);
-            for (final event in events) {
-              event['urutan_id'] = counters;
-              await _appendJournal(event);
-              journalWritten = true;
-              await _applyEvent(txn, event);
-            }
-            return payload;
-          });
-          notifyListeners();
-          return result;
-        } catch (e) {
-          if (journalWritten) {
-            _recoveryRequired = true;
-            throw AppException(
-                'Jurnal sudah tersimpan, tetapi database gagal diperbarui. '
-                'Jangan input ulang, bangun ulang dari jurnal. Detail: $e');
+      exclusive(() => _commitNow(op, table, prepare, extras: extras));
+
+  /// The body of [_commit] for callers that already hold the exclusive
+  /// slot (restoreSnapshot, the startup checkpoint). Nesting exclusive()
+  /// would wait on itself forever.
+  Future<RecordMap> _commitNow(String op, String table,
+      Future<RecordMap> Function(Transaction txn, String ts) prepare,
+      {List<RecordMap> Function(RecordMap payload)? extras}) async {
+    if (_recoveryRequired) {
+      throw AppException('Pulihkan database dari jurnal sebelum melanjutkan.');
+    }
+    var journalWritten = false;
+    try {
+      final result = await db.transaction((txn) async {
+        final ts = timestamp();
+        final payload = await prepare(txn, ts);
+        final events = <RecordMap>[
+          if (extras != null) ...extras(payload),
+          {
+            'schema_v': schemaV,
+            'ts': ts,
+            'op': op,
+            'tabel': table,
+            'row_id': payload['id'] ?? payload['row_id'],
+            'data': payload,
           }
-          rethrow;
+        ];
+        for (final event in events) {
+          event['schema_v'] = schemaV;
+          event['ts'] = event['ts'] ?? ts;
+          event['event_id'] = await _nextId(txn, 'log');
         }
+        final counters = await _idCounters(txn);
+        for (final event in events) {
+          event['urutan_id'] = counters;
+          await _appendJournal(event);
+          journalWritten = true;
+          await _applyEvent(txn, event);
+        }
+        return payload;
       });
+      notifyListeners();
+      return result;
+    } catch (e) {
+      if (journalWritten) {
+        _recoveryRequired = true;
+        throw AppException(
+            'Jurnal sudah tersimpan, tetapi database gagal diperbarui. '
+            'Jangan input ulang, bangun ulang dari jurnal. Detail: $e');
+      }
+      rethrow;
+    }
+  }
 
   Future<void> _appendJournal(RecordMap event) async {
     final date = event['ts'].toString().substring(0, 10);
@@ -480,6 +522,9 @@ class AppStore extends ChangeNotifier {
         await txn.insert('setelan', Map<String, Object?>.from(raw as Map),
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
+    } else if (table == 'snapshot' && op == 'RESTORE') {
+      // The rollback itself happened on disk. Its effect on replay is the
+      // skip range (dari, event_id) that _replay honours in its first pass.
     } else if (table == 'storage' && op == 'RELOCATE') {
       // Legacy event from when the data folder could move. Nothing to apply.
     } else if (!(table == 'export' && op == 'EXPORT')) {
@@ -966,6 +1011,10 @@ class AppStore extends ChangeNotifier {
         .cast<File>()
         .toList();
     files.sort((a, b) => a.path.compareTo(b.path));
+    // Pass one: every snapshot rollback defines a range of event ids that
+    // were undone. Replaying them would silently redo what the user rolled
+    // back, so they are skipped in pass two. rebuild() gets the same result.
+    final lewati = await _rentangPulih(files);
     for (final file in files) {
       final tanggal = _tanggalBerkasJurnal(file);
       if (checkpointId > 0 &&
@@ -993,6 +1042,11 @@ class AppStore extends ChangeNotifier {
           var event = Map<String, Object?>.from(jsonDecode(line) as Map);
           if (event['event_id'] is! int) {
             throw AppException('ID jurnal tidak valid');
+          }
+          final id = event['event_id'] as int;
+          if (lewati.any((r) => id > r.$1 && id < r.$2)) {
+            report.dilewati++;
+            continue;
           }
           try {
             event = migrateEvent(event, target: schemaV);
@@ -1025,6 +1079,32 @@ class AppStore extends ChangeNotifier {
     return report;
   }
 
+  /// (dari, event_id) for every RESTORE event: ids strictly between the two
+  /// were undone by that rollback. Cheap substring filter before decoding.
+  Future<List<(int, int)>> _rentangPulih(List<File> files) async {
+    final out = <(int, int)>[];
+    for (final file in files) {
+      await for (final line in file
+          .openRead()
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())) {
+        if (!line.contains('"op":"RESTORE"')) continue;
+        try {
+          final event = jsonDecode(line) as Map;
+          if (event['tabel'] != 'snapshot' || event['op'] != 'RESTORE') {
+            continue;
+          }
+          final data = event['data'];
+          final id = event['event_id'];
+          if (data is Map && id is int) out.add((intValue(data['dari']), id));
+        } catch (_) {
+          // A damaged RESTORE line is reported by pass two like any other.
+        }
+      }
+    }
+    return out;
+  }
+
   String _tanggalBerkasJurnal(File file) {
     final name = file.uri.pathSegments.last;
     return RegExp(r'^(\d{4}-\d{2}-\d{2})\.jsonl$').firstMatch(name)?.group(1) ??
@@ -1054,7 +1134,7 @@ class AppStore extends ChangeNotifier {
     final (lama, _) = await _checkpointBaca(db);
     if (maxId <= lama) return;
     final tanggal = '${rows.first['ts'] ?? ''}';
-    await _commit(
+    await _commitNow(
         'UPDATE',
         'setelan',
         (txn, ts) async => {
@@ -1093,6 +1173,130 @@ class AppStore extends ChangeNotifier {
         await _muatKolom();
         report.previousDatabase = backup;
         _recoveryRequired = false;
+        notifyListeners();
+        return report;
+      });
+
+  Future<Database> _bukaBacaSaja(File file) => factory.openDatabase(file.path,
+      options: OpenDatabaseOptions(readOnly: true, singleInstance: false));
+
+  Future<SnapshotInfo> infoSnapshot(File file) async {
+    final snap = await _bukaBacaSaja(file);
+    try {
+      final warga = await snap.rawQuery(
+          "SELECT COUNT(*) AS jumlah, COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik FROM warga");
+      final log =
+          await snap.rawQuery('SELECT MAX(id) AS id, MAX(ts) AS ts FROM log');
+      return SnapshotInfo(
+          file: file,
+          jumlah: intValue(warga.first['jumlah']),
+          tanpaNik: intValue(warga.first['tanpa_nik']),
+          eventTerakhir: intValue(log.first['id']),
+          waktuEvent: '${log.first['ts'] ?? ''}',
+          ukuran: await file.length(),
+          dibuat: await file.lastModified());
+    } finally {
+      await snap.close();
+    }
+  }
+
+  Future<List<RecordMap>> wargaSnapshot(File file) async {
+    final snap = await _bukaBacaSaja(file);
+    try {
+      return await snap.query('warga', orderBy: 'rw, rt, urut_sort');
+    } finally {
+      await snap.close();
+    }
+  }
+
+  static const _kolomBanding = [
+    'nik',
+    'nama',
+    'jenis_kelamin',
+    'tempat_lahir',
+    'tgl_lahir',
+    'desa',
+    'kode_wilayah',
+    'rt',
+    'rw',
+    'keterangan',
+    'warna',
+  ];
+
+  /// What changed since [file] was taken, keyed by warga id.
+  Future<PerbandinganSnapshot> bandingkanSnapshot(File file) async {
+    final lama = {
+      for (final r in await wargaSnapshot(file)) intValue(r['id']): r
+    };
+    final kini = {for (final r in await allWarga()) intValue(r['id']): r};
+    final ditambah = <RecordMap>[];
+    final dihapus = <RecordMap>[];
+    final berubah = <(RecordMap, RecordMap, List<String>)>[];
+    for (final e in kini.entries) {
+      final sebelum = lama[e.key];
+      if (sebelum == null) {
+        ditambah.add(e.value);
+        continue;
+      }
+      final beda = [
+        for (final k in _kolomBanding)
+          if ('${sebelum[k] ?? ''}' != '${e.value[k] ?? ''}') k
+      ];
+      if (beda.isNotEmpty) berubah.add((sebelum, e.value, beda));
+    }
+    for (final e in lama.entries) {
+      if (!kini.containsKey(e.key)) dihapus.add(e.value);
+    }
+    return PerbandinganSnapshot(
+        ditambah: ditambah, dihapus: dihapus, berubah: berubah);
+  }
+
+  /// Point-in-time rollback to [file]. The live database is kept in
+  /// recovered/, the journal stays complete, and a RESTORE event records
+  /// which ids were undone so startup replay and rebuild() reproduce the
+  /// rolled-back state instead of quietly redoing the newer events.
+  Future<RecoveryReport> restoreSnapshot(File file) => exclusive(() async {
+        if (_recoveryRequired) {
+          throw AppException(
+              'Pulihkan database dari jurnal sebelum memulihkan snapshot.');
+        }
+        final snap = await _bukaBacaSaja(file);
+        int dari;
+        try {
+          final check = await snap.rawQuery('PRAGMA quick_check');
+          if (check.any((row) => row.values.first != 'ok')) {
+            throw AppException('Snapshot rusak dan tidak dapat dipulihkan.');
+          }
+          final versi = await snap.rawQuery('PRAGMA user_version');
+          if (intValue(versi.first.values.first) > schemaV) {
+            throw AppException(
+                'Snapshot berasal dari versi aplikasi yang lebih baru.');
+          }
+          final log = await snap.rawQuery('SELECT MAX(id) AS id FROM log');
+          dari = intValue(log.first['id']);
+        } finally {
+          await snap.close();
+        }
+        final nama = file.uri.pathSegments.last;
+        // Journal the rollback while the live database is still open: the
+        // event lands in the journal and in the live log, the restored copy
+        // picks it up again through replay right after the swap.
+        await _commitNow('RESTORE', 'snapshot',
+            (txn, ts) async => {'berkas': nama, 'dari': dari});
+        final stamp = fileStamp();
+        await db.close();
+        final backup = '${root.path}/recovered/db_sebelum_pulih_$stamp.db';
+        if (await File(dbPath).exists()) await File(dbPath).rename(backup);
+        for (final suffix in ['-wal', '-shm']) {
+          final sidecar = File('$dbPath$suffix');
+          if (await sidecar.exists()) await sidecar.rename('$backup$suffix');
+        }
+        await file.copy(dbPath);
+        db = await _openDatabase(dbPath);
+        await _muatKolom();
+        final report = await _replay(db, honorDismiss: false);
+        if (report.failed == 0) await _perbaruiCheckpoint();
+        report.previousDatabase = backup;
         notifyListeners();
         return report;
       });
