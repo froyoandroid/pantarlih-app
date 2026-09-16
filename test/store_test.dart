@@ -621,6 +621,70 @@ void main() {
     expect(session.peringatanCadangan, isNot(contains(';')));
   });
 
+  test('snapshot info and comparison read the copy without touching live data',
+      () async {
+    final a = await store.saveWarga(fields(name: 'AMIR'));
+    await store.saveWarga(fields(name: 'BUDI', nik: ''));
+    final snap = await store.snapshot();
+    final info = await store.infoSnapshot(snap);
+    expect(info.jumlah, 2);
+    expect(info.tanpaNik, 1);
+    expect(info.eventTerakhir, greaterThan(0));
+    await store.saveWarga(fields(name: 'AMIR BARU'), id: a['id'] as int);
+    final c =
+        await store.saveWarga(fields(name: 'CITRA', nik: '3327071909680001'));
+    final banding = await store.bandingkanSnapshot(snap);
+    expect(banding.ditambah.map((r) => r['id']), [c['id']]);
+    expect(banding.dihapus, isEmpty);
+    expect(banding.berubah, hasLength(1));
+    expect(banding.berubah.first.$3, ['nama']);
+    expect((await store.wargaSnapshot(snap)).map((r) => r['nama']),
+        ['AMIR', 'BUDI']);
+  });
+
+  test('restoring a snapshot rolls back, journals it, and rebuild agrees',
+      () async {
+    final a = await store.saveWarga(fields(name: 'AMIR'));
+    final snap = await store.snapshot();
+    await store.saveWarga(fields(name: 'BUDI', nik: '3327071909680002'));
+    await store.deleteWarga(a['id'] as int);
+    expect((await store.allWarga()).map((r) => r['nama']), ['BUDI']);
+    final report = await store.restoreSnapshot(snap);
+    expect(report.dilewati, 2);
+    expect(report.previousDatabase, contains('db_sebelum_pulih_'));
+    expect((await store.allWarga()).map((r) => r['nama']), ['AMIR']);
+    final log =
+        await store.db.query('log', where: 'op = ?', whereArgs: ['RESTORE']);
+    expect(log, hasLength(1));
+    expect(log.first['tabel'], 'snapshot');
+    // Life goes on after the rollback and the new event replays normally.
+    await store.saveWarga(fields(name: 'CITRA', nik: '3327071909680003'));
+    final rebuilt = await store.rebuild();
+    expect(rebuilt.failed, 0);
+    expect(rebuilt.dilewati, 2);
+    expect((await store.allWarga()).map((r) => r['nama']),
+        unorderedEquals(['AMIR', 'CITRA']));
+    // A second open replays nothing extra and keeps the rolled-back state.
+    await store.close();
+    final again = AppStore(root, factory: databaseFactoryFfi);
+    await again.open();
+    expect((await again.allWarga()).map((r) => r['nama']),
+        unorderedEquals(['AMIR', 'CITRA']));
+    await again.close();
+  });
+
+  test('releasing the last RT empties the workspace instead of failing',
+      () async {
+    await store.setSession(3, 3);
+    final session = Session(store, pertukaranInduk: root);
+    await session.pastikanWorkspace();
+    expect(session.workspace, [const RtRw(3, 3)]);
+    await session.removeRtRw(const RtRw(3, 3));
+    expect(session.workspace, isEmpty);
+    expect(session.rt, 0);
+    expect(session.rw, 0);
+  });
+
   test('journal payload is the full warga row, not a delta', () async {
     final saved = await store.saveWarga(fields(note: 'bebas'));
     final log =

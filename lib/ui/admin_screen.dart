@@ -6,6 +6,7 @@ import '../data/exchange.dart';
 import '../data/spreadsheets.dart';
 import 'common.dart';
 import 'history_screen.dart';
+import 'snapshot_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key, required this.session});
@@ -242,22 +243,21 @@ class _AdminScreenState extends State<AdminScreen> {
               padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
         if (report != null) Notice(report!),
         const SizedBox(height: 16),
-        Text('Snapshot (${snapshots.length}/20)',
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        if (snapshots.isEmpty)
-          const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('Belum ada snapshot.')),
-        for (final file in snapshots)
-          ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(file.path.split('/').last,
-                  style: const TextStyle(fontSize: 12)),
-              leading: const Icon(Icons.storage, size: 20),
-              trailing: IconButton(
-                  tooltip: 'Bagikan snapshot',
-                  onPressed: busy ? null : () => share([file]),
-                  icon: const Icon(Icons.share_outlined))),
+        Card(
+            child: ListTile(
+                leading: const Icon(Icons.history_toggle_off),
+                title: Text('Snapshot (${snapshots.length}/20)',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Lihat isi, bandingkan, pulihkan'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy
+                    ? null
+                    : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    SnapshotScreen(session: widget.session)))
+                        .then((_) => load()))),
         const SizedBox(height: 28),
         const Text('Folder pertukaran',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
