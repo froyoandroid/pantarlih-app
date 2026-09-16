@@ -193,6 +193,21 @@ void main() {
     expect(marker.single['nilai'], '1');
   });
 
+  test('rtList counts warga RTs only, rtListReferensi includes references',
+      () async {
+    await store.db.insert('referensi', {
+      'nama': 'REFERENSI KOSONG',
+      'nama_norm': 'referensi kosong',
+      'rt': 7,
+      'rw': 3,
+      'diimpor_pada': timestamp(),
+    });
+    expect(await store.rtList(3), isEmpty);
+    expect(await store.rtListReferensi(3), containsAll([3, 7]));
+    await store.saveWarga(fields());
+    expect(await store.rtList(3), [3]);
+  });
+
   test('reference import is optional, dirty, and repeatable', () async {
     final rows = await store.allReferensi(3);
     expect(rows, hasLength(3));

@@ -867,7 +867,21 @@ class AppStore extends ChangeNotifier {
       COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
     FROM warga GROUP BY rw, rt ORDER BY rw, rt''');
 
-  Future<List<int>> rtList(int rw) async {
+  /// RTs that actually hold warga rows. Used for exports: a reference-only
+  /// RT would otherwise produce an empty header-only DPS file.
+  Future<List<int>> rtList(int rw) async => [
+        for (final r in await db.query('warga',
+            columns: ['rt'],
+            where: 'rw = ?',
+            whereArgs: [rw],
+            groupBy: 'rt',
+            orderBy: 'rt'))
+          r['rt'] as int
+      ];
+
+  /// RTs from warga plus reference rows. Workspace recovery keeps these so
+  /// an RT with imported reference but no warga yet is still reachable.
+  Future<List<int>> rtListReferensi(int rw) async {
     final rows = await db.rawQuery(
         'SELECT rt FROM warga WHERE rw=? UNION SELECT rt FROM referensi WHERE rw=? ORDER BY rt',
         [rw, rw]);

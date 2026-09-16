@@ -52,7 +52,7 @@ class Session extends ChangeNotifier {
     workspace = RtRw.decode(values['ruang_kerja'] ?? '');
     var persist = false;
     if (workspace.isEmpty && rt > 0 && rw > 0) {
-      final known = await store.rtList(rw);
+      final known = await store.rtListReferensi(rw);
       workspace = [
         for (final n in {...known, rt}) RtRw(rw, n)
       ]..sort();
