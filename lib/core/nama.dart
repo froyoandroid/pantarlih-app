@@ -52,7 +52,7 @@ String normalisasiNama(String input) {
 List<String> tokenNama(String input) =>
     normalisasiNama(input).split(' ').where((t) => t.isNotEmpty).toList();
 
-int levenshtein(String a, String b) {
+int levenshtein(String a, String b, {int? maxDistance}) {
   if (a == b) return 0;
   if (a.isEmpty) return b.length;
   if (b.isEmpty) return a.length;
@@ -65,6 +65,11 @@ int levenshtein(String a, String b) {
         previous[j + 1] + 1,
         previous[j] + (a[i] == b[j] ? 0 : 1),
       ].reduce((x, y) => x < y ? x : y));
+    }
+    // Bail out once the distance provably exceeds the budget; callers only
+    // care whether the pair is close, and full rows are wasted work then.
+    if (maxDistance != null && current.reduce((x, y) => x < y ? x : y) > maxDistance) {
+      return maxDistance + 1;
     }
     previous = current;
   }
@@ -79,7 +84,14 @@ double _simToken(String a, String b) {
         (a.length > b.length ? a.length : b.length);
   }
   final m = a.length > b.length ? a.length : b.length;
-  return m == 0 ? 0 : 1 - levenshtein(a, b) / m;
+  if (m == 0) return 0;
+  // 0.3 is the lowest similarity that can still matter to skorNama: anything
+  // further is skipped without running the full edit-distance table.
+  const batas = 0.3;
+  final maksEdit = (m * (1 - batas)).floor();
+  final lev = levenshtein(a, b, maxDistance: maksEdit);
+  if (lev > maksEdit) return 0;
+  return 1 - lev / m;
 }
 
 double skorNama(String query, String kandidat) {

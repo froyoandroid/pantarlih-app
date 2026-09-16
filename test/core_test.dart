@@ -33,6 +33,13 @@ void main() {
     expect(skorNama('', 'HASAN'), 0);
     expect(levenshtein('kitten', 'sitting'), 3);
     expect(skorNama('emi', 'EMI'), 100);
+    // Bail-out: over-budget pairs return maksEdit + 1 without full rows.
+    expect(levenshtein('kitten', 'sitting', maxDistance: 3), 3);
+    expect(levenshtein('kitten', 'sitting', maxDistance: 2), 3);
+    expect(levenshtein('ahmad', 'ehmad', maxDistance: 1), 1);
+    expect(levenshtein('ahmad', 'zzzzz', maxDistance: 2), 3);
+    expect(skorNama('ahmad', 'EHMAD'), greaterThan(30));
+    expect(skorNama('ahmad', 'ZZZZZ'), 0);
   });
   test('date formatter inserts dashes and still parses to ISO', () {
     final formatted = TanggalInputFormatter().formatEditUpdate(
