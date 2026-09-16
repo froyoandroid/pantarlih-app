@@ -1,0 +1,37 @@
+/// Common DPS note codes. The column stays free text: unknown values are
+/// kept as-is under the "Lainnya" chip and never scored.
+const keteranganKode = <String, String>{
+  'PD': 'pindah domisili',
+  'TMS': 'tidak memenuhi syarat',
+  'B': 'baru',
+  'MD': 'meninggal dunia',
+};
+
+const keteranganLainnya = 'lainnya';
+
+String? kodeKeterangan(String? raw) {
+  final trimmed = (raw ?? '').trim();
+  if (trimmed.isEmpty) return null;
+  final upper = trimmed.toUpperCase();
+  return keteranganKode.containsKey(upper) ? upper : null;
+}
+
+String? chipKeterangan(String? raw) {
+  final trimmed = (raw ?? '').trim();
+  if (trimmed.isEmpty) return null;
+  return kodeKeterangan(trimmed) ?? keteranganLainnya;
+}
+
+String nilaiKeterangan(String? chip, String lain) {
+  if (chip == null) return '';
+  if (chip == keteranganLainnya) return lain;
+  return chip;
+}
+
+String keteranganTampil(Object? raw) {
+  final trimmed = '${raw ?? ''}'.trim();
+  if (trimmed.isEmpty) return '';
+  final code = kodeKeterangan(trimmed);
+  if (code == null) return trimmed;
+  return '$code · ${keteranganKode[code]}';
+}

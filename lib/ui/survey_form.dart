@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/format.dart';
+import '../core/keterangan.dart';
 import '../core/nik.dart';
 import 'common.dart';
 
@@ -33,6 +34,7 @@ class _SurveyFormState extends State<SurveyForm> {
       rw,
       note;
   String? gender;
+  String? ketChip;
   final noteFocus = FocusNode(skipTraversal: true);
   bool saving = false;
   int? get wargaId => widget.warga?['id'] as int?;
@@ -64,11 +66,30 @@ class _SurveyFormState extends State<SurveyForm> {
         text: '${edit?['rt'] ?? seed?['rt'] ?? widget.session.rt}');
     rw = TextEditingController(
         text: '${edit?['rw'] ?? seed?['rw'] ?? widget.session.rw}');
-    note = TextEditingController(
-        text: '${edit?['keterangan'] ?? ''}' == 'null'
-            ? ''
-            : '${edit?['keterangan'] ?? ''}');
+    final rawNote = '${edit?['keterangan'] ?? ''}' == 'null'
+        ? ''
+        : '${edit?['keterangan'] ?? ''}';
+    note = TextEditingController(text: rawNote);
+    ketChip = chipKeterangan(rawNote);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;
+  }
+
+  void _pilihKeterangan(String? next) {
+    setState(() {
+      ketChip = next;
+      if (next == null) {
+        note.clear();
+        return;
+      }
+      if (next == keteranganLainnya) {
+        if (kodeKeterangan(note.text) != null) note.clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) noteFocus.requestFocus();
+        });
+        return;
+      }
+      note.text = next;
+    });
   }
 
   @override
@@ -101,8 +122,7 @@ class _SurveyFormState extends State<SurveyForm> {
             widget.session.kodeWilayah,
         'rt': int.tryParse(rt.text),
         'rw': int.tryParse(rw.text),
-        'keterangan': note.text,
-        'sumber_input': widget.warga?['sumber_input'] ?? widget.session.source,
+        'keterangan': nilaiKeterangan(ketChip, note.text),
       };
       final warnings = periksaNik(
           nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender,
@@ -308,13 +328,42 @@ class _SurveyFormState extends State<SurveyForm> {
                       decoration: deco('RW')))
             ]),
             const SizedBox(height: 14),
-            TextField(
-                controller: note,
-                focusNode: noteFocus,
-                maxLines: 3,
-                decoration: deco('KETERANGAN (opsional)',
-                    hint:
-                        'Teks bebas, tidak dipakai untuk penilaian atau pencarian')),
+            InputDecorator(
+                decoration: deco('KETERANGAN (opsional)'),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(spacing: 8, runSpacing: 8, children: [
+                        for (final code in keteranganKode.keys)
+                          ChoiceChip(
+                              label: Text(code),
+                              selected: ketChip == code,
+                              onSelected: (on) =>
+                                  _pilihKeterangan(on ? code : null)),
+                        ChoiceChip(
+                            label: const Text('Lainnya'),
+                            selected: ketChip == keteranganLainnya,
+                            onSelected: (on) => _pilihKeterangan(
+                                on ? keteranganLainnya : null)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(
+                          'PD pindah domisili. TMS tidak memenuhi syarat. B baru. MD meninggal dunia.',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                              height: 1.4)),
+                    ])),
+            if (ketChip == keteranganLainnya) ...[
+              const SizedBox(height: 14),
+              TextField(
+                  controller: note,
+                  focusNode: noteFocus,
+                  maxLines: 3,
+                  decoration: deco('LAINNYA',
+                      hint:
+                          'Tulis keterangan. Tidak dipakai untuk penilaian atau pencarian')),
+            ],
             const SizedBox(height: 18),
             const Notice(
                 'NIK boleh kosong. Bila diisi, panjang selain 16 digit hanya peringatan dan tetap bisa disimpan.',

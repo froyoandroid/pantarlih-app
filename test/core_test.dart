@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
+import 'package:pantarlih_kalitorong/core/keterangan.dart';
 import 'package:pantarlih_kalitorong/core/nama.dart';
 import 'package:pantarlih_kalitorong/core/nik.dart';
 import 'package:pantarlih_kalitorong/data/migrate.dart';
@@ -93,12 +94,25 @@ void main() {
     expect(raised4['schema_v'], 4);
     expect((raised4['data'] as Map)['nama'], 'SITI');
     expect((raised4['data'] as Map)['kode_wilayah'], isNull);
+    final raised5from2 = migrateEvent(event, target: 5);
+    expect(raised5from2['schema_v'], 5);
+    expect((raised5from2['data'] as Map)['kode_wilayah'], isNull);
+    final withSource = {
+      'schema_v': 4,
+      'op': 'INSERT',
+      'tabel': 'warga',
+      'data': {'id': 1, 'nama': 'SITI', 'sumber_input': 'KERTAS'}
+    };
+    final raised5 = migrateEvent(withSource, target: 5);
+    expect(raised5['schema_v'], 5);
+    expect((raised5['data'] as Map)['nama'], 'SITI');
+    expect((raised5['data'] as Map).containsKey('sumber_input'), isFalse);
     expect(
-        () => migrateEvent({'schema_v': 4, 'data': {}}, target: 3),
+        () => migrateEvent({'schema_v': 5, 'data': {}}, target: 4),
         throwsA(isA<JournalVersionException>().having((e) => e.message,
             'message', contains('lebih baru'))));
     expect(
-        () => migrateEvent({'schema_v': 5, 'data': {}}, target: 4),
+        () => migrateEvent({'schema_v': 6, 'data': {}}, target: 5),
         throwsA(isA<JournalVersionException>().having((e) => e.message,
             'message', contains('lebih baru'))));
   });
@@ -119,6 +133,22 @@ void main() {
     expect(urutAntara(1000, 1001), isNull);
     expect(urutAntara(null, 1000), isNull);
     expect(urutAntara(null, 2000), 1000);
+  });
+  test('keterangan chips keep codes and leave other text free', () {
+    expect(kodeKeterangan('PD'), 'PD');
+    expect(kodeKeterangan(' tms '), 'TMS');
+    expect(kodeKeterangan('b'), 'B');
+    expect(kodeKeterangan('md'), 'MD');
+    expect(kodeKeterangan('pindah'), isNull);
+    expect(chipKeterangan(''), isNull);
+    expect(chipKeterangan('PD'), 'PD');
+    expect(chipKeterangan('catatan sendiri'), keteranganLainnya);
+    expect(nilaiKeterangan(null, 'abaikan'), '');
+    expect(nilaiKeterangan('PD', 'abaikan'), 'PD');
+    expect(nilaiKeterangan(keteranganLainnya, '  bebas  '), '  bebas  ');
+    expect(keteranganTampil('TMS'), 'TMS · tidak memenuhi syarat');
+    expect(keteranganTampil('catatan sendiri'), 'catatan sendiri');
+    expect(keteranganTampil(''), '');
   });
   test('notes preserve nonblank bytes and timestamps use explicit WIB', () {
     expect(nullableText('  '), isNull);

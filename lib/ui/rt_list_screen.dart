@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
+import '../core/keterangan.dart';
 import '../data/order.dart';
 import 'common.dart';
 import 'search_screen.dart';
@@ -147,7 +148,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final id = row['id'] as int;
                                   final nik = '${row['nik'] ?? ''}'.trim();
                                   final catatan =
-                                      '${row['keterangan'] ?? ''}'.trim();
+                                      keteranganTampil(row['keterangan']);
                                   return Dismissible(
                                       key: ValueKey(id),
                                       direction: DismissDirection.endToStart,
