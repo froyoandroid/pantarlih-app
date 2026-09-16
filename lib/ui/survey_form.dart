@@ -277,7 +277,8 @@ class _SurveyFormState extends State<SurveyForm> {
                 controller: birthDate,
                 textInputAction: TextInputAction.next,
                 onChanged: (_) => setState(() {}),
-                keyboardType: TextInputType.datetime,
+                keyboardType: TextInputType.number,
+                inputFormatters: [TanggalInputFormatter()],
                 decoration: deco('TANGGAL LAHIR', hint: 'DD-MM-YYYY')),
             const SizedBox(height: 14),
             TextField(
