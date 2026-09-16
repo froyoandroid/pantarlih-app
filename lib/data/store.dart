@@ -843,8 +843,7 @@ class AppStore extends ChangeNotifier {
   Future<List<RecordMap>> duplicateNameRows({int? rw, int? rt}) =>
       db.rawQuery('''
     SELECT w.* FROM warga w
-    JOIN v_duplikat_nama d
-      ON w.nama_norm = d.nama_norm AND w.rw = d.rw AND w.rt = d.rt
+    JOIN v_duplikat_nama d ON w.nama_norm = d.nama_norm AND w.rw = d.rw
     WHERE 1 = 1
       ${rw == null ? '' : 'AND w.rw = $rw'}
       ${rt == null ? '' : 'AND w.rt = $rt'}
