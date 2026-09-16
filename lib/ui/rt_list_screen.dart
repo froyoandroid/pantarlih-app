@@ -33,6 +33,8 @@ class _RtListScreenState extends State<RtListScreen> {
   List<RecordMap> rows = [];
   RecordMap? counts;
   bool loading = true;
+  String filter = '';
+  int? sorot;
 
   @override
   void initState() {
@@ -57,16 +59,19 @@ class _RtListScreenState extends State<RtListScreen> {
       loading = false;
     });
     if (scrollTo != null) {
-      final index = loaded.indexWhere((r) => r['id'] == scrollTo);
-      if (index >= 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!scroll.hasClients) return;
-          scroll.animateTo(
-              (index * 108.0).clamp(0, scroll.position.maxScrollExtent),
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOut);
+      // Real row heights vary (three-line cards), so ensureVisible targets
+      // the row itself instead of index * fixedHeight, then the row is
+      // highlighted for a moment so the landing spot is obvious.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = GlobalObjectKey(scrollTo).currentContext;
+        if (ctx == null) return;
+        Scrollable.ensureVisible(ctx,
+            duration: const Duration(milliseconds: 300), alignment: .25);
+        setState(() => sorot = scrollTo);
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && sorot == scrollTo) setState(() => sorot = null);
         });
-      }
+      });
     }
   }
 
@@ -178,6 +183,7 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
+    if (filter.isNotEmpty) return; // drag is locked while filtering
     // onReorderItem delivers newIndex already adjusted for the removed row,
     // so convert back to the raw onReorder-style index for the helper.
     final ids = [for (final row in rows) row['id'] as int];
@@ -206,6 +212,18 @@ class _RtListScreenState extends State<RtListScreen> {
   Widget build(BuildContext context) {
     final jumlah = intValue(counts?['jumlah']);
     final tanpa = intValue(counts?['tanpa_nik']);
+    // Original position numbers survive filtering: id -> 1-based row number.
+    final posisi = {
+      for (var i = 0; i < rows.length; i++) rows[i]['id'] as int: i + 1,
+    };
+    final kunci = filter.trim().toLowerCase();
+    final tampil = kunci.isEmpty
+        ? rows
+        : rows
+            .where((r) =>
+                '${r['nama']}'.toLowerCase().contains(kunci) ||
+                teks(r['nik']).contains(kunci))
+            .toList();
     return AppPage(
         session: widget.session,
         title: 'Daftar RT',
@@ -231,16 +249,50 @@ class _RtListScreenState extends State<RtListScreen> {
                                     style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700)))),
+                        Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                            child: TextField(
+                                onChanged: (v) =>
+                                    setState(() => filter = v),
+                                decoration: InputDecoration(
+                                    prefixIcon:
+                                        const Icon(Icons.filter_list),
+                                    suffixIcon: filter.isEmpty
+                                        ? null
+                                        : IconButton(
+                                            onPressed: () => setState(
+                                                () => filter = ''),
+                                            icon: const Icon(Icons.close)),
+                                    labelText:
+                                        'Saring nama atau NIK',
+                                    isDense: true))),
+                        if (filter.isNotEmpty)
+                          const Padding(
+                              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                              child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                      'Urutan dikunci selama filter aktif.',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black54)))),
                         Expanded(
-                            child: ReorderableListView.builder(
+                            child: tampil.isEmpty
+                                ? ListView(children: [
+                                    EmptyState(
+                                        'Tidak ada yang cocok',
+                                        'Coba bagian lain dari nama atau NIK.',
+                                        icon: Icons.filter_alt_off_outlined)
+                                  ])
+                                : ReorderableListView.builder(
                                 scrollController: scroll,
                                 padding:
                                     const EdgeInsets.fromLTRB(12, 0, 12, 24),
                                 buildDefaultDragHandles: false,
-                                itemCount: rows.length,
+                                itemCount: tampil.length,
                                 onReorderItem: _reorder,
                                 itemBuilder: (context, index) {
-                                  final row = rows[index];
+                                  final row = tampil[index];
                                   final id = row['id'] as int;
                                   final nik = teks(row['nik']);
                                   final tgl = tanggalTampil(row['tgl_lahir']);
@@ -294,10 +346,18 @@ class _RtListScreenState extends State<RtListScreen> {
                                             }
                                           },
                                           child: Card(
-                                              color: warnaKartu,
+                                              color: sorot == id
+                                                  ? const Color(0xFFFFF4D6)
+                                                  : warnaKartu,
                                               child: ListTile(
                                                   isThreeLine: kodeKet == null &&
                                                       catatan.isNotEmpty,
+                                                  trailing: IconButton(
+                                                      icon: const Icon(
+                                                          Icons.more_vert),
+                                                      tooltip: 'Menu baris',
+                                                      onPressed: () =>
+                                                          _opsiKartu(row)),
                                                   leading:
                                                       ReorderableDragStartListener(
                                                           index: index,
@@ -307,7 +367,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                                                       .center,
                                                               children: [
                                                                 Text(
-                                                                    '${index + 1}',
+                                                                    '${posisi[id]}',
                                                                     style: const TextStyle(
                                                                         fontWeight:
                                                                             FontWeight

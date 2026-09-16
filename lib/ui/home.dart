@@ -217,25 +217,35 @@ class _HomeScreenState extends State<HomeScreen> {
                               Wrap(spacing: 8, runSpacing: 8, children: [
                                 for (final pair
                                     in widget.session.workspaceByRw[rw]!)
-                                  GestureDetector(
-                                      onLongPress:
-                                          busy ? null : () => _lepas(pair),
-                                      child: ChoiceChip(
-                                          label: Text(
-                                              'RT ${pair.rt.toString().padLeft(2, '0')}'),
-                                          selected:
-                                              widget.session.rt == pair.rt &&
-                                                  widget.session.rw == pair.rw,
-                                          onSelected: busy
-                                              ? null
-                                              : (_) => _focus(pair))),
+                                  ChoiceChip(
+                                      label: Row(mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text('RT ${pair.rt.toString().padLeft(2, '0')}'),
+                                            if (widget.session.rt == pair.rt &&
+                                                widget.session.rw == pair.rw) ...[
+                                              const SizedBox(width: 4),
+                                              GestureDetector(
+                                                  onTap: busy
+                                                      ? null
+                                                      : () => _lepas(pair),
+                                                  child: const Icon(
+                                                      Icons.close,
+                                                      size: 14)),
+                                            ],
+                                          ]),
+                                      selected:
+                                          widget.session.rt == pair.rt &&
+                                              widget.session.rw == pair.rw,
+                                      onSelected: busy
+                                          ? null
+                                          : (_) => _focus(pair)),
                               ]),
                             ],
                             if (widget.session.rt > 0 &&
                                 widget.session.rw > 0) ...[
                               const SizedBox(height: 12),
                               Text(
-                                  'Ketik data memakai ${widget.session.label}. Tahan chip untuk lepas dari wilayah kerja.',
+                                  'Ketik data memakai ${widget.session.label}. Ketuk ikon silang pada chip aktif untuk melepas dari wilayah kerja.',
                                   style: const TextStyle(
                                       color: Colors.black54, fontSize: 12)),
                             ],
