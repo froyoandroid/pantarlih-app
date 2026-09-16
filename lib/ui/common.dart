@@ -6,7 +6,6 @@ import '../data/storage.dart';
 import '../data/store.dart';
 import '../data/spreadsheets.dart';
 import '../data/wilayah.dart';
-import 'lokasi_screen.dart';
 
 const forest = Color(0xFF194B3C);
 const canvas = Color(0xFFF5F5EF);
@@ -211,27 +210,6 @@ class AppPage extends StatelessWidget {
                 title: Text(title,
                     style: const TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w700)),
-                bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(44),
-                    child: InkWell(
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    LokasiScreen(session: session))),
-                        child: Container(
-                            height: 44,
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.only(left: 16),
-                            child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.place_outlined, size: 12),
-                                  const SizedBox(width: 3),
-                                  Text(session.lokasiLabel,
-                                      style: const TextStyle(
-                                          fontSize: 11, letterSpacing: .6)),
-                                ])))),
                 actions: actions),
             body: SafeArea(
                 child: Column(children: [

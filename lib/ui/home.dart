@@ -5,6 +5,7 @@ import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
 import 'import_screen.dart';
+import 'lokasi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
 
@@ -169,6 +170,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Card(
                 child: ListTile(
                     minVerticalPadding: 12,
+                    onTap: busy
+                        ? null
+                        : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    LokasiScreen(session: widget.session))),
                     leading: CircleAvatar(
                         backgroundColor: forest.withValues(alpha: .1),
                         child: const Icon(Icons.place_outlined, color: forest)),
@@ -177,7 +185,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? 'Lokasi kerja'
                             : widget.session.village,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(_lokasiSub))),
+                    subtitle: Text(_lokasiSub),
+                    trailing: const Icon(Icons.chevron_right))),
             Padding(
                 padding: const EdgeInsets.only(left: 10, top: 4, bottom: 8),
                 child: Text(
