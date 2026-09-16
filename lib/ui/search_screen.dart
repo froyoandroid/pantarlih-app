@@ -12,10 +12,15 @@ class HasilCari {
   const HasilCari(
       {this.aktif = false,
       this.diperluas = false,
+      this.wargaDiperluas = false,
       this.warga = const [],
       this.referensi = const []});
   final bool aktif;
   final bool diperluas;
+
+  /// True when the typed-warga list widened from the active RT to the whole
+  /// active RW, so the screen can say so instead of doing it silently.
+  final bool wargaDiperluas;
   final List<(RecordMap, double)> warga;
   final List<(RecordMap, double)> referensi;
 }
@@ -109,28 +114,62 @@ class _SearchScreenState extends State<SearchScreen> {
   HasilCari _hitung(String q, bool tanggal) {
     if (!tanggal) {
       if (q.length < 3) return const HasilCari();
+      // Same scope for both lists: active RT first, widened to the whole
+      // active RW only when the RT has no match - and the widening is
+      // announced, never silent.
       var pool = warga
           .where((r) => r['rt'] == session.rt && r['rw'] == session.rw)
           .toList();
-      var existing = _rank(pool, q, 10);
-      if (existing.isEmpty) existing = _rank(warga, q, 10);
+      var existing = _rank(pool, q, 5);
+      var wargaDiperluas = false;
+      if (existing.isEmpty && pool.isNotEmpty) {
+        pool = warga.where((r) => r['rw'] == session.rw).toList();
+        existing = _rank(pool, q, 5);
+        wargaDiperluas = existing.isNotEmpty;
+      }
       var refPool = referensi.where((r) => r['rt'] == session.rt).toList();
       final diperluas = refPool.isEmpty && referensi.isNotEmpty;
       if (diperluas) refPool = referensi;
       return HasilCari(
           aktif: true,
           diperluas: diperluas,
+          wargaDiperluas: wargaDiperluas,
           warga: existing,
           referensi: _rank(refPool, q, 5));
     }
     final iso = parseTanggal(q);
     if (iso == null) return const HasilCari();
+    // Birthdate mode also answers the real question: has this person been
+    // typed already? Same RT-first, RW-wide scope as the name mode.
+    var wargaBaris = [
+      for (final r in warga)
+        if (teks(r['tgl_lahir']) == iso &&
+            r['rt'] == session.rt &&
+            r['rw'] == session.rw)
+          (r, 100.0),
+    ];
+    var wargaDiperluas = false;
+    if (wargaBaris.isEmpty) {
+      final rwBaris = [
+        for (final r in warga)
+          if (teks(r['tgl_lahir']) == iso && r['rw'] == session.rw)
+            (r, 100.0),
+      ];
+      if (rwBaris.isNotEmpty) {
+        wargaBaris = rwBaris;
+        wargaDiperluas = true;
+      }
+    }
     final refs = [
       for (final r in referensi)
         if (r['tgl_lahir'] == iso) (r, 100.0),
     ]..sort((a, b) => (a.$1['rt'] == session.rt ? 0 : 1)
         .compareTo(b.$1['rt'] == session.rt ? 0 : 1));
-    return HasilCari(aktif: true, referensi: refs);
+    return HasilCari(
+        aktif: true,
+        wargaDiperluas: wargaDiperluas,
+        warga: wargaBaris,
+        referensi: refs);
   }
 
   List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas) {
@@ -158,7 +197,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     ? query.text
                     : null)));
     if (!mounted) return;
-    if (saved != null && wargaRow == null) {
+    // One exit behavior: any save pops and hands the row id back so the
+    // caller (Daftar RT) can scroll to it.
+    if (saved != null) {
       Navigator.pop(context, saved);
       return;
     }
@@ -241,6 +282,10 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (hasil.diperluas)
                             const Notice(
                                 'RT aktif tidak memiliki referensi. Pencarian diperluas ke seluruh RW aktif.',
+                                warning: true),
+                          if (hasil.wargaDiperluas)
+                            const Notice(
+                                'Tidak ada yang cocok di RT aktif. Daftar warga diperluas ke seluruh RW aktif.',
                                 warning: true),
                           if (active && hasil.warga.isNotEmpty) ...[
                             const Padding(
