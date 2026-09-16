@@ -1,5 +1,5 @@
 const schemaVersion = 6;
-const schemaBaseVersion = 2;
+const schemaBaseVersion = 6;
 const appVersion = '1.0.0+1';
 
 const dropStatements = <String>[
@@ -17,6 +17,9 @@ const dropStatements = <String>[
   'DROP TABLE IF EXISTS setelan',
 ];
 
+/// The complete, current database shape. Fresh installs run only these
+/// statements; existing databases upgrade stepwise via builtinUpgrades in
+/// migrate.dart. This is the single place that shows what the schema is.
 const schemaStatements = <String>[
   '''CREATE TABLE referensi (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,6 +32,7 @@ const schemaStatements = <String>[
     tgl_lahir TEXT,
     tgl_lahir_raw TEXT,
     desa TEXT,
+    kode_wilayah TEXT,
     rt INTEGER,
     rw INTEGER,
     sumber_file TEXT,
@@ -49,9 +53,11 @@ const schemaStatements = <String>[
     tempat_lahir TEXT,
     tgl_lahir TEXT,
     desa TEXT,
+    kode_wilayah TEXT,
     rt INTEGER NOT NULL,
     rw INTEGER NOT NULL,
     keterangan TEXT,
+    warna TEXT,
     dibuat_pada TEXT NOT NULL,
     diubah_pada TEXT NOT NULL
   )''',
@@ -60,6 +66,23 @@ const schemaStatements = <String>[
   'CREATE INDEX idx_warga_nik ON warga(nik)',
   'CREATE INDEX idx_warga_norm ON warga(nama_norm)',
   'CREATE INDEX idx_warga_waktu ON warga(dibuat_pada)',
+  'CREATE INDEX idx_warga_kode ON warga(kode_wilayah)',
+  '''CREATE TABLE urutan_id (
+    tabel TEXT PRIMARY KEY,
+    terakhir INTEGER NOT NULL
+  )''',
+  '''CREATE TABLE lokasi (
+    kode          TEXT PRIMARY KEY,
+    nama_desa     TEXT NOT NULL,
+    nama_kec      TEXT,
+    nama_kab      TEXT,
+    nama_prov     TEXT,
+    kode_kec      TEXT,
+    nik_prefix    TEXT,
+    sumber_versi  TEXT,
+    manual        INTEGER NOT NULL DEFAULT 0,
+    dicatat_pada  TEXT NOT NULL
+  )''',
   '''CREATE TABLE log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,
