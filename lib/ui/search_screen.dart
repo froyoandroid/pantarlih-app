@@ -145,21 +145,6 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(
-                              value: 'LAPANGAN',
-                              label: Text('Lapangan'),
-                              icon: Icon(Icons.directions_walk)),
-                          ButtonSegment(
-                              value: 'KERTAS',
-                              label: Text('Dari kertas'),
-                              icon: Icon(Icons.description_outlined)),
-                        ],
-                        selected: {session.source},
-                        onSelectionChanged: (value) =>
-                            setState(() => session.source = value.first)),
-                    const SizedBox(height: 16),
                     TextField(
                         controller: query,
                         focusNode: focus,

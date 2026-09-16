@@ -1,4 +1,4 @@
-const schemaVersion = 4;
+const schemaVersion = 5;
 const schemaBaseVersion = 2;
 const appVersion = '1.0.0+1';
 
@@ -52,8 +52,6 @@ const schemaStatements = <String>[
     rt INTEGER NOT NULL,
     rw INTEGER NOT NULL,
     keterangan TEXT,
-    sumber_input TEXT NOT NULL DEFAULT 'LAPANGAN'
-      CHECK (sumber_input IN ('LAPANGAN','KERTAS')),
     dibuat_pada TEXT NOT NULL,
     diubah_pada TEXT NOT NULL
   )''',
@@ -98,7 +96,6 @@ const wargaColumns = <String>[
   'rt',
   'rw',
   'keterangan',
-  'sumber_input',
   'dibuat_pada',
   'diubah_pada',
 ];
