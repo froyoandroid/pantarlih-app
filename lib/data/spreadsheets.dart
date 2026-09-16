@@ -244,7 +244,8 @@ class WorkbookSource extends TabularSource {
   /// Decodes on a background isolate: unzipping and re-parsing a workbook
   /// blocks the UI thread for seconds on multi-MB files.
   static Future<WorkbookSource> open(String name, Uint8List bytes) async =>
-      WorkbookSource._decoded(name, bytes, await compute(_decodeWorkbook, bytes));
+      WorkbookSource._decoded(
+          name, bytes, await compute(_decodeWorkbook, bytes));
   @override
   final String name;
   @override
@@ -281,7 +282,8 @@ class CsvSource extends TabularSource {
   List<List<String>> rows(String sheet) => table;
 }
 
-List<List<String>> _csvTable(Uint8List bytes) => parseCsv(decodeCsvBytes(bytes));
+List<List<String>> _csvTable(Uint8List bytes) =>
+    parseCsv(decodeCsvBytes(bytes));
 
 bool csvBerkas(String name) => name.toLowerCase().endsWith('.csv');
 

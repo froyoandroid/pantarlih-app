@@ -141,7 +141,8 @@ class _ImportScreenState extends State<ImportScreen> {
         child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SelectableText(lines.take(8).join('\n'),
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12))));
+                style:
+                    const TextStyle(fontFamily: 'monospace', fontSize: 12))));
   }
 
   Future<void> import() async {
