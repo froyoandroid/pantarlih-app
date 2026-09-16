@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../data/spreadsheets.dart';
@@ -57,13 +60,17 @@ class _ImportScreenState extends State<ImportScreen> {
           type: FileType.custom, allowedExtensions: ['xlsx', 'csv']);
       if (file == null) return;
       final bytes = await file.readAsBytes();
-      final loaded = await openTabular(file.name, bytes);
+      final loaded = csvBerkas(file.name)
+          ? await _bukaCsv(file.name, bytes)
+          : await openTabular(file.name, bytes);
+      if (loaded == null) return; // user batal memilih penyandian
+      final muat = loaded;
       if (mounted) {
         setState(() {
-          source = loaded;
-          chooseSheet(loaded.sheets.firstWhere(
-              (name) => loaded.suggestedMapping(name)['nama']! >= 0,
-              orElse: () => loaded.sheets.first));
+          source = muat;
+          chooseSheet(muat.sheets.firstWhere(
+              (name) => muat.suggestedMapping(name)['nama']! >= 0,
+              orElse: () => muat.sheets.first));
         });
       }
     } catch (e) {
@@ -71,6 +78,70 @@ class _ImportScreenState extends State<ImportScreen> {
     } finally {
       if (mounted) setState(() => busy = false);
     }
+  }
+
+  /// CSVs saved by Indonesian Excel are often Windows-1252. UTF-8 decoding
+  /// keeps U+FFFD replacement marks, so when they appear show both decodings
+  /// and let the user pick. Returning null means the user cancelled.
+  Future<TabularSource?> _bukaCsv(String name, Uint8List bytes) async {
+    final teksUtf8 = decodeCsvBytes(bytes);
+    if (!teksUtf8.contains('\uFFFD')) {
+      return CsvSource.fromTable(
+          name, bytes, await compute(parseCsv, teksUtf8));
+    }
+    final teksLatin1 = latin1.decode(bytes);
+    if (!mounted) return null;
+    final pakaiLatin1 = await _pilihPenyandian(teksUtf8, teksLatin1);
+    if (pakaiLatin1 == null) return null;
+    return CsvSource.fromTable(name, bytes,
+        await compute(parseCsv, pakaiLatin1 ? teksLatin1 : teksUtf8));
+  }
+
+  Future<bool?> _pilihPenyandian(String teksUtf8, String teksLatin1) {
+    return showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                title: const Text('Pilih penyandian berkas'),
+                content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Pratinjau UTF-8',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          _cuplikan(teksUtf8),
+                          const SizedBox(height: 12),
+                          const Text('Pratinjau Latin-1',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          _cuplikan(teksLatin1),
+                          const SizedBox(height: 8),
+                          const Text(
+                              'Pilih versi yang tampil benar. Bila sama saja, pakai UTF-8.'),
+                        ])),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('PAKAI UTF-8')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('PAKAI LATIN-1')),
+                ]));
+  }
+
+  Widget _cuplikan(String text) {
+    final lines = text.split(RegExp(r'\r\n|\n|\r'));
+    return Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.all(8),
+        width: double.infinity,
+        decoration: BoxDecoration(
+            border: Border.all(color: Colors.black26),
+            borderRadius: BorderRadius.circular(4)),
+        child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SelectableText(lines.take(8).join('\n'),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12))));
   }
 
   Future<void> import() async {

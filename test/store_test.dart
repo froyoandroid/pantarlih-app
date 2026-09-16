@@ -691,6 +691,17 @@ void main() {
     }
   });
 
+  test('windows-1252 csv keeps accented names only via latin1 decode', () {
+    // 0xD1 is Ñ in Windows-1252 and invalid as a lone UTF-8 byte.
+    final bytes = Uint8List.fromList(
+        latin1.encode('NO;NAMA\r\n1;MUÑOZ PERANGINANGIN\r\n'));
+    final teksUtf8 = decodeCsvBytes(bytes);
+    expect(teksUtf8.contains('\uFFFD'), isTrue);
+    final teksLatin1 = latin1.decode(bytes);
+    expect(teksLatin1.contains('\uFFFD'), isFalse);
+    expect(parseCsv(teksLatin1)[1][1], 'MUÑOZ PERANGINANGIN');
+  });
+
   test('semicolon CSV with BOM matches the equivalent xlsx fixture', () async {
     final xlsx = fixture();
     const csvText =

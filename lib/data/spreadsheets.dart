@@ -262,6 +262,12 @@ class CsvSource extends TabularSource {
   /// Sync constructor for small in-memory fixtures; the UI path uses open().
   CsvSource(this.name, this.bytes) : table = parseCsv(decodeCsvBytes(bytes));
   CsvSource._parsed(this.name, this.bytes, this.table);
+
+  /// Build from an already-decoded table, used when the user picked an
+  /// explicit text encoding for the file.
+  factory CsvSource.fromTable(
+          String name, Uint8List bytes, List<List<String>> table) =>
+      CsvSource._parsed(name, bytes, table);
   static Future<CsvSource> open(String name, Uint8List bytes) async =>
       CsvSource._parsed(name, bytes, await compute(_csvTable, bytes));
   @override
@@ -277,8 +283,10 @@ class CsvSource extends TabularSource {
 
 List<List<String>> _csvTable(Uint8List bytes) => parseCsv(decodeCsvBytes(bytes));
 
+bool csvBerkas(String name) => name.toLowerCase().endsWith('.csv');
+
 Future<TabularSource> openTabular(String name, Uint8List bytes) async {
-  if (name.toLowerCase().endsWith('.csv')) return CsvSource.open(name, bytes);
+  if (csvBerkas(name)) return CsvSource.open(name, bytes);
   return WorkbookSource.open(name, bytes);
 }
 
