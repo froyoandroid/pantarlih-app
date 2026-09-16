@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 const _channelPenyimpanan = MethodChannel('id.kalitorong.pantarlih/storage');
 const _berkasAktif = 'pantarlih.aktif';
+const _penandaPindah = 'PINDAH_SELESAI';
 
 class StorageAccessException implements Exception {
   const StorageAccessException(this.message);
@@ -82,7 +83,11 @@ Future<Directory?> cariFolderData(Directory parent) async {
   DateTime? terbaru;
   await for (final entity in parent.list(followLinks: false)) {
     if (entity is! Directory) continue;
-    if (!basenameDir(entity).startsWith('Pantarlih')) continue;
+    final nama = basenameDir(entity);
+    if (!nama.startsWith('Pantarlih')) continue;
+    // Staging and kept-aside folders from a relocation are never the active
+    // data: an unfinished .partial must be ignored in favour of the origin.
+    if (nama.endsWith('.partial') || nama.endsWith('.lama')) continue;
     if (!adaBerkasSesi(entity)) continue;
     final db = File('${entity.path}/pantarlih.db');
     final diubah =
@@ -204,25 +209,81 @@ Future<ResolvedStorage> resolveDataRoot({
   return ResolvedStorage(dir, usingPublic: false);
 }
 
+/// Move the data folder without ever risking the origin copy.
+///
+/// Protocol: copy into `<target>.partial`, verify every origin file arrived
+/// byte-for-byte in length, write a PINDAH_SELESAI marker naming the origin,
+/// only then swap the staging folder into place. The origin folder is kept,
+/// renamed to `<origin>.lama`, so a crash at any earlier point still leaves
+/// a complete dataset behind. Startup ignores `.partial` folders entirely
+/// (see cariFolderData), which is the recovery path for a torn move.
 Future<void> relocateDataRoot(Directory from, Directory to) async {
   if (from.absolute.path == to.absolute.path) return;
-  await to.create(recursive: true);
+  final namaAsal = basenameDir(from);
+  final partial = Directory('${to.parent.path}/${basenameDir(to)}.partial');
+  if (await partial.exists()) await partial.delete(recursive: true);
+  await partial.create(recursive: true);
   await for (final entity in from.list(recursive: true, followLinks: false)) {
     final relative = entity.path.substring(from.path.length);
-    final destPath = '${to.path}$relative';
     if (entity is Directory) {
-      await Directory(destPath).create(recursive: true);
+      await Directory('${partial.path}$relative').create(recursive: true);
     } else if (entity is File) {
-      final dest = File(destPath);
+      final dest = File('${partial.path}$relative');
       await dest.parent.create(recursive: true);
-      if (await dest.exists() && destPath.endsWith('.jsonl')) {
-        var extra = await entity.readAsString();
-        if (extra.isEmpty) continue;
-        if (!extra.endsWith('\n')) extra = '$extra\n';
-        await dest.writeAsString(extra, mode: FileMode.append, flush: true);
-      } else if (!await dest.exists()) {
-        await entity.copy(destPath);
+      await entity.copy(dest.path);
+    }
+  }
+  final staged = <String>{};
+  await for (final entity in partial.list(recursive: true, followLinks: false)) {
+    if (entity is File) staged.add(entity.path.substring(partial.path.length));
+  }
+  const gagal = StorageAccessException(
+      'Penyalinan data ke folder baru tidak lengkap. Data lama tetap utuh di folder semula.');
+  var jumlah = 0;
+  await for (final entity in from.list(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    final relative = entity.path.substring(from.path.length);
+    final dest = File('${partial.path}$relative');
+    if (!staged.contains(relative) ||
+        await dest.length() != await entity.length()) {
+      throw gagal;
+    }
+    jumlah++;
+  }
+  if (staged.length != jumlah) throw gagal;
+  await File('${partial.path}/$_penandaPindah')
+      .writeAsString(namaAsal, flush: true);
+  if (await to.exists()) {
+    // Target already exists (resolveDataRoot pre-creates it, or an older
+    // desa folder is being reused): merge staging in, jsonl files append
+    // so no journalled record from either side is lost.
+    await for (final entity in partial.list(recursive: true, followLinks: false)) {
+      final relative = entity.path.substring(partial.path.length);
+      if (entity is Directory) {
+        await Directory('${to.path}$relative').create(recursive: true);
+      } else if (entity is File) {
+        // The marker stays in staging only, never lands in the target.
+        if (relative == '/$_penandaPindah') continue;
+        final dest = File('${to.path}$relative');
+        if (await dest.exists() && relative.endsWith('.jsonl')) {
+          var extra = await entity.readAsString();
+          if (extra.isEmpty) continue;
+          if (!extra.endsWith('\n')) extra = '$extra\n';
+          await dest.writeAsString(extra, mode: FileMode.append, flush: true);
+        } else if (!await dest.exists()) {
+          await entity.rename(dest.path);
+        }
       }
     }
+    await partial.delete(recursive: true);
+  } else {
+    await partial.rename(to.path);
+  }
+  final lama = Directory('${from.parent.path}/$namaAsal.lama');
+  if (await lama.exists()) await lama.delete(recursive: true);
+  try {
+    await from.rename(lama.path);
+  } catch (_) {
+    // Cross-device renames can fail; leaving the origin untouched is safe.
   }
 }
