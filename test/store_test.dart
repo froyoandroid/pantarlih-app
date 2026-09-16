@@ -455,6 +455,26 @@ void main() {
     }
   });
 
+  test('semicolon CSV with BOM matches the equivalent xlsx fixture', () async {
+    final xlsx = fixture();
+    const csvText = '\uFEFFNO;NAMA PEMILIH;NIK;Jenis Kelamin;TEMPAT LAHIR;TANGGAL LAHIR;DUSUN;RT;RW;KET\r\n'
+        '70;MUHAMAD HASAN;332707**********;LAKI-LAKI;PEMALANG;19-09-1968;KALITORONG;3;3;\r\n'
+        '71;SITI SALIMAH;332707**********;PEREMPUAN;PEMALANG;11/09/1973;KALITORONG;3;3;\r\n'
+        '72;MUHAMAD NAZWA BAIHAKY;332707**********;LAKI-LAKI;PEMALANG;19-09-2007;KALITORONG;3;3;\r\n';
+    final csv = CsvSource('fixture.csv', Uint8List.fromList(utf8.encode(csvText)));
+    final fromXlsx =
+        xlsx.prepare('RT 03', xlsx.suggestedMapping('RT 03'), 2, 3, 3);
+    final fromCsv =
+        csv.prepare(csv.sheets.first, csv.suggestedMapping(csv.sheets.first), 2, 3, 3);
+    expect(fromCsv.records.map((r) => r['nama']),
+        fromXlsx.records.map((r) => r['nama']));
+    expect(fromCsv.records.map((r) => r['tgl_lahir']),
+        fromXlsx.records.map((r) => r['tgl_lahir']));
+    expect(fromCsv.records.map((r) => r['nik_lama']),
+        fromXlsx.records.map((r) => r['nik_lama']));
+    expect(fromCsv.skipped, isEmpty);
+  });
+
   test('dirty workbook imports good rows and writes dilewati.jsonl', () async {
     final source = dirtyFixture();
     final prep =

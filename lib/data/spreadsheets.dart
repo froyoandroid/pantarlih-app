@@ -54,15 +54,11 @@ String cellText(Data? cell) {
   return value.toString();
 }
 
-class WorkbookSource {
-  WorkbookSource(this.name, this.bytes) : workbook = _decodeWorkbook(bytes);
-  final String name;
-  final Uint8List bytes;
-  final Excel workbook;
-  List<String> get sheets => workbook.tables.keys.toList();
-  List<List<String>> rows(String sheet) => workbook.tables[sheet]!.rows
-      .map((row) => row.map(cellText).toList())
-      .toList();
+abstract class TabularSource {
+  String get name;
+  Uint8List get bytes;
+  List<String> get sheets;
+  List<List<String>> rows(String sheet);
 
   Map<String, int> suggestedMapping(String sheet) {
     final values = rows(sheet);
@@ -226,6 +222,112 @@ class WorkbookSource {
       await store.importRows(records, nameForStorage);
     }
   }
+}
+
+class WorkbookSource extends TabularSource {
+  WorkbookSource(this.name, this.bytes) : workbook = _decodeWorkbook(bytes);
+  @override
+  final String name;
+  @override
+  final Uint8List bytes;
+  final Excel workbook;
+  @override
+  List<String> get sheets => workbook.tables.keys.toList();
+  @override
+  List<List<String>> rows(String sheet) => workbook.tables[sheet]!.rows
+      .map((row) => row.map(cellText).toList())
+      .toList();
+}
+
+class CsvSource extends TabularSource {
+  CsvSource(this.name, this.bytes) : table = parseCsv(decodeCsvBytes(bytes));
+  @override
+  final String name;
+  @override
+  final Uint8List bytes;
+  final List<List<String>> table;
+  @override
+  List<String> get sheets => const ['CSV'];
+  @override
+  List<List<String>> rows(String sheet) => table;
+}
+
+TabularSource openTabular(String name, Uint8List bytes) {
+  if (name.toLowerCase().endsWith('.csv')) return CsvSource(name, bytes);
+  return WorkbookSource(name, bytes);
+}
+
+String decodeCsvBytes(Uint8List bytes) {
+  if (bytes.length >= 3 &&
+      bytes[0] == 0xEF &&
+      bytes[1] == 0xBB &&
+      bytes[2] == 0xBF) {
+    return utf8.decode(bytes.sublist(3));
+  }
+  return utf8.decode(bytes, allowMalformed: true);
+}
+
+List<List<String>> parseCsv(String text) {
+  final first = text.split(RegExp(r'\r\n|\n|\r')).firstWhere(
+      (line) => line.trim().isNotEmpty,
+      orElse: () => '');
+  final comma = _countUnquoted(first, ',');
+  final semi = _countUnquoted(first, ';');
+  final separator = semi > comma ? ';' : ',';
+  final rows = <List<String>>[];
+  var field = StringBuffer();
+  var row = <String>[];
+  var quoted = false;
+  for (var i = 0; i < text.length; i++) {
+    final ch = text[i];
+    if (quoted) {
+      if (ch == '"') {
+        if (i + 1 < text.length && text[i + 1] == '"') {
+          field.write('"');
+          i++;
+        } else {
+          quoted = false;
+        }
+      } else {
+        field.write(ch);
+      }
+    } else if (ch == '"') {
+      quoted = true;
+    } else if (ch == separator) {
+      row.add(field.toString());
+      field = StringBuffer();
+    } else if (ch == '\n' || (ch == '\r' && (i + 1 >= text.length || text[i + 1] != '\n'))) {
+      row.add(field.toString());
+      field = StringBuffer();
+      if (row.any((c) => c.isNotEmpty)) rows.add(row);
+      row = <String>[];
+    } else if (ch != '\r') {
+      field.write(ch);
+    }
+  }
+  if (quoted || field.isNotEmpty || row.isNotEmpty) {
+    row.add(field.toString());
+    if (row.any((c) => c.isNotEmpty)) rows.add(row);
+  }
+  return rows;
+}
+
+int _countUnquoted(String line, String mark) {
+  var count = 0;
+  var quoted = false;
+  for (var i = 0; i < line.length; i++) {
+    final ch = line[i];
+    if (ch == '"') {
+      if (quoted && i + 1 < line.length && line[i + 1] == '"') {
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (!quoted && ch == mark) {
+      count++;
+    }
+  }
+  return count;
 }
 
 Excel _decodeWorkbook(Uint8List bytes) {

@@ -12,7 +12,7 @@ class ImportScreen extends StatefulWidget {
 }
 
 class _ImportScreenState extends State<ImportScreen> {
-  WorkbookSource? source;
+  TabularSource? source;
   String? sheet, report;
   Map<String, int> mapping = {};
   final start = TextEditingController(text: '2');
@@ -54,10 +54,10 @@ class _ImportScreenState extends State<ImportScreen> {
     setState(() => busy = true);
     try {
       final file = await FilePicker.pickFile(
-          type: FileType.custom, allowedExtensions: ['xlsx']);
+          type: FileType.custom, allowedExtensions: ['xlsx', 'csv']);
       if (file == null) return;
       final bytes = await file.readAsBytes();
-      final loaded = WorkbookSource(file.name, bytes);
+      final loaded = openTabular(file.name, bytes);
       if (mounted) {
         setState(() {
           source = loaded;
@@ -67,7 +67,7 @@ class _ImportScreenState extends State<ImportScreen> {
         });
       }
     } catch (e) {
-      if (mounted) feedback(context, 'Gagal membaca Excel: $e', error: true);
+      if (mounted) feedback(context, 'Gagal membaca berkas: $e', error: true);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -185,7 +185,7 @@ class _ImportScreenState extends State<ImportScreen> {
           OutlinedButton.icon(
               onPressed: busy ? null : pick,
               icon: const Icon(Icons.upload_file),
-              label: Text(source?.name ?? 'PILIH FILE .XLSX')),
+              label: Text(source?.name ?? 'PILIH FILE .XLSX ATAU .CSV')),
           if (source != null) ...[
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
