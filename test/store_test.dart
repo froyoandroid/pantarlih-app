@@ -325,6 +325,34 @@ void main() {
     }
   });
 
+  test('journal failure notice can be opened then dismissed', () async {
+    await store.saveWarga(fields());
+    final journal =
+        (await Directory('${root.path}/journal').list().cast<File>().toList())
+            .single;
+    await journal.writeAsString('{truncated',
+        mode: FileMode.append, flush: true);
+    await store.close();
+    await store.open();
+    expect(store.startupRecovery!.failed, 1);
+    expect(store.startupRecovery!.showNotice, isTrue);
+    expect(store.startupRecovery!.failurePath, isNotNull);
+    expect(await store.journalReportText(), contains('truncated'));
+    await store.dismissJournalReport();
+    expect(store.startupRecovery!.showNotice, isFalse);
+    expect(
+        Directory('${root.path}/recovered')
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.contains('gagal_')),
+        isEmpty);
+    await store.close();
+    await store.open();
+    expect(store.startupRecovery!.failed, 1);
+    expect(store.startupRecovery!.showNotice, isFalse);
+    expect(store.startupRecovery!.failurePath, isNull);
+  });
+
   test('missing database is recreated automatically from journal', () async {
     await store.saveWarga(fields());
     final before = await store.db.query('warga');
@@ -405,6 +433,29 @@ void main() {
     final values = await store.settings();
     expect(values['desa_default'], 'KALITORONG DUSUN 2');
     expect(values['rt_aktif'], '4');
+  });
+
+  test('adding RT keeps previous RT in the workspace', () async {
+    await store.setSession(3, 3);
+    final session = Session(store);
+    await session.load();
+    expect(session.workspace, contains(const RtRw(3, 3)));
+    await session.addRtRw(4, 3);
+    await session.addRtRw(5, 3);
+    await session.addRtRw(1, 4);
+    expect(session.rt, 1);
+    expect(session.rw, 4);
+    expect(session.workspace, [
+      const RtRw(3, 3),
+      const RtRw(3, 4),
+      const RtRw(3, 5),
+      const RtRw(4, 1),
+    ]);
+    expect((await store.settings())['ruang_kerja'], '3.3,3.4,3.5,4.1');
+    await session.focusRt(const RtRw(3, 4));
+    expect(session.rt, 4);
+    expect(session.rw, 3);
+    expect(session.workspace, hasLength(4));
   });
 
   test('same-RT name duplicates without NIK appear in duplicateNameRows',

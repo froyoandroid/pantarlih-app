@@ -74,6 +74,22 @@ class _LokasiScreenState extends State<LokasiScreen> {
 
   void _pickDesa(Wilayah value) => setState(() => desa = value);
 
+  Future<void> _ubahNamaFormulir() async {
+    final chosen = await showDialog<String>(
+        context: context,
+        builder: (_) => _NamaFormulirDialog(awal: widget.session.village));
+    if (chosen == null) return;
+    if (!mounted) return;
+    setState(() => busy = true);
+    try {
+      await widget.session.setVillage(chosen);
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Future<void> _search(String raw) async {
     if (raw.trim().length < 3) {
       setState(() => hits = []);
@@ -159,59 +175,14 @@ class _LokasiScreenState extends State<LokasiScreen> {
   }
 
   Future<void> saveManual() async {
-    final desaC = TextEditingController();
-    final kecC = TextEditingController();
-    final kabC = TextEditingController();
-    final provC = TextEditingController();
-    final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-                title: const Text('Ketik lokasi secara manual'),
-                content: SingleChildScrollView(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Text(
-                      'Pakai ini bila desa tidak ada di daftar resmi, atau berkas wilayah gagal dibuka. Aplikasi tetap bisa dipakai penuh.'),
-                  const SizedBox(height: 12),
-                  TextField(
-                      controller: desaC,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration:
-                          const InputDecoration(labelText: 'Desa / kelurahan *')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: kecC,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(labelText: 'Kecamatan')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: kabC,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration:
-                          const InputDecoration(labelText: 'Kabupaten / kota')),
-                  const SizedBox(height: 10),
-                  TextField(
-                      controller: provC,
-                      textCapitalization: TextCapitalization.characters,
-                      decoration: const InputDecoration(labelText: 'Provinsi')),
-                ])),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Batal')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('SIMPAN')),
-                ]));
-    final namaDesa = desaC.text;
-    final namaKec = kecC.text;
-    final namaKab = kabC.text;
-    final namaProv = provC.text;
-    desaC.dispose();
-    kecC.dispose();
-    kabC.dispose();
-    provC.dispose();
-    if (ok != true) return;
+    final filled = await showDialog<(String, String, String, String)>(
+        context: context, builder: (_) => const _LokasiManualDialog());
+    if (filled == null) return;
     if (!mounted) return;
+    final namaDesa = filled.$1;
+    final namaKec = filled.$2;
+    final namaKab = filled.$3;
+    final namaProv = filled.$4;
     if (namaDesa.trim().isEmpty) {
       feedback(context, 'Nama desa wajib diisi pada mode manual.', error: true);
       return;
@@ -303,6 +274,36 @@ class _LokasiScreenState extends State<LokasiScreen> {
               warning: true),
         const Text(
             'Pilih Provinsi, Kabupaten/Kota, Kecamatan, lalu Desa/Kelurahan. Kode ditampilkan agar desa bernama sama bisa dibedakan.'),
+        if (widget.nextPage == null) ...[
+          const SizedBox(height: 14),
+          Card(
+              child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nama pada formulir',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 6),
+                        Text(
+                            widget.session.village.isEmpty
+                                ? 'Masih kosong. Akan terisi saat lokasi disimpan.'
+                                : widget.session.village,
+                            style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 6),
+                        const Text(
+                            'Dipakai sebagai default di setiap baris. Boleh nama dusun, tidak harus sama dengan desa resmi.',
+                            style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                height: 1.35)),
+                        Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                                onPressed: busy ? null : _ubahNamaFormulir,
+                                child: const Text('UBAH NAMA'))),
+                      ]))),
+        ],
         const SizedBox(height: 14),
         TextField(
             controller: globalSearch,
@@ -363,4 +364,105 @@ class _LokasiScreenState extends State<LokasiScreen> {
           const Padding(
               padding: EdgeInsets.all(16), child: LinearProgressIndicator()),
       ])));
+}
+
+class _LokasiManualDialog extends StatefulWidget {
+  const _LokasiManualDialog();
+  @override
+  State<_LokasiManualDialog> createState() => _LokasiManualDialogState();
+}
+
+class _LokasiManualDialogState extends State<_LokasiManualDialog> {
+  final desaC = TextEditingController();
+  final kecC = TextEditingController();
+  final kabC = TextEditingController();
+  final provC = TextEditingController();
+
+  @override
+  void dispose() {
+    desaC.dispose();
+    kecC.dispose();
+    kabC.dispose();
+    provC.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+          title: const Text('Ketik lokasi secara manual'),
+          content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text(
+                'Pakai ini bila desa tidak ada di daftar resmi, atau berkas wilayah gagal dibuka. Aplikasi tetap bisa dipakai penuh.'),
+            const SizedBox(height: 12),
+            TextField(
+                controller: desaC,
+                textCapitalization: TextCapitalization.characters,
+                decoration:
+                    const InputDecoration(labelText: 'Desa / kelurahan *')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: kecC,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Kecamatan')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: kabC,
+                textCapitalization: TextCapitalization.characters,
+                decoration:
+                    const InputDecoration(labelText: 'Kabupaten / kota')),
+            const SizedBox(height: 10),
+            TextField(
+                controller: provC,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Provinsi')),
+          ])),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context,
+                    (desaC.text, kecC.text, kabC.text, provC.text)),
+                child: const Text('SIMPAN')),
+          ]);
+}
+
+class _NamaFormulirDialog extends StatefulWidget {
+  const _NamaFormulirDialog({required this.awal});
+  final String awal;
+  @override
+  State<_NamaFormulirDialog> createState() => _NamaFormulirDialogState();
+}
+
+class _NamaFormulirDialogState extends State<_NamaFormulirDialog> {
+  late final TextEditingController desa =
+      TextEditingController(text: widget.awal);
+
+  @override
+  void dispose() {
+    desa.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+          title: const Text('Nama pada formulir'),
+          content: TextField(
+              controller: desa,
+              autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                  labelText: 'Desa atau dusun',
+                  hintText: 'nama yang tertulis di baris data')),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, desa.text),
+                child: const Text('SIMPAN'))
+          ]);
 }
