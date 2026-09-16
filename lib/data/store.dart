@@ -73,13 +73,23 @@ class AppStore extends ChangeNotifier {
     ]) {
       await Directory('${root.path}/$path').create(recursive: true);
     }
+    // Fase 1: open the file. Only here does journal recovery make sense.
     try {
       await _snapshotBeforeUpgrade(dbPath);
       db = await _openDatabase(dbPath);
-      final check = await db.rawQuery('PRAGMA quick_check');
-      if (check.any((row) => row.values.first != 'ok')) {
-        throw AppException('Pemeriksaan integritas database gagal');
-      }
+    } catch (e) {
+      throw AppException('Database tidak dapat dibuka. Berkas aman di '
+          '${root.path}. Gunakan pemulihan dari jurnal. Detail: $e');
+    }
+    // Fase 2: integrity. Still recoverable, the file itself is suspect.
+    final check = await db.rawQuery('PRAGMA quick_check');
+    if (check.any((row) => row.values.first != 'ok')) {
+      throw AppException('Pemeriksaan integritas database gagal. Berkas aman '
+          'di ${root.path}. Gunakan pemulihan dari jurnal.');
+    }
+    // Fase 3: journal replay and cleanup on a healthy, open database.
+    // Suggesting a rebuild here would mislead: the database is fine.
+    try {
       startupRecovery = await _replay(db);
       // One-time cleanup: scan warga only until the marker is journaled.
       final trimMarker = await db
@@ -94,9 +104,8 @@ class AppStore extends ChangeNotifier {
             });
       }
     } catch (e) {
-      throw AppException(
-          'Database tidak dapat dibuka. Berkas aman di ${root.path}. '
-          'Gunakan pemulihan dari jurnal. Detail: $e');
+      throw AppException('Database sehat tetapi pembaruan isi belum selesai. '
+          'Buka ulang aplikasi, lalu laporkan bila masih berulang. Detail: $e');
     }
   }
 
