@@ -69,7 +69,7 @@ WorkbookSource fixture() {
 
 RecordMap fields(
         {String name = 'MUHAMAD HASAN',
-        String nik = '3327071909680001',
+        String? nik = '3327071909680001',
         int rt = 3,
         String? note}) =>
     {
@@ -79,8 +79,8 @@ RecordMap fields(
       'tempat_lahir': 'PEMALANG',
       'tgl_lahir': '1968-09-19',
       'desa': 'KALITORONG',
-      'rt_baru': rt,
-      'rw_baru': 3,
+      'rt': rt,
+      'rw': 3,
       'keterangan': note,
       'sumber_input': 'LAPANGAN',
     };
@@ -97,77 +97,100 @@ void main() {
     final source = fixture();
     await store.importRows(
         source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3),
-        source.name,
-        3);
+        source.name);
   });
   tearDown(() async {
     await store.close();
     await root.delete(recursive: true);
   });
 
-  test(
-      'immutable import, masked NIK, day-first parsing and duplicate rejection',
-      () async {
-    final rows = await store.allLegacy(3);
+  test('reference import is optional, dirty, and repeatable', () async {
+    final rows = await store.allReferensi(3);
     expect(rows, hasLength(3));
     expect(rows[1]['tgl_lahir'], '1973-09-11');
     expect(rows.first['nik_lama'], '332707**********');
-    expect(rows.first['urut_sort'], 70000);
-    await expectLater(
-        store.db.update('warga_lama', {'nama': 'Changed'}, where: 'id=1'),
-        throwsA(isA<DatabaseException>()));
+    expect(rows.first.containsKey('urut_sort'), isFalse);
     final source = fixture();
-    await expectLater(
-        store.importRows(
-            source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3),
-            source.name,
-            3),
-        throwsA(isA<AppException>()));
-    expect(await store.allLegacy(3), hasLength(3));
-    final otherRt = source
-        .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
-        .map((r) => {...r, 'rt': 4})
-        .toList();
-    await store.importRows(otherRt, source.name, 4);
-    expect(await store.allLegacy(3), hasLength(6));
+    await store.importRows(
+        source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3),
+        source.name);
+    expect(await store.allReferensi(3), hasLength(6));
+    await store.clearReferensi();
+    expect(await store.referensiCount(), 0);
   });
-  test('surveys, duplicate allowance, grey count, conflicts, unlink and relink',
-      () async {
-    await expectLater(store.saveSurvey(fields(nik: ''), oldId: 1),
-        throwsA(isA<AppException>()));
-    await store.saveSurvey(fields(nik: '123'), oldId: 1);
-    await store.mark(2, true);
-    expect((await store.progress(3, 3))['remaining'], 1);
-    await store.saveSurvey(fields(rt: 4, note: '  bebas  '), oldId: 2);
-    expect(await store.conflicts(), hasLength(1));
-    expect((await store.conflicts()).first['keterangan'], '  bebas  ');
-    expect((await store.remaining(3, 3)).first['survey_id'], 2);
-    await expectLater(
-        store.saveSurvey(fields(), oldId: 1), throwsA(isA<AppException>()));
-    await store.saveSurvey(fields(name: 'WARGA BARU', note: '   '));
+
+  test('app works without reference rows', () async {
+    await store.clearReferensi();
+    final saved = await store.saveWarga(fields());
+    expect(saved['urut_sort'], 1000);
+    expect(saved.containsKey('id_lama'), isFalse);
+    expect(await store.wargaRt(3, 3), hasLength(1));
+  });
+
+  test('empty NIK and short NIK save, duplicates warn but stay', () async {
+    final empty = await store.saveWarga(fields(nik: null));
+    expect(empty['nik'], isNull);
+    final short = await store.saveWarga(fields(name: 'PENDATANG', nik: '123'));
+    expect(short['nik'], '123');
+    await store.saveWarga(fields(name: 'SALINAN'));
+    await store.saveWarga(fields(name: 'SALINAN DUA'));
     expect(await store.duplicateRows(), hasLength(2));
-    expect((await store.survey(3))!['keterangan'], isNull);
-    await store.relink(1, null);
-    expect((await store.survey(1))!['rt_lama'], isNull);
-    expect((await store.progress(3, 3))['remaining'], 2);
-    await store.relink(1, 3);
-    expect((await store.survey(1))!['id_lama'], 3);
-    final log =
-        await store.db.query('log', where: 'op=?', whereArgs: ['RELINK']);
-    final payload = jsonDecode(log.first['payload'] as String) as Map;
-    expect(payload['before'], hasLength(18));
-    expect(payload['after'], hasLength(18));
+    final note = await store.saveWarga(fields(name: 'CATATAN', note: '   '));
+    expect(note['keterangan'], isNull);
   });
-  test('journal full replay, damaged lines continue, old database retained',
+
+  test('insert between rows uses sparse keys and export follows that order',
       () async {
+    final first = await store.saveWarga(fields());
+    final third = await store.saveWarga(fields(name: 'ORANG TIGA'));
+    final middle = await store.saveWarga(fields(name: 'ORANG DUA'),
+        afterId: first['id'] as int);
+    expect(first['urut_sort'], 1000);
+    expect(third['urut_sort'], 2000);
+    expect(middle['urut_sort'], 1500);
+    final ordered = await store.wargaRt(3, 3);
+    expect(ordered.map((r) => r['nama']),
+        ['MUHAMAD HASAN', 'ORANG DUA', 'ORANG TIGA']);
+    await store.reorderWarga(third['id'] as int, null, first['id'] as int);
+    expect((await store.wargaRt(3, 3)).first['nama'], 'ORANG TIGA');
+    final files = await ExportService(store).generate(rw: 3, rt: 3);
+    expect(files.any((f) => f.path.contains('PENDING')), isFalse);
+    expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
+    expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
+    final dps = files.firstWhere((f) => f.path.contains('DPS_RT3'));
+    final book = Excel.decodeBytes(await dps.readAsBytes());
+    final rows = book.tables.values.first.rows;
+    expect(cellText(rows[0][0]), 'NO');
+    expect(cellText(rows[1][1]), 'ORANG TIGA');
+    expect(cellText(rows[1][0]), '1');
+    expect(cellText(rows[2][1]), 'MUHAMAD HASAN');
+  });
+
+  test('renumber runs when the gap is exhausted', () async {
+    final a = await store.saveWarga(fields());
+    await store.saveWarga(fields(name: 'B'));
+    var after = a['id'] as int;
+    for (var i = 0; i < 12; i++) {
+      final inserted = await store.saveWarga(fields(name: 'SISIP $i'),
+          afterId: after);
+      after = inserted['id'] as int;
+    }
+    final rows = await store.wargaRt(3, 3);
+    expect(rows, hasLength(14));
+    final sorts = rows.map((r) => r['urut_sort'] as int).toList();
+    expect(sorts.toSet().length, sorts.length);
+    final log = await store.db.query('log', where: 'op=?', whereArgs: ['RENUMBER']);
+    expect(log, isNotEmpty);
+  });
+
+  test('journal full replay keeps urut_sort, damaged lines continue', () async {
     await store.setSession(3, 3);
-    await store.saveSurvey(fields(), oldId: 1);
-    await store.saveSurvey(fields(name: 'CORRECTED', note: 'changed'),
-        id: 1, oldId: 1);
-    await store.mark(2, true);
-    await store.relink(1, null);
-    await store.relink(1, 3);
-    const tables = ['warga_lama', 'survei', 'tanda_lama', 'setelan', 'log'];
+    final a = await store.saveWarga(fields());
+    await store.saveWarga(fields(name: 'KEDUA'));
+    await store.saveWarga(fields(name: 'TENGAH', note: 'changed'),
+        afterId: a['id'] as int);
+    await store.deleteWarga(a['id'] as int);
+    const tables = ['referensi', 'warga', 'setelan', 'log'];
     final before = {for (final t in tables) t: await store.db.query(t)};
     final journal =
         (await Directory('${root.path}/journal').list().cast<File>().toList())
@@ -180,57 +203,32 @@ void main() {
     for (final t in tables) {
       expect(await store.db.query(t), before[t], reason: t);
     }
-    await store.mark(
-        2, false); // append after unterminated fragment stays replayable
-    final again = await store.rebuild();
-    expect(again.failed, 1);
-    expect((await store.db.query('tanda_lama')).first['abu_abu'], 0);
   });
+
   test('missing database is recreated automatically from journal', () async {
-    await store.saveSurvey(fields(), oldId: 1);
-    final before = await store.db.query('survei');
+    await store.saveWarga(fields());
+    final before = await store.db.query('warga');
     await store.close();
     await File(store.dbPath).rename('${root.path}/removed-for-test.db');
     await store.open();
-    expect(await store.db.query('survei'), before);
-    expect(await store.allLegacy(3), hasLength(3));
+    expect(await store.db.query('warga'), before);
+    expect(await store.allReferensi(3), hasLength(3));
   });
+
   test('journal failure leaves database unchanged', () async {
     final journalDir = Directory('${root.path}/journal');
     await journalDir.rename('${root.path}/journal-before-test');
     await File('${root.path}/journal').writeAsString('not a directory');
-    await expectLater(store.saveSurvey(fields(), oldId: 1),
-        throwsA(isA<FileSystemException>()));
+    await expectLater(
+        store.saveWarga(fields()), throwsA(isA<FileSystemException>()));
     expect(await store.history(), isEmpty);
   });
-  test(
-      'exports use new RT, time order, text NIK, blank notes and pending at bottom',
-      () async {
-    await store.saveSurvey(fields(rt: 4), oldId: 1);
-    await store.saveSurvey(fields(name: 'WARGA BARU'));
-    final files = await ExportService(store).generate(rw: 3, combined: true);
-    expect(files, hasLength(4));
-    final combined = Excel.decodeBytes(await files.first.readAsBytes());
-    expect(combined.tables.keys.toSet(), {'RT 3', 'RT 4'});
-    final rows = combined['RT 3'].rows;
-    expect(rows.first.map(cellText).toList(), dpsHeaders);
-    expect(cellText(rows[1][1]), 'WARGA BARU');
-    expect(rows[1][2]!.value, isA<TextCellValue>());
-    expect(rows[1][9]?.value, isNull);
-    expect(cellText(rows[2][1]), 'SITI SALIMAH');
-    expect(rows[2][2]?.value, isNull);
-    expect(cellText(rows[2][5]), '11-09-1973');
-    expect(cellText(combined['RT 4'].rows[1][0]), '1');
-    final duplicateFile = files.firstWhere((f) => f.path.contains('DUPLIKAT'));
-    final duplicateBook = Excel.decodeBytes(await duplicateFile.readAsBytes());
-    expect(duplicateBook.tables.values.single.rows, hasLength(3));
-  });
-  test(
-      'session changes create snapshot and automatic exports; keep 20 snapshots',
-      () async {
+
+  test('session changes create snapshot and automatic exports', () async {
     final session = Session(store);
     await session.load();
-    await session.change(3, 3);
+    expect(session.rt, 3);
+    await session.change(4, 3);
     expect(await store.snapshots(), hasLength(1));
     expect(await Directory('${root.path}/export/auto').list().toList(),
         isNotEmpty);
@@ -238,10 +236,22 @@ void main() {
       await store.snapshot();
     }
     expect(await store.snapshots(), hasLength(20));
-    expect((await store.settings())['rt_aktif'], '3');
+    expect((await store.settings())['rt_aktif'], '4');
   });
-  test('actual provided workbook imports all 504 rows across three RT sheets',
-      () async {
+
+  test('journal payload is the full warga row, not a delta', () async {
+    final saved = await store.saveWarga(fields(note: 'bebas'));
+    final log = await store.db
+        .query('log', where: "tabel='warga' AND op='INSERT'");
+    final payload = jsonDecode(log.first['payload'] as String) as Map;
+    expect(payload['id'], saved['id']);
+    expect(payload.containsKey('grup_id'), isTrue);
+    expect(payload['grup_id'], isNull);
+    expect(payload['keterangan'], 'bebas');
+    expect(payload.containsKey('id_lama'), isFalse);
+  });
+
+  test('actual provided workbook imports all 504 reference rows', () async {
     final input = File('data-exel/DPS_RW03_Kalitorong_Gabungan.xlsx');
     if (!await input.exists()) {
       markTestSkipped('Private workbook is not distributed with the source.');
@@ -263,11 +273,11 @@ void main() {
         await source.archiveAndImport(actual, entry.key, ready,
             source.suggestedMapping(entry.key), 2, rt);
       }
-      expect(await actual.allLegacy(3), hasLength(504));
-      final before = await actual.db.query('warga_lama');
+      expect(await actual.allReferensi(3), hasLength(504));
+      final before = await actual.db.query('referensi');
       final report = await actual.rebuild();
       expect(report.failed, 0);
-      expect(await actual.db.query('warga_lama'), before);
+      expect(await actual.db.query('referensi'), before);
     } finally {
       await actual.close();
       await actualRoot.delete(recursive: true);

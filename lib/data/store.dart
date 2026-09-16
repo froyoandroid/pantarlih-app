@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
+import 'order.dart';
 import 'schema.dart';
 
 class AppException implements Exception {
@@ -25,8 +26,7 @@ class RecoveryReport {
       '$processed baris diproses · $applied diterapkan · $failed gagal';
 }
 
-/// One serialized writer; every user action is one SQLite transaction and one
-/// flushed, full-payload JSONL event. SQLite is a rebuildable materialized cache.
+/// One serialized writer. Journal is appended first, then SQLite commits.
 class AppStore extends ChangeNotifier {
   AppStore(this.root, {DatabaseFactory? factory})
       : factory = factory ?? databaseFactory;
@@ -88,15 +88,23 @@ class AppStore extends ChangeNotifier {
             for (final sql in schemaStatements) {
               await db.execute(sql);
             }
+          },
+          onUpgrade: (db, oldVersion, newVersion) async {
+            for (final sql in dropStatements) {
+              await db.execute(sql);
+            }
+            for (final sql in schemaStatements) {
+              await db.execute(sql);
+            }
           }));
 
   Future<Map<String, String>> settings() async {
     final rows = await db.query('setelan');
     return {
-      'rt_aktif': '1',
+      'rt_aktif': '3',
       'rw_aktif': '3',
       'desa_default': 'KALITORONG',
-      'schema_v': '1',
+      'schema_v': '$schemaVersion',
       for (final row in rows)
         row['kunci'] as String: row['nilai'] as String? ?? ''
     };
@@ -111,7 +119,7 @@ class AppStore extends ChangeNotifier {
                 {'kunci': 'rt_aktif', 'nilai': '$rt'},
                 {'kunci': 'rw_aktif', 'nilai': '$rw'},
                 {'kunci': 'desa_default', 'nilai': 'KALITORONG'},
-                {'kunci': 'schema_v', 'nilai': '1'},
+                {'kunci': 'schema_v', 'nilai': '$schemaVersion'},
               ]
             });
   }
@@ -122,8 +130,13 @@ class AppStore extends ChangeNotifier {
     return rows.first['id'] as int;
   }
 
+  RecordMap _full(Iterable<String> columns, RecordMap source) => {
+        for (final column in columns) column: source[column],
+      };
+
   Future<RecordMap> _commit(String op, String table,
-          Future<RecordMap> Function(Transaction txn, String ts) prepare) =>
+          Future<RecordMap> Function(Transaction txn, String ts) prepare,
+          {List<RecordMap> Function(RecordMap payload)? extras}) =>
       exclusive(() async {
         if (_recoveryRequired) {
           throw AppException(
@@ -134,20 +147,25 @@ class AppStore extends ChangeNotifier {
           final result = await db.transaction((txn) async {
             final ts = timestamp();
             final payload = await prepare(txn, ts);
-            final event = <String, Object?>{
-              'schema_v': schemaVersion,
-              'event_id': await _nextId(txn, 'log'),
-              'ts': ts,
-              'op': op,
-              'tabel': table,
-              'row_id': payload['id'] ??
-                  (payload['after'] as Map?)?['id'] ??
-                  payload['id_lama'],
-              'data': payload,
-            };
-            await _appendJournal(event);
-            journalWritten = true;
-            await _applyEvent(txn, event);
+            final events = <RecordMap>[
+              if (extras != null) ...extras(payload),
+              {
+                'schema_v': schemaVersion,
+                'ts': ts,
+                'op': op,
+                'tabel': table,
+                'row_id': payload['id'] ?? payload['row_id'],
+                'data': payload,
+              }
+            ];
+            for (final event in events) {
+              event['schema_v'] = schemaVersion;
+              event['ts'] = event['ts'] ?? ts;
+              event['event_id'] = await _nextId(txn, 'log');
+              await _appendJournal(event);
+              journalWritten = true;
+              await _applyEvent(txn, event);
+            }
             return payload;
           });
           notifyListeners();
@@ -157,7 +175,7 @@ class AppStore extends ChangeNotifier {
             _recoveryRequired = true;
             throw AppException(
                 'Jurnal sudah tersimpan, tetapi database gagal diperbarui. '
-                'Jangan input ulang; bangun ulang dari jurnal. Detail: $e');
+                'Jangan input ulang, bangun ulang dari jurnal. Detail: $e');
           }
           rethrow;
         }
@@ -168,8 +186,6 @@ class AppStore extends ChangeNotifier {
     final file = File('${root.path}/journal/$date.jsonl');
     final handle = await file.open(mode: FileMode.append);
     try {
-      // A killed process may have left an unterminated JSON fragment. Never
-      // concatenate a new event onto it; recovery reports that fragment.
       final length = await handle.length();
       if (length > 0) {
         final reader = await file.open();
@@ -194,30 +210,29 @@ class AppStore extends ChangeNotifier {
     final data = Map<String, Object?>.from(event['data'] as Map);
     final table = event['tabel'];
     final op = event['op'];
-    if (table == 'warga_lama' && op == 'IMPORT') {
+    if (table == 'referensi' && op == 'IMPORT') {
       for (final raw in data['records'] as List) {
-        await txn.insert('warga_lama', Map<String, Object?>.from(raw as Map));
+        await txn.insert('referensi', Map<String, Object?>.from(raw as Map));
       }
-    } else if (table == 'survei') {
-      final record = data['after'] is Map
-          ? Map<String, Object?>.from(data['after'] as Map)
-          : data;
+    } else if (table == 'referensi' && op == 'DELETE') {
+      await txn.delete('referensi');
+    } else if (table == 'warga') {
       if (op == 'INSERT') {
-        await txn.insert('survei', record);
-      } else if (['UPDATE', 'UNLINK', 'RELINK'].contains(op)) {
-        final count = await txn.update('survei', record,
+        await txn.insert('warga', _full(wargaColumns, data));
+      } else if (op == 'UPDATE') {
+        final record = _full(wargaColumns, data);
+        final count = await txn.update('warga', record,
             where: 'id = ?', whereArgs: [record['id']]);
         if (count != 1) {
-          throw AppException('Baris survei ${record['id']} tidak ditemukan');
+          throw AppException('Baris warga ${record['id']} tidak ditemukan');
         }
       } else if (op == 'DELETE') {
-        await txn.delete('survei', where: 'id = ?', whereArgs: [data['id']]);
+        await txn.delete('warga', where: 'id = ?', whereArgs: [data['id']]);
+      } else if (op == 'REORDER' || op == 'RENUMBER') {
+        await _applyUrutMap(txn, data['peta'] as Map);
       } else {
-        throw AppException('Operasi survei tidak dikenal: $op');
+        throw AppException('Operasi warga tidak dikenal: $op');
       }
-    } else if (table == 'tanda_lama' && op == 'MARK') {
-      await txn.insert('tanda_lama', data,
-          conflictAlgorithm: ConflictAlgorithm.replace);
     } else if (table == 'setelan' && op == 'UPDATE') {
       for (final raw in data['records'] as List) {
         await txn.insert('setelan', Map<String, Object?>.from(raw as Map),
@@ -237,197 +252,306 @@ class AppStore extends ChangeNotifier {
     });
   }
 
-  Future<void> importRows(
-      List<RecordMap> ready, String filename, int confirmedRt) async {
-    await _commit('IMPORT', 'warga_lama', (txn, ts) async {
-      var id = await _nextId(txn, 'warga_lama');
-      final existing =
-          await txn.query('warga_lama', columns: ['rt', 'urut_asli']);
-      final keys = existing.map((r) => '${r['rt']}:${r['urut_asli']}').toSet();
-      final records = <RecordMap>[];
-      for (final row in ready) {
-        final key = '${row['rt']}:${row['urut_asli']}';
-        if (!keys.add(key)) {
-          throw AppException('Impor ditolak: RT ${row['rt']}, nomor '
-              '${row['urut_asli']} sudah ada atau berulang di file. Data lama tidak diubah.');
-        }
-        records.add({...row, 'id': id++, 'diimpor_pada': ts});
+  Future<void> _applyUrutMap(DatabaseExecutor txn, Map peta) async {
+    final entries = peta.entries.toList();
+    for (final entry in entries) {
+      await txn.update(
+          'warga',
+          {'urut_sort': -1000000 - intValue(entry.key)},
+          where: 'id = ?',
+          whereArgs: [intValue(entry.key)]);
+    }
+    for (final entry in entries) {
+      final next = Map<String, Object?>.from(entry.value as Map);
+      await txn.update('warga', {'urut_sort': next['baru']},
+          where: 'id = ?', whereArgs: [intValue(entry.key)]);
+    }
+  }
+
+  Future<List<RecordMap>> _wargaRt(
+      DatabaseExecutor txn, int rw, int rt) async {
+    final rows = await txn.query('warga',
+        where: 'rw = ? AND rt = ?',
+        whereArgs: [rw, rt],
+        orderBy: 'urut_sort ASC, id ASC');
+    return rows.map((r) => Map<String, Object?>.from(r)).toList();
+  }
+
+  RecordMap _petaRenumber(List<RecordMap> rows, {int start = 1000}) {
+    final peta = <String, RecordMap>{};
+    for (var i = 0; i < rows.length; i++) {
+      final id = rows[i]['id'] as int;
+      final lama = rows[i]['urut_sort'] as int;
+      final baru = start + i * 1000;
+      if (lama != baru) {
+        peta['$id'] = {'lama': lama, 'baru': baru};
       }
-      return {
-        'nama_file': filename,
-        'rt_konfirmasi': confirmedRt,
-        'jumlah': records.length,
-        'jumlah_perlu_review':
-            records.where((r) => r['perlu_review'] == 1).length,
-        'records': records
-      };
+    }
+    return peta;
+  }
+
+  List<RecordMap> _virtualRenumber(List<RecordMap> rows, {int start = 1000}) =>
+      [
+        for (var i = 0; i < rows.length; i++)
+          {...rows[i], 'urut_sort': start + i * 1000}
+      ];
+
+  void _queueRenumber(List<RecordMap> extras, int rw, int rt, String ts,
+      Map peta) {
+    extras.add({
+      'op': 'RENUMBER',
+      'tabel': 'warga',
+      'row_id': null,
+      'data': {'rw': rw, 'rt': rt, 'peta': peta, 'diubah_pada': ts},
     });
   }
 
-  Future<List<RecordMap>> duplicates(String nik, {int? exceptId}) =>
-      db.query('survei',
-          where: 'nik = ?${exceptId == null ? '' : ' AND id <> ?'}',
-          whereArgs: [nik, if (exceptId != null) exceptId],
-          orderBy: 'dibuat_pada ASC, id ASC');
-
-  Future<void> _checkLink(
-      DatabaseExecutor txn, int? oldId, int? surveyId) async {
-    if (oldId == null) return;
-    final linked = await txn.query('survei',
-        where: 'id_lama = ?${surveyId == null ? '' : ' AND id <> ?'}',
-        whereArgs: [oldId, if (surveyId != null) surveyId]);
-    if (linked.isNotEmpty) {
-      throw AppException(
-          'Data lama ini sudah ditautkan ke ${linked.first['nama']}. '
-          'Buka baris tersebut melalui riwayat untuk memperbaikinya.');
+  int? _urutDari(List<RecordMap> rows, int? afterId) {
+    if (afterId == null) {
+      return urutAntara(
+          rows.isEmpty ? null : rows.last['urut_sort'] as int, null);
     }
+    final index = rows.indexWhere((r) => r['id'] == afterId);
+    if (index < 0) return null;
+    final sebelum = rows[index]['urut_sort'] as int;
+    final sesudah =
+        index + 1 < rows.length ? rows[index + 1]['urut_sort'] as int : null;
+    return urutAntara(sebelum, sesudah);
   }
 
-  Future<RecordMap> saveSurvey(RecordMap fields, {int? id, int? oldId}) async {
-    if ('${fields['nik'] ?? ''}'.trim().isEmpty) {
-      throw AppException('NIK wajib diisi');
+  Future<int> _urutSisip(Transaction txn, int rw, int rt, int? afterId,
+      List<RecordMap> extras, String ts) async {
+    final rows = await _wargaRt(txn, rw, rt);
+    if (afterId != null && rows.every((r) => r['id'] != afterId)) {
+      throw AppException('Baris sisip tidak ditemukan');
     }
+    final value = _urutDari(rows, afterId);
+    if (value != null) return value;
+    final peta = _petaRenumber(rows);
+    _queueRenumber(extras, rw, rt, ts, peta);
+    return _urutDari(_virtualRenumber(rows), afterId)!;
+  }
+
+  void _validateWarga(RecordMap fields) {
     if ('${fields['nama'] ?? ''}'.trim().isEmpty) {
       throw AppException('Nama wajib diisi');
     }
-    if (intValue(fields['rt_baru']) <= 0 || intValue(fields['rw_baru']) <= 0) {
+    if (intValue(fields['rt']) <= 0 || intValue(fields['rw']) <= 0) {
       throw AppException('RT dan RW wajib berupa bilangan positif');
     }
-    return _commit(id == null ? 'INSERT' : 'UPDATE', 'survei', (txn, ts) async {
-      await _checkLink(txn, oldId, id);
-      final before = id == null
-          ? null
-          : (await txn.query('survei', where: 'id = ?', whereArgs: [id])).first;
-      final old = oldId == null
-          ? null
-          : (await txn.query('warga_lama', where: 'id = ?', whereArgs: [oldId]))
-              .first;
-      final record = <String, Object?>{
-        'id': id ?? await _nextId(txn, 'survei'),
-        'id_lama': oldId,
-        'grup_id': null,
-        'nik': fields['nik'],
-        'nama': fields['nama'].toString().trim(),
-        'nama_norm': normalisasiNama(fields['nama'].toString()),
-        'jenis_kelamin': fields['jenis_kelamin'],
-        'tempat_lahir': fields['tempat_lahir'],
-        'tgl_lahir': fields['tgl_lahir'],
-        'desa': fields['desa'],
-        'rt_lama': old?['rt'],
-        'rw_lama': old?['rw'],
-        'rt_baru': fields['rt_baru'],
-        'rw_baru': fields['rw_baru'],
-        'keterangan': nullableText('${fields['keterangan'] ?? ''}'),
-        'sumber_input': fields['sumber_input'],
-        'dibuat_pada': before?['dibuat_pada'] ?? ts,
-        'diubah_pada': ts,
-      };
-      if (before == null) return record;
-      return {'before': before, 'after': record};
-    });
   }
 
-  Future<void> relink(int surveyId, int? oldId) async {
-    await _commit(oldId == null ? 'UNLINK' : 'RELINK', 'survei',
-        (txn, ts) async {
-      await _checkLink(txn, oldId, surveyId);
+  RecordMap _wargaRecord(RecordMap fields, int id, int urut, String ts,
+      String dibuat) {
+    final nik = nullableText('${fields['nik'] ?? ''}');
+    return {
+      'id': id,
+      'urut_sort': urut,
+      'grup_id': null,
+      'nik': nik,
+      'nama': fields['nama'].toString().trim(),
+      'nama_norm': normalisasiNama(fields['nama'].toString()),
+      'jenis_kelamin': fields['jenis_kelamin'],
+      'tempat_lahir': nullableText('${fields['tempat_lahir'] ?? ''}'),
+      'tgl_lahir': fields['tgl_lahir'],
+      'desa': nullableText('${fields['desa'] ?? ''}'),
+      'rt': intValue(fields['rt']),
+      'rw': intValue(fields['rw']),
+      'keterangan': nullableText('${fields['keterangan'] ?? ''}'),
+      'sumber_input': fields['sumber_input'] ?? 'LAPANGAN',
+      'dibuat_pada': dibuat,
+      'diubah_pada': ts,
+    };
+  }
+
+  Future<RecordMap> saveWarga(RecordMap fields, {int? id, int? afterId}) async {
+    _validateWarga(fields);
+    final extras = <RecordMap>[];
+    return _commit(id == null ? 'INSERT' : 'UPDATE', 'warga', (txn, ts) async {
+      if (id == null) {
+        final next = await _nextId(txn, 'warga');
+        final urut = await _urutSisip(
+            txn, intValue(fields['rw']), intValue(fields['rt']), afterId, extras, ts);
+        return _wargaRecord(fields, next, urut, ts, ts);
+      }
       final before =
-          (await txn.query('survei', where: 'id = ?', whereArgs: [surveyId]))
-              .first;
-      final old = oldId == null
-          ? null
-          : (await txn.query('warga_lama', where: 'id = ?', whereArgs: [oldId]))
-              .first;
-      final after = {
-        ...before,
-        'id_lama': oldId,
-        'rt_lama': old?['rt'],
-        'rw_lama': old?['rw'],
-        'diubah_pada': ts
-      };
-      return {'before': before, 'after': after};
+          (await txn.query('warga', where: 'id = ?', whereArgs: [id])).first;
+      var urut = before['urut_sort'] as int;
+      if (intValue(fields['rt']) != intValue(before['rt']) ||
+          intValue(fields['rw']) != intValue(before['rw'])) {
+        urut = await urutAkhir(
+            txn, intValue(fields['rw']), intValue(fields['rt']));
+      }
+      return _wargaRecord(
+          fields, id, urut, ts, before['dibuat_pada'] as String);
+    }, extras: (_) => extras);
+  }
+
+  Future<void> deleteWarga(int id) async {
+    await _commit('DELETE', 'warga', (txn, ts) async {
+      final rows = await txn.query('warga', where: 'id = ?', whereArgs: [id]);
+      if (rows.isEmpty) {
+        throw AppException('Baris warga $id tidak ditemukan');
+      }
+      return _full(wargaColumns, rows.first);
     });
   }
 
-  Future<void> mark(int oldId, bool grey) async {
-    await _commit(
-        'MARK',
-        'tanda_lama',
-        (txn, ts) async => {
-              'id_lama': oldId,
-              'abu_abu': grey ? 1 : 0,
-              'ditandai_pada': ts,
-            });
+  int? _urutTetangga(List<RecordMap> others, int? beforeId, int? afterId) {
+    final sebelum = beforeId == null
+        ? null
+        : others.firstWhere((r) => r['id'] == beforeId)['urut_sort'] as int;
+    final sesudah = afterId == null
+        ? null
+        : others.firstWhere((r) => r['id'] == afterId)['urut_sort'] as int;
+    return urutAntara(sebelum, sesudah);
+  }
+
+  Future<void> reorderWarga(int id, int? beforeId, int? afterId) async {
+    final extras = <RecordMap>[];
+    await _commit('REORDER', 'warga', (txn, ts) async {
+      final row =
+          (await txn.query('warga', where: 'id = ?', whereArgs: [id])).first;
+      final rw = row['rw'] as int;
+      final rt = row['rt'] as int;
+      final others =
+          (await _wargaRt(txn, rw, rt)).where((r) => r['id'] != id).toList();
+      var next = _urutTetangga(others, beforeId, afterId);
+      if (next == null) {
+        final start = beforeId == null ? 2000 : 1000;
+        final full = await _wargaRt(txn, rw, rt);
+        _queueRenumber(extras, rw, rt, ts, _petaRenumber(full, start: start));
+        final virtual = _virtualRenumber(full, start: start)
+            .where((r) => r['id'] != id)
+            .toList();
+        next = _urutTetangga(virtual, beforeId, afterId);
+        if (next == null) {
+          throw AppException('Urutan tidak dapat dihitung ulang');
+        }
+      }
+      return {
+        'id': id,
+        'peta': {
+          '$id': {'lama': row['urut_sort'], 'baru': next}
+        },
+        'rw': rw,
+        'rt': rt,
+      };
+    }, extras: (_) => extras);
+  }
+
+  Future<void> importRows(List<RecordMap> ready, String filename) async {
+    await _commit('IMPORT', 'referensi', (txn, ts) async {
+      var id = await _nextId(txn, 'referensi');
+      final records = <RecordMap>[
+        for (final row in ready)
+          _full(referensiColumns, {...row, 'id': id++, 'diimpor_pada': ts})
+      ];
+      return {
+        'nama_file': filename,
+        'jumlah': records.length,
+        'records': records,
+      };
+    });
+  }
+
+  Future<void> clearReferensi() async {
+    await _commit('DELETE', 'referensi', (txn, ts) async {
+      final rows = await txn.query('referensi');
+      return {
+        'jumlah': rows.length,
+        'records': rows.map((r) => _full(referensiColumns, r)).toList(),
+      };
+    });
   }
 
   Future<void> recordExport(
       List<RecordMap> files, int rw, List<int> rts) async {
     await _commit('EXPORT', 'export',
-        (txn, ts) async => {'files': files, 'rw': rw, 'rt': rts});
+        (txn, ts) async => {
+              'files': files,
+              'rw': rw,
+              'rt': rts,
+              'jumlah': files.fold<int>(
+                  0, (n, f) => n + intValue(f['jumlah_baris'])),
+            });
   }
 
-  Future<List<RecordMap>> allLegacy(int rw) => db.rawQuery('''
-    SELECT w.*, s.id AS survey_id, s.rt_baru, s.rw_baru,
-      COALESCE(t.abu_abu, 0) AS abu_abu
-    FROM warga_lama w LEFT JOIN survei s ON s.id_lama = w.id
-    LEFT JOIN tanda_lama t ON t.id_lama = w.id
-    WHERE w.rw = ? ORDER BY w.rt, w.urut_sort, w.id''', [rw]);
+  Future<List<RecordMap>> duplicates(String nik, {int? exceptId}) {
+    if (nik.isEmpty) return Future.value([]);
+    return db.query('warga',
+        where: 'nik = ?${exceptId == null ? '' : ' AND id <> ?'}',
+        whereArgs: [nik, if (exceptId != null) exceptId],
+        orderBy: 'dibuat_pada ASC, id ASC');
+  }
 
-  Future<RecordMap?> survey(int id) async {
-    final result = await db.query('survei', where: 'id = ?', whereArgs: [id]);
+  Future<RecordMap?> warga(int id) async {
+    final result = await db.query('warga', where: 'id = ?', whereArgs: [id]);
     return result.isEmpty ? null : result.first;
   }
 
-  Future<RecordMap?> legacy(int id) async {
-    final result =
-        await db.query('warga_lama', where: 'id = ?', whereArgs: [id]);
-    return result.isEmpty ? null : result.first;
+  Future<List<RecordMap>> allWarga() =>
+      db.query('warga', orderBy: 'dibuat_pada DESC, id DESC');
+
+  Future<List<RecordMap>> wargaRt(int rw, int rt) => db.query('warga',
+      where: 'rw = ? AND rt = ?',
+      whereArgs: [rw, rt],
+      orderBy: 'urut_sort ASC, id ASC');
+
+  Future<List<RecordMap>> allReferensi(int rw) =>
+      db.query('referensi', where: 'rw = ?', whereArgs: [rw], orderBy: 'id');
+
+  Future<int> referensiCount() async {
+    final rows = await db.rawQuery('SELECT COUNT(*) AS n FROM referensi');
+    return rows.first['n'] as int;
   }
 
   Future<List<RecordMap>> history() =>
-      db.query('survei', orderBy: 'dibuat_pada DESC, id DESC', limit: 20);
-  Future<List<RecordMap>> conflicts() =>
-      db.query('v_konflik_rt', orderBy: 'rt_lama, dibuat_pada');
-  Future<List<RecordMap>> duplicateRows() =>
-      db.rawQuery('''SELECT s.* FROM survei s
-    JOIN v_duplikat_nik d ON s.nik = d.nik ORDER BY s.nik, s.dibuat_pada''');
-  Future<List<RecordMap>> remaining(int rt, int rw) => db.rawQuery('''
-    SELECT w.*, COALESCE(t.abu_abu,0) AS abu_abu, s.id AS survey_id, s.rt_baru, s.rw_baru
-    FROM warga_lama w LEFT JOIN tanda_lama t ON t.id_lama = w.id
-    LEFT JOIN survei s ON s.id_lama = w.id
-    WHERE w.rt = ? AND w.rw = ? AND (s.id IS NULL OR s.rt_baru <> w.rt OR s.rw_baru <> w.rw)
-    ORDER BY w.urut_sort, w.id''', [rt, rw]);
+      db.query('warga', orderBy: 'dibuat_pada DESC, id DESC', limit: 20);
 
-  Future<RecordMap> progress(int rt, int rw) async {
-    final r = await db.rawQuery('''SELECT COUNT(*) AS total,
-      COALESCE(SUM(CASE WHEN EXISTS(SELECT 1 FROM survei s WHERE s.id_lama=w.id) THEN 1 ELSE 0 END),0) AS surveyed,
-      COALESCE(SUM(CASE WHEN NOT EXISTS(SELECT 1 FROM survei s WHERE s.id_lama=w.id)
-        AND COALESCE(t.abu_abu,0)=0 THEN 1 ELSE 0 END),0) AS remaining,
-      COALESCE(SUM(CASE WHEN NOT EXISTS(SELECT 1 FROM survei s WHERE s.id_lama=w.id)
-        AND COALESCE(t.abu_abu,0)=1 THEN 1 ELSE 0 END),0) AS grey
-      FROM warga_lama w LEFT JOIN tanda_lama t ON t.id_lama=w.id WHERE w.rt=? AND w.rw=?''',
-        [rt, rw]);
-    final inputs = await db.rawQuery(
-        'SELECT COUNT(*) AS n FROM survei WHERE rt_baru=? AND rw_baru=?',
-        [rt, rw]);
-    return {...r.first, 'inputs': inputs.first['n']};
+  Future<List<RecordMap>> duplicateRows() => db.rawQuery('''
+    SELECT w.* FROM warga w
+    JOIN v_duplikat_nik d ON w.nik = d.nik
+    ORDER BY w.nik, w.urut_sort, w.id''');
+
+  Future<List<RecordMap>> tanpaNik({int? rw, int? rt}) => db.query('warga',
+      where: [
+        "(nik IS NULL OR nik = '')",
+        if (rw != null) 'rw = ?',
+        if (rt != null) 'rt = ?',
+      ].join(' AND '),
+      whereArgs: [if (rw != null) rw, if (rt != null) rt],
+      orderBy: 'rw, rt, urut_sort, id');
+
+  Future<RecordMap> counts(int rt, int rw) async {
+    final rows = await db.rawQuery('''
+      SELECT COUNT(*) AS jumlah,
+        COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
+      FROM warga WHERE rt = ? AND rw = ?''', [rt, rw]);
+    return rows.first;
   }
+
+  Future<List<RecordMap>> countsByRt(int rw) => db.rawQuery('''
+    SELECT rt, COUNT(*) AS jumlah,
+      COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
+    FROM warga WHERE rw = ? GROUP BY rt ORDER BY rt''', [rw]);
 
   Future<List<int>> rtList(int rw) async {
     final rows = await db.rawQuery(
-        'SELECT rt FROM warga_lama WHERE rw=? UNION SELECT rt_baru AS rt FROM survei WHERE rw_baru=? ORDER BY rt',
+        'SELECT rt FROM warga WHERE rw=? UNION SELECT rt FROM referensi WHERE rw=? ORDER BY rt',
         [rw, rw]);
     return rows.map((r) => r['rt'] as int).toList();
   }
 
-  Future<List<RecordMap>> pending({required int rw, int? rt}) => db.rawQuery('''
-    SELECT w.* FROM warga_lama w WHERE w.rw=? ${rt == null ? '' : 'AND w.rt=?'}
-    AND NOT EXISTS(SELECT 1 FROM survei s WHERE s.id_lama=w.id) ORDER BY w.rt, w.urut_sort, w.id''',
-      [rw, if (rt != null) rt]);
-  Future<List<RecordMap>> exportSurveys(int rt, int rw) => db.query('survei',
-      where: 'rt_baru=? AND rw_baru=?',
-      whereArgs: [rt, rw],
-      orderBy: 'dibuat_pada ASC, id ASC');
+  Future<List<RecordMap>> exportWarga(int rt, int rw) => db.query('warga',
+      where: 'rw = ? AND rt = ?',
+      whereArgs: [rw, rt],
+      orderBy: 'urut_sort ASC, id ASC');
+
+  Future<int> posisi(int id, int rw, int rt) async {
+    final rows = await wargaRt(rw, rt);
+    return rows.indexWhere((r) => r['id'] == id) + 1;
+  }
 
   Future<File> snapshot() => exclusive(() async {
         if (_recoveryRequired) {
@@ -440,7 +564,6 @@ class AppStore extends ChangeNotifier {
         final copy = await File(dbPath)
             .copy('${root.path}/snapshot/db_${fileStamp()}.db');
         final files = await snapshots();
-        // Only rotate our own concrete snapshot files; journal is never rotated.
         for (final old in files.skip(20)) {
           await old.delete();
         }
@@ -501,7 +624,6 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<RecoveryReport> rebuild() => exclusive(() async {
-        // Build a candidate first, preserving the old DB if replay/file IO fails.
         final stamp = fileStamp();
         final candidatePath = '${root.path}/recovered/rebuild_$stamp.db';
         final candidate = await _openDatabase(candidatePath);

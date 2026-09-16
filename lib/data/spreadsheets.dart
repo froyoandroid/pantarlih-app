@@ -111,7 +111,7 @@ class WorkbookSource {
       if (name.trim().isEmpty || order == null || order <= 0) {
         throw AppException(
             'Sheet $sheet baris ${i + 1}: nama / nomor urut tidak valid. '
-            'Periksa baris awal dan pemetaan; tidak ada baris yang diabaikan diam-diam.');
+            'Periksa baris awal dan pemetaan. Tidak ada baris yang diabaikan diam-diam.');
       }
       final rowRt = int.tryParse(get('rt').trim());
       final rowRw = int.tryParse(get('rw').trim());
@@ -134,15 +134,11 @@ class WorkbookSource {
           : ['P', 'PEREMPUAN'].contains(rawGender)
               ? 'P'
               : null;
-      final nik = nullableText(get('nik_lama'));
       records.add({
         'urut_asli': order,
-        'urut_sort': order * 1000,
         'nama': name,
         'nama_norm': normalisasiNama(name),
-        'nama_tokens': tokenNama(name).join(' '),
-        'nik_lama': nik,
-        'nik_prefix': prefixNik(nik),
+        'nik_lama': nullableText(get('nik_lama')),
         'jenis_kelamin': gender,
         'tempat_lahir': nullableText(get('tempat_lahir')),
         'tgl_lahir': date,
@@ -150,7 +146,6 @@ class WorkbookSource {
         'desa': nullableText(get('desa')),
         'rt': useRowRt ? rowRt : confirmedRt,
         'rw': rowRw ?? defaultRw,
-        'perlu_review': date == null || gender == null ? 1 : 0,
         'sumber_file': nameForStorage,
         'sumber_baris': i + 1,
       });
@@ -194,7 +189,7 @@ class WorkbookSource {
         .writeAsString('${parsed.map(jsonEncode).join('\n')}\n', flush: true);
     await File('${store.root.path}/import/ready/$batch/$nameForStorage.jsonl')
         .writeAsString('${records.map(jsonEncode).join('\n')}\n', flush: true);
-    await store.importRows(records, nameForStorage, rt);
+    await store.importRows(records, nameForStorage);
   }
 }
 
@@ -248,17 +243,17 @@ class ExportService {
   ExportService(this.store);
   final AppStore store;
 
-  List<Object?> dpsRow(RecordMap row, int number, {bool pending = false}) => [
+  List<Object?> dpsRow(RecordMap row, int number) => [
         number,
         row['nama'],
-        pending ? null : row['nik'],
+        row['nik'],
         row['jenis_kelamin'] == null ? null : jkTampil(row['jenis_kelamin']),
         row['tempat_lahir'],
         row['tgl_lahir'] == null ? null : tanggalTampil(row['tgl_lahir']),
         row['desa'],
-        row[pending ? 'rt' : 'rt_baru'],
-        row[pending ? 'rw' : 'rw_baru'],
-        pending ? null : row['keterangan'],
+        row['rt'],
+        row['rw'],
+        row['keterangan'],
       ];
 
   void _sheet(
@@ -327,15 +322,10 @@ class ExportService {
 
     final dpsSheets = <String, (List<String>, List<List<Object?>>)>{};
     for (final selectedRt in rts) {
-      final surveys = await store.exportSurveys(selectedRt, rw);
-      final pending = await store.pending(rw: rw, rt: selectedRt);
-      final rows = <List<Object?>>[];
-      for (final row in surveys) {
-        rows.add(dpsRow(row, rows.length + 1));
-      }
-      for (final row in pending) {
-        rows.add(dpsRow(row, rows.length + 1, pending: true));
-      }
+      final warga = await store.exportWarga(selectedRt, rw);
+      final rows = [
+        for (var i = 0; i < warga.length; i++) dpsRow(warga[i], i + 1)
+      ];
       if (combined) {
         dpsSheets['RT $selectedRt'] = (dpsHeaders, rows);
       } else {
@@ -344,56 +334,25 @@ class ExportService {
       }
     }
     if (combined) await write('DPS_GABUNGAN_RW${rw}_$date.xlsx', dpsSheets);
-    final pending = await store.pending(rw: rw, rt: rt);
-    final pendingRows = <List<Object?>>[];
-    int? lastRt;
-    var number = 0;
-    for (final row in pending) {
-      if (lastRt != row['rt']) {
-        number = 0;
-        lastRt = row['rt'] as int;
-      }
-      pendingRows.add(dpsRow(row, ++number, pending: true));
-    }
-    await write(
-        'PENDING_RW${rw}_$date.xlsx', {'PENDING': (dpsHeaders, pendingRows)});
-    // Audit exports deliberately cover every conflict/duplicate, including other RT/RW.
     final duplicateRows = await store.duplicateRows();
     await write('DUPLIKAT_NIK_$date.xlsx', {
       'DUPLIKAT NIK': (
-        [...dpsHeaders, 'WAKTU INPUT'],
+        dpsHeaders,
         [
-          for (var i = 0; i < duplicateRows.length; i++)
-            [
-              ...dpsRow(duplicateRows[i], i + 1),
-              duplicateRows[i]['dibuat_pada']
-            ]
+          for (final row in duplicateRows)
+            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
+                row['rt'] as int))
         ],
       )
     });
-    final conflicts = await store.conflicts();
-    await write('KONFLIK_RT_$date.xlsx', {
-      'KONFLIK RT': (
+    final missing = await store.tanpaNik(rw: rw, rt: rt);
+    await write('TANPA_NIK_$date.xlsx', {
+      'TANPA NIK': (
+        dpsHeaders,
         [
-          'NAMA',
-          'NIK',
-          'RT LAMA',
-          'RW LAMA',
-          'RT BARU',
-          'RW BARU',
-          'WAKTU INPUT'
-        ],
-        [
-          for (final row in conflicts)
-            [
-              row['nama'],
-              row['nik'],
-              row['rt_lama'],
-              row['rw_lama'],
-              row['rt_baru'],
-              row['rw_baru'],
-              row['dibuat_pada']
-            ]
+          for (final row in missing)
+            dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
+                row['rt'] as int))
         ],
       )
     });

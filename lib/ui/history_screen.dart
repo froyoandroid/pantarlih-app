@@ -3,7 +3,7 @@ import '../core/format.dart';
 import 'common.dart';
 import 'survey_form.dart';
 
-enum SurveyListKind { history, conflicts, duplicates }
+enum SurveyListKind { history, duplicates }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen(
@@ -25,11 +25,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> load() async {
     try {
       final store = widget.session.store;
-      final loaded = await switch (widget.kind) {
-        SurveyListKind.history => store.history(),
-        SurveyListKind.conflicts => store.conflicts(),
-        SurveyListKind.duplicates => store.duplicateRows()
-      };
+      final loaded = widget.kind == SurveyListKind.history
+          ? await store.history()
+          : await store.duplicateRows();
       if (mounted) setState(() => rows = loaded);
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
@@ -39,20 +37,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: switch (widget.kind) {
-        SurveyListKind.history => 'Riwayat · 20 terakhir',
-        SurveyListKind.conflicts => 'Konflik RT / RW',
-        SurveyListKind.duplicates => 'Duplikat NIK'
-      },
+      title: widget.kind == SurveyListKind.history
+          ? 'Riwayat · 20 terakhir'
+          : 'Duplikat NIK',
       child: rows == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: load,
               child: ListView(padding: const EdgeInsets.all(16), children: [
-                if (widget.kind == SurveyListKind.conflicts)
-                  const Notice(
-                      'Ekspor mengikuti RT/RW baru. Konflik tidak pernah mengubah keterangan.',
-                      warning: true),
                 if (widget.kind == SurveyListKind.duplicates)
                   const Notice(
                       'Semua baris dengan NIK berulang. Buka baris untuk memeriksa dan mengoreksi sesuai KK.',
@@ -62,21 +54,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       'Data yang sesuai akan ditampilkan di sini.'),
                 for (final row in rows!)
                   ResidentCard(row,
-                      label: widget.kind == SurveyListKind.conflicts
-                          ? 'LAMA RT ${row['rt_lama']}/RW ${row['rw_lama']} → BARU RT ${row['rt_baru']}/RW ${row['rw_baru']}'
-                          : widget.kind == SurveyListKind.duplicates
-                              ? 'NIK ${row['nik']}'
-                              : null,
+                      label: widget.kind == SurveyListKind.duplicates
+                          ? 'NIK ${row['nik']}'
+                          : null,
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () async {
-                    final survey =
-                        await widget.session.store.survey(row['id'] as int);
-                    if (!context.mounted || survey == null) return;
+                    final warga =
+                        await widget.session.store.warga(row['id'] as int);
+                    if (!context.mounted || warga == null) return;
                     await Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (_) => SurveyForm(
-                                session: widget.session, survey: survey)));
+                                session: widget.session, warga: warga)));
                     await load();
                   }),
               ])));

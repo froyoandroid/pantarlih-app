@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/core/nama.dart';
 import 'package:pantarlih_kalitorong/core/nik.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
+import 'package:pantarlih_kalitorong/data/order.dart';
 
 void main() {
   test('Indonesian normalization follows ordered transformations', () {
@@ -47,16 +48,21 @@ void main() {
     }
     expect(tanggalTampil('1973-09-11'), '11-09-1973');
   });
-  test('NIK warnings do not infer eligibility', () {
-    expect(periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P', '332707'),
-        isEmpty);
-    expect(periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P', '332707'),
+  test('NIK warnings never block and do not infer eligibility', () {
+    expect(periksaNik('', null, null), isEmpty);
+    expect(periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
+    expect(periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P'),
         contains('Jenis kelamin di NIK tidak cocok'));
-    expect(periksaNik('123', null, null, null), ['NIK bukan 16 digit angka']);
-    expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P', '332707'),
-        hasLength(1));
-    expect(prefixNik('332707**********'), '332707');
-    expect(prefixNik('***123'), isNull);
+    expect(periksaNik('123', null, null), ['NIK bukan 16 digit angka']);
+    expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
+  });
+  test('sparse insert keys leave room then report a exhausted gap', () {
+    expect(urutAntara(null, null), 1000);
+    expect(urutAntara(1000, null), 2000);
+    expect(urutAntara(1000, 2000), 1500);
+    expect(urutAntara(1000, 1001), isNull);
+    expect(urutAntara(null, 1000), isNull);
+    expect(urutAntara(null, 2000), 1000);
   });
   test('notes preserve nonblank bytes and timestamps use explicit WIB', () {
     expect(nullableText('  '), isNull);

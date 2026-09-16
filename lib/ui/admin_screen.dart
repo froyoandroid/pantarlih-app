@@ -47,7 +47,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Future<void> share(List<File> selected) async {
     if (!await confirm(context, 'Bagikan data pribadi?',
-        'Berkas memuat NIK, nama, dan tanggal lahir. Pilih penerima tepercaya; aplikasi lain yang Anda pilih dapat mengirimkan berkas ke internet.',
+        'Berkas memuat NIK, nama, dan tanggal lahir. Pilih penerima tepercaya, aplikasi lain yang Anda pilih dapat mengirimkan berkas ke internet.',
         action: 'PILIH PENERIMA')) {
       return;
     }
@@ -67,19 +67,6 @@ class _AdminScreenState extends State<AdminScreen> {
       child: ListView(padding: const EdgeInsets.all(20), children: [
         const Text('Pemeriksaan data',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-        Card(
-            child: ListTile(
-                leading: const Icon(Icons.compare_arrows),
-                title: const Text('Konflik RT / RW'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: busy
-                    ? null
-                    : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => HistoryScreen(
-                                session: widget.session,
-                                kind: SurveyListKind.conflicts))))),
         Card(
             child: ListTile(
                 leading: const Icon(Icons.copy_outlined),
@@ -109,7 +96,7 @@ class _AdminScreenState extends State<AdminScreen> {
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
         const Notice(
-            'Data survei diurut waktu input, lalu data pending ditempel di bawahnya. Pending, duplikat, dan konflik juga dibuat sebagai file terpisah.'),
+            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di file mulai 1 di tiap RT. Duplikat NIK dan daftar tanpa NIK dibuat terpisah.'),
         FilledButton.icon(
             onPressed: busy
                 ? null
@@ -140,7 +127,7 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Ketahanan & pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
-            'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 cadangan terbaru; snapshot paling lama dirotasi otomatis. Jurnal tidak pernah dihapus.',
+            'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 cadangan terbaru, snapshot paling lama dirotasi otomatis. Jurnal tidak pernah dihapus.',
             icon: Icons.shield_outlined),
         OutlinedButton.icon(
             onPressed: busy
@@ -195,7 +182,7 @@ class _AdminScreenState extends State<AdminScreen> {
             style: const TextStyle(fontSize: 12)),
         const SizedBox(height: 12),
         const Text(
-            'Salin folder ini lewat kabel USB secara berkala. Berkas tidak terenkripsi; simpan cadangan di lokasi yang aman.',
+            'Salin folder ini lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan cadangan di lokasi yang aman.',
             style: TextStyle(fontSize: 12, color: Colors.black54)),
       ]));
 }
