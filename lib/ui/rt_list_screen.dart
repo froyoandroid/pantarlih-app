@@ -33,12 +33,10 @@ class _RtListScreenState extends State<RtListScreen> {
   List<RecordMap> rows = [];
   RecordMap? counts;
   bool loading = true;
-  int? highlight;
 
   @override
   void initState() {
     super.initState();
-    highlight = widget.focusId;
     _load(scrollTo: widget.focusId);
   }
 
@@ -57,7 +55,6 @@ class _RtListScreenState extends State<RtListScreen> {
       rows = loaded;
       counts = c;
       loading = false;
-      if (scrollTo != null) highlight = scrollTo;
     });
     if (scrollTo != null) {
       final index = loaded.indexWhere((r) => r['id'] == scrollTo);
@@ -125,20 +122,35 @@ class _RtListScreenState extends State<RtListScreen> {
     }
   }
 
+  Widget _titikWarna(Color color) => Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black26)));
+
   Future<void> _ubahWarna(RecordMap row) async {
     final sekarang = '${row['warna'] ?? ''}';
     final pilih = await showModalBottomSheet<String>(
         context: context,
         builder: (ctx) => SafeArea(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 16, 24, 4),
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('UBAH WARNA',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 16)))),
               ListTile(
-                  title: const Text('TANPA WARNA'),
+                  leading: _titikWarna(Colors.white),
+                  title: const Text('Tanpa warna'),
                   selected: sekarang.isEmpty,
                   onTap: () => Navigator.pop(ctx, '')),
               for (final e in _labelWarna.entries)
                 ListTile(
-                    leading: CircleAvatar(
-                        radius: 10, backgroundColor: _warnaKartu[e.key]),
+                    leading: _titikWarna(_warnaKartu[e.key]!),
                     title: Text(e.value.toUpperCase()),
                     selected: sekarang == e.key,
                     onTap: () => Navigator.pop(ctx, e.key)),
@@ -234,10 +246,8 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final catatan =
                                       keteranganTampil(row['keterangan']);
                                   final warnaKode = '${row['warna'] ?? ''}';
-                                  final warnaKartu = _warnaKartu[warnaKode] ??
-                                      (highlight == id
-                                          ? const Color(0xFFE7F3EE)
-                                          : null);
+                                  final warnaKartu =
+                                      _warnaKartu[warnaKode] ?? Colors.white;
                                   return Dismissible(
                                       key: ValueKey(id),
                                       direction: DismissDirection.endToStart,
