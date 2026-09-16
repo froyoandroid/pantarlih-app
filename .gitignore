@@ -15,3 +15,6 @@ data-exel/
 *.db-shm
 *.db-wal
 *.jsonl
+
+# Local agent tooling state, never app data.
+.flutter_mcp/
