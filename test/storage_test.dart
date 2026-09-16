@@ -55,7 +55,7 @@ void main() {
     final lama = Directory('${parent.path}/PantarlihKalitorong');
     await lama.create();
     await File('${lama.path}/pantarlih.db').writeAsString('x', flush: true);
-    final chosen = await pilihFolderApp(parent);
+    final chosen = await resolveFolderAktif(parent);
     expect(chosen.path, lama.path);
   });
 
