@@ -28,7 +28,7 @@ class Session extends ChangeNotifier {
   Future<void> change(int newRt, int newRw) async {
     if (rt != newRt || rw != newRw) {
       await store.snapshot();
-      await ExportService(store).generate(rw: rw, automatic: true);
+      await ExportService(store).generate(rw: rw, rt: rt, automatic: true);
     }
     await store.setSession(newRt, newRw);
     rt = newRt;

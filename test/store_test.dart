@@ -316,6 +316,32 @@ void main() {
     expect(await store.history(), isEmpty);
   });
 
+  test('twelve RT changes keep ten auto-export folders for the left RT',
+      () async {
+    await store.saveWarga(fields());
+    await store.saveWarga(fields(name: 'ORANG RT4', rt: 4, nik: '3327071909680099'));
+    final session = Session(store);
+    await session.load();
+    for (var i = 0; i < 12; i++) {
+      await session.change(session.rt == 3 ? 4 : 3, 3);
+    }
+    final folders = Directory('${root.path}/export/auto')
+        .listSync()
+        .whereType<Directory>()
+        .toList()
+      ..sort((a, b) => b.path.compareTo(a.path));
+    expect(folders, hasLength(10));
+    final names = folders.first
+        .listSync()
+        .whereType<File>()
+        .map((f) => f.path.split(Platform.pathSeparator).last)
+        .toList();
+    expect(names.where((n) => n.contains('DPS_RT4')), hasLength(1));
+    expect(names.where((n) => n.contains('DPS_RT3')), isEmpty);
+    expect(names.where((n) => n.contains('DUPLIKAT')), isEmpty);
+    expect(names.where((n) => n.contains('TANPA_NIK')), isEmpty);
+  });
+
   test('session changes create snapshot and automatic exports', () async {
     final session = Session(store);
     await session.load();

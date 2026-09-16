@@ -328,8 +328,14 @@ class ExportService {
       bool automatic = false}) async {
     final rts = rt == null ? await store.rtList(rw) : [rt];
     final date = timestamp().substring(0, 10);
-    final target = Directory(
-        '${store.root.path}/export/${automatic ? 'auto' : 'manual'}/${fileStamp()}');
+    final kind = automatic ? 'auto' : 'manual';
+    var stamp = fileStamp();
+    var target = Directory('${store.root.path}/export/$kind/$stamp');
+    var extra = 1;
+    while (await target.exists()) {
+      target = Directory('${store.root.path}/export/$kind/${stamp}_$extra');
+      extra++;
+    }
     await target.create(recursive: true);
     final files = <File>[];
     final metadata = <RecordMap>[];
@@ -369,6 +375,11 @@ class ExportService {
       }
     }
     if (combined) await write('DPS_GABUNGAN_RW${rw}_$date.xlsx', dpsSheets);
+    if (automatic) {
+      await store.recordExport(metadata, rw, rts);
+      await _rotateAutoExports();
+      return files;
+    }
     final duplicateRows = await store.duplicateRows();
     await write('DUPLIKAT_NIK_$date.xlsx', {
       'DUPLIKAT NIK': (
@@ -404,5 +415,19 @@ class ExportService {
     });
     await store.recordExport(metadata, rw, rts);
     return files;
+  }
+
+  Future<void> _rotateAutoExports({int keep = 10}) async {
+    final dir = Directory('${store.root.path}/export/auto');
+    if (!await dir.exists()) return;
+    final folders = await dir
+        .list()
+        .where((e) => e is Directory)
+        .cast<Directory>()
+        .toList();
+    folders.sort((a, b) => b.path.compareTo(a.path));
+    for (final old in folders.skip(keep)) {
+      await old.delete(recursive: true);
+    }
   }
 }
