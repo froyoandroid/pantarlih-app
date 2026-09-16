@@ -226,14 +226,19 @@ class _SearchScreenState extends State<SearchScreen> {
                         controller: query,
                         focusNode: focus,
                         autofocus: true,
-                        keyboardType: byDate
-                            ? TextInputType.datetime
-                            : TextInputType.name,
+                        keyboardType:
+                            byDate ? TextInputType.number : TextInputType.name,
+                        // Same formatter as the form: digits only, dashes
+                        // inserted while typing, so 20122001 reads as
+                        // 20-12-2001 without the user hunting for a dash.
+                        inputFormatters:
+                            byDate ? [TanggalInputFormatter()] : null,
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                             labelText: byDate
-                                ? 'Tanggal lahir · DD-MM-YYYY'
+                                ? 'Tanggal lahir · ketik 8 angka'
                                 : 'Cari nama',
+                            hintText: byDate ? 'contoh 20122001' : null,
                             prefixIcon: Icon(byDate
                                 ? Icons.calendar_today_outlined
                                 : Icons.search),

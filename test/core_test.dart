@@ -62,7 +62,13 @@ void main() {
       expect(parseTanggal(d), '1973-09-11');
     }
     expect(parseTanggal('29/02/2024'), '2024-02-29');
+    // Bare digits from a numeric keyboard, day first, no separator.
+    expect(parseTanggal('20122001'), '2001-12-20');
+    expect(parseTanggal(' 19091968 '), '1968-09-19');
     for (final bad in [
+      '2012200',
+      '201220011',
+      '32122001',
       '29/02/2023',
       '31/04/2000',
       '12/31/2000',

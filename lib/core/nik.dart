@@ -32,9 +32,13 @@ List<String> periksaNik(String nik, DateTime? tgl, String? jk,
   return warnings;
 }
 
+/// Day-first date to ISO. Accepts DD-MM-YYYY with -, / or . separators and
+/// the bare 8-digit form DDMMYYYY that people type on a numeric keyboard.
 String? parseTanggal(String raw) {
+  final bersih = raw.trim();
   final match =
-      RegExp(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$').firstMatch(raw.trim());
+      RegExp(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$').firstMatch(bersih) ??
+          RegExp(r'^(\d{2})(\d{2})(\d{4})$').firstMatch(bersih);
   if (match == null) return null;
   final day = int.parse(match.group(1)!);
   final month = int.parse(match.group(2)!);
