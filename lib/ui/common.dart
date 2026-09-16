@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
+import '../data/storage.dart';
 import '../data/store.dart';
 import '../data/spreadsheets.dart';
 
@@ -8,8 +9,9 @@ const canvas = Color(0xFFF5F5EF);
 const amber = Color(0xFF95641A);
 
 class Session extends ChangeNotifier {
-  Session(this.store);
-  final AppStore store;
+  Session(this.store, {this.usingPublic = true});
+  AppStore store;
+  bool usingPublic;
   int rt = 3, rw = 3;
   String source = 'LAPANGAN';
   String village = 'KALITORONG';
@@ -39,6 +41,23 @@ class Session extends ChangeNotifier {
     village = (await store.settings())['desa_default']!;
     notifyListeners();
   }
+
+  Future<bool> adoptPublicRoot(ResolvedStorage resolved) async {
+    if (!resolved.usingPublic) return false;
+    if (store.root.path == resolved.root.path) {
+      usingPublic = true;
+      notifyListeners();
+      return true;
+    }
+    await store.recordStorageMove(store.root.path, resolved.root.path);
+    await store.close();
+    await relocateDataRoot(store.root, resolved.root);
+    store = AppStore(resolved.root);
+    await store.open();
+    usingPublic = true;
+    await load();
+    return true;
+  }
 }
 
 class AppPage extends StatelessWidget {
@@ -55,29 +74,74 @@ class AppPage extends StatelessWidget {
   final Widget? bottom;
   final List<Widget>? actions;
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-            title:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w700)),
-              Text('${session.village} · ${session.label}',
-                  style: const TextStyle(fontSize: 11, letterSpacing: .6)),
-            ]),
-            actions: actions),
-        body: SafeArea(
-            child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 840),
-                    child: child))),
-        bottomNavigationBar: bottom == null
-            ? null
-            : SafeArea(
-                child:
-                    Padding(padding: const EdgeInsets.all(16), child: bottom)),
-      );
+  Widget build(BuildContext context) => ListenableBuilder(
+      listenable: session,
+      builder: (context, _) => Scaffold(
+            appBar: AppBar(
+                title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                      Text('${session.village} · ${session.label}',
+                          style: const TextStyle(
+                              fontSize: 11, letterSpacing: .6)),
+                    ]),
+                actions: actions),
+            body: SafeArea(
+                child: Column(children: [
+              if (!session.usingPublic)
+                _PrivateStorageBanner(session: session),
+              Expanded(
+                  child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 840),
+                          child: child))),
+            ])),
+            bottomNavigationBar: bottom == null
+                ? null
+                : SafeArea(
+                    child: Padding(
+                        padding: const EdgeInsets.all(16), child: bottom)),
+          ));
+}
+
+class _PrivateStorageBanner extends StatelessWidget {
+  const _PrivateStorageBanner({required this.session});
+  final Session session;
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+        color: const Color(0xFF8B1E1E),
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: Column(children: [
+              const Text(
+                  'Cadangan tidak tersimpan ke Documents. Ekspor manual dan bagikan berkas secara berkala.',
+                  style: TextStyle(color: Colors.white, height: 1.35)),
+              Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                      onPressed: () async {
+                        try {
+                          final resolved = await resolveDataRoot();
+                          final moved = await session.adoptPublicRoot(resolved);
+                          if (!moved && context.mounted) {
+                            feedback(context,
+                                'Izin berkas masih ditolak. Aplikasi tetap memakai folder internal.');
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            feedback(context, e, error: true);
+                          }
+                        }
+                      },
+                      child: const Text('Coba minta izin lagi',
+                          style: TextStyle(color: Colors.white))))
+            ])));
+  }
 }
 
 class Notice extends StatelessWidget {

@@ -62,14 +62,14 @@ class _StartupScreenState extends State<StartupScreen> {
       error = null;
     });
     try {
-      final root = await publicDataDirectory();
-      store ??= AppStore(root);
+      final resolved = await resolveDataRoot();
+      store ??= AppStore(resolved.root);
       if (recover) {
         await store!.rebuild();
       } else {
         await store!.open();
       }
-      final session = Session(store!);
+      final session = Session(store!, usingPublic: resolved.usingPublic);
       await session.load();
       if (!mounted) return;
       Navigator.pushReplacement(context,
