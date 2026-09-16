@@ -90,7 +90,9 @@ RecordMap _migrate3to4(RecordMap event) {
 }
 
 /// 4→5: drop sumber_input from warga payloads. The live column is left in
-/// place on existing databases (upgrades stay additive).
+/// place on existing databases (upgrades stay additive). Verified: the v4
+/// definition was `sumber_input TEXT NOT NULL DEFAULT 'LAPANGAN'`, so inserts
+/// that omit the column keep working and no builtinUpgrades[4] is needed.
 RecordMap _migrate4to5(RecordMap event) {
   final next = Map<String, Object?>.from(event);
   next['schema_v'] = 5;
