@@ -99,20 +99,12 @@ class Session extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> change(int newRt, int newRw) async {
-    if (rt != newRt || rw != newRw) {
-      await store.snapshot();
-      await ExportService(store).generate(rw: rw, rt: rt, automatic: true);
-    }
-    final pair = RtRw(newRw, newRt);
-    if (!workspace.contains(pair)) {
-      workspace = [...workspace, pair]..sort();
-    }
-    await _remember(newRt, newRw);
-  }
-
   Future<void> focusRt(RtRw pair) async {
     if (rt == pair.rt && rw == pair.rw) return;
+    // ponytail: unconditional snapshot + auto-export on every switch; a
+    // dirty-since-last-snapshot check needs change tracking we don't have.
+    await store.snapshot();
+    await ExportService(store).generate(rw: rw, rt: rt, automatic: true);
     if (!workspace.contains(pair)) {
       workspace = [...workspace, pair]..sort();
     }
