@@ -590,8 +590,8 @@ class ExportService {
       await _rotateAutoExports();
       return files;
     }
-    final duplicateRows = await store.duplicateRows();
-    final duplicateNames = await store.duplicateNameRows();
+    final duplicateRows = await store.duplicateRows(rw: rw, rt: rt);
+    final duplicateNames = await store.duplicateNameRows(rw: rw, rt: rt);
     final missing = await store.tanpaNik(rw: rw, rt: rt);
     // One wargaRt query per (rw, rt) group instead of one query per row.
     final nomorDari = await _posisiPeta(

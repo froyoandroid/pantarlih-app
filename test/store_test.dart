@@ -167,6 +167,26 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('duplicate listing respects the requested rw and rt scope', () async {
+    final shared = '3327071909680001';
+    await store.saveWarga(fields(nik: shared));
+    await store.db.insert('warga', {
+      'urut_sort': 2000,
+      'nik': shared,
+      'nama': 'TETANGGA',
+      'nama_norm': 'tetangga',
+      'jenis_kelamin': 'L',
+      'rt': 5,
+      'rw': 4,
+      'dibuat_pada': timestamp(),
+      'diubah_pada': timestamp(),
+    });
+    expect(await store.duplicateRows(), hasLength(2));
+    expect(await store.duplicateRows(rw: 3, rt: 3), hasLength(1));
+    expect(
+        (await store.duplicateRows(rw: 3, rt: 3)).single['rt'], 3);
+  });
+
   test('trim cleanup runs once per install and is marked in setelan', () async {
     final marker = await store.db
         .query('setelan', where: 'kunci = ?', whereArgs: ['trim_v1_selesai']);
