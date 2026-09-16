@@ -171,20 +171,20 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                const Text('Wilayah kerja',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w700)),
+                                Text(
+                                    widget.session.workspaceByRw.isEmpty
+                                        ? ''
+                                        : 'RW ${widget.session.workspaceByRw.keys.first.toString().padLeft(2, '0')}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
                                 TextButton(
                                     onPressed: busy ? null : _addRtRw,
-                                    child: const Text('Tambahkan RT / RW'))
+                                    child: const Text('Tambahkan RT / RW',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.normal))),
                               ]),
-                          if (widget.session.village.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(widget.session.village,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                          ],
                           if (widget.session.workspace.isEmpty)
                             const Padding(
                                 padding: EdgeInsets.only(top: 10),
@@ -194,12 +194,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           else ...[
                             for (final rw
                                 in widget.session.workspaceByRw.keys) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                  'RW ${rw.toString().padLeft(2, '0')}',
-                                  style: const TextStyle(
-                                      color: Colors.black54,
-                                      fontWeight: FontWeight.w600)),
+                              if (rw !=
+                                  widget.session.workspaceByRw.keys.first) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                    'RW ${rw.toString().padLeft(2, '0')}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ],
                               const SizedBox(height: 8),
                               Wrap(spacing: 8, runSpacing: 8, children: [
                                 for (final pair
