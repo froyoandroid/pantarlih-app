@@ -57,7 +57,7 @@ class _ImportScreenState extends State<ImportScreen> {
           type: FileType.custom, allowedExtensions: ['xlsx', 'csv']);
       if (file == null) return;
       final bytes = await file.readAsBytes();
-      final loaded = openTabular(file.name, bytes);
+      final loaded = await openTabular(file.name, bytes);
       if (mounted) {
         setState(() {
           source = loaded;
@@ -189,6 +189,10 @@ class _ImportScreenState extends State<ImportScreen> {
               onPressed: busy ? null : pick,
               icon: const Icon(Icons.upload_file),
               label: Text(source?.name ?? 'PILIH FILE .XLSX ATAU .CSV')),
+          if (busy)
+            const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: LinearProgressIndicator()),
           if (source != null) ...[
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
