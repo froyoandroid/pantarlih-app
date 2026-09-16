@@ -5,7 +5,6 @@ import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
 import 'import_screen.dart';
-import 'lokasi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
 
@@ -155,15 +154,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: tanggalPanjang(),
-      actions: [
-        IconButton(
-            onPressed: () => _open(AdminScreen(session: widget.session)),
-            icon: const Icon(Icons.settings_outlined))
-      ],
+      title: 'Beranda',
+      storageBanner: true,
       child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(padding: const EdgeInsets.all(20), children: [
+            Padding(
+                padding: const EdgeInsets.only(left: 10, bottom: 6),
+                child: Text(tanggalPanjang(),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w600))),
             Card(
                 child: ListTile(
                     minVerticalPadding: 12,
@@ -175,11 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? 'Lokasi kerja'
                             : widget.session.village,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(_lokasiSub),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: busy
-                        ? null
-                        : () => _open(LokasiScreen(session: widget.session)))),
+                    subtitle: Text(_lokasiSub))),
             Padding(
                 padding: const EdgeInsets.only(left: 10, top: 4, bottom: 8),
                 child: Text(
@@ -193,22 +191,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Text(
-                                    widget.session.workspaceByRw.isEmpty
-                                        ? ''
-                                        : 'RW ${widget.session.workspaceByRw.keys.first.toString().padLeft(2, '0')}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                                TextButton(
-                                    onPressed: busy ? null : _addRtRw,
-                                    child: const Text('Tambahkan RT / RW',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.normal))),
-                              ]),
+                          Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                  onPressed: busy ? null : _addRtRw,
+                                  child: const Text('Tambahkan RT / RW',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.normal)))),
                           if (widget.session.workspace.isEmpty)
                             const Padding(
                                 padding: EdgeInsets.only(top: 10),
@@ -219,12 +208,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             for (final rw
                                 in widget.session.workspaceByRw.keys) ...[
                               if (rw !=
-                                  widget.session.workspaceByRw.keys.first) ...[
+                                  widget.session.workspaceByRw.keys.first)
                                 const SizedBox(height: 12),
-                                Text('RW ${rw.toString().padLeft(2, '0')}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                              ],
+                              Text('RW ${rw.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
                               const SizedBox(height: 8),
                               Wrap(spacing: 8, runSpacing: 8, children: [
                                 for (final pair
@@ -340,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 () => _open(ImportScreen(session: widget.session))),
             _action(
                 Icons.admin_panel_settings_outlined,
-                'Ekspor & Pemulihan',
+                'Ekspor & pemulihan',
                 'Spreadsheet, jurnal, dan snapshot',
                 () => _open(AdminScreen(session: widget.session))),
             const SizedBox(height: 20),

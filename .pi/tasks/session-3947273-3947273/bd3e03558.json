@@ -1,0 +1,20 @@
+{
+  "id": "bd3e03558",
+  "name": "chopin release build",
+  "command": "cd /root/pantarlih && export ADB_SERVER_SOCKET=tcp:localhost:5037 && export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && ./chopin.sh build",
+  "description": "Release APK split per ABI via chopin.sh (Gradle + JDK 17), tanpa hot reload",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-3947273-3947273/bd3e03558.output",
+  "cwd": "/root/pantarlih",
+  "startTime": 1789580313664,
+  "endTime": 1789580354120,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 107535,
+  "bytesWritten": 1407,
+  "isAgent": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "timeoutSeconds": 1200
+}

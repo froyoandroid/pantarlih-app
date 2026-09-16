@@ -390,7 +390,7 @@ void main() {
     await tester
         .pumpWidget(MaterialApp(home: SurveyForm(session: Session(store))));
     expect(find.text('SIMPAN & LANJUT'), findsOneWidget);
-    expect(find.textContaining('orang ke-1'), findsOneWidget);
+    expect(find.textContaining('Orang ke-1'), findsOneWidget);
   });
 
   test('five chained inserts keep rising urut_sort in input order', () async {

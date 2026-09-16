@@ -1,0 +1,19 @@
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Running Gradle task 'assembleRelease'...                        
+   Woah! You appear to be trying to run flutter as root.
+   We strongly recommend running the flutter tool without superuser privileges.
+  /
+📎
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 6300 bytes (99.6% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Running Gradle task 'assembleRelease'...                           39.5s
+✓ Built build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk (22.1MB)
+✓ Built build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (24.5MB)
+✓ Built build/app/outputs/flutter-apk/app-x86_64-release.apk (26.0MB)
+-rw-r--r-- 1 root root  24M Sep 16 17:39 /root/pantarlih/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+-rw-r--r-- 1 root root  22M Sep 16 17:39 /root/pantarlih/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+-rw-r--r-- 1 root root 187M Sep 16 14:37 /root/pantarlih/build/app/outputs/flutter-apk/app-debug.apk
+-rw-r--r-- 1 root root  52M Sep 16 04:18 /root/pantarlih/build/app/outputs/flutter-apk/app-release.apk
+-rw-r--r-- 1 root root  25M Sep 16 17:39 /root/pantarlih/build/app/outputs/flutter-apk/app-x86_64-release.apk

@@ -246,9 +246,7 @@ class _SurveyFormState extends State<SurveyForm> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: wargaId == null
-          ? 'orang ke-${widget.chainCount} sejak masuk form'
-          : 'Edit data',
+      title: wargaId == null ? 'Input survei' : 'Edit data',
       bottom: Row(children: [
         Expanded(
             child: FilledButton.icon(
@@ -270,6 +268,14 @@ class _SurveyFormState extends State<SurveyForm> {
       child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           children: [
+            if (wargaId == null)
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('Orang ke-${widget.chainCount} sejak masuk form',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w600))),
             const Text(
                 'Baca dan isi sesuai KK asli. Aplikasi tidak menilai kelayakan warga.',
                 style: TextStyle(color: Colors.black54)),
