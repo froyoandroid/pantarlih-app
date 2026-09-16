@@ -17,7 +17,6 @@ class Session extends ChangeNotifier {
   bool usingPublic;
   WilayahRepo wilayah;
   int rt = 0, rw = 0;
-  String source = 'LAPANGAN';
   String village = '';
   String? kodeWilayah;
   Lokasi? lokasi;

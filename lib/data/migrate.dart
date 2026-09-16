@@ -38,6 +38,8 @@ RecordMap _migrateStep(RecordMap event, int from) {
       return _migrate2to3(event);
     case 3:
       return _migrate3to4(event);
+    case 4:
+      return _migrate4to5(event);
     default:
       throw JournalVersionException(
           'Tidak ada jalur migrasi jurnal dari versi $from');
@@ -81,6 +83,21 @@ RecordMap _migrate3to4(RecordMap event) {
     } else {
       copy.putIfAbsent('kode_wilayah', () => null);
     }
+  }
+  next['data'] = copy;
+  return next;
+}
+
+/// 4→5: drop sumber_input from warga payloads. The live column is left in
+/// place on existing databases (upgrades stay additive).
+RecordMap _migrate4to5(RecordMap event) {
+  final next = Map<String, Object?>.from(event);
+  next['schema_v'] = 5;
+  final data = event['data'];
+  if (data is! Map) return next;
+  final copy = Map<String, Object?>.from(data);
+  if (event['tabel'] == 'warga') {
+    copy.remove('sumber_input');
   }
   next['data'] = copy;
   return next;

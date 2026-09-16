@@ -258,7 +258,6 @@ class AppStore extends ChangeNotifier {
         'rt': row['rt'],
         'rw': row['rw'],
         'keterangan': row['keterangan'],
-        'sumber_input': row['sumber_input'],
       }, id: row['id'] as int);
       n++;
     }
@@ -576,7 +575,6 @@ class AppStore extends ChangeNotifier {
       'rt': intValue(fields['rt']),
       'rw': intValue(fields['rw']),
       'keterangan': nullableText('${fields['keterangan'] ?? ''}'),
-      'sumber_input': fields['sumber_input'] ?? 'LAPANGAN',
       'dibuat_pada': dibuat,
       'diubah_pada': ts,
     };
@@ -612,7 +610,6 @@ class AppStore extends ChangeNotifier {
         'rt': row['rt'],
         'rw': row['rw'],
         'keterangan': row['keterangan'],
-        'sumber_input': row['sumber_input'],
       }, id: row['id'] as int);
       cleaned++;
     }

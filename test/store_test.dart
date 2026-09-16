@@ -144,7 +144,6 @@ RecordMap fields(
       'rt': rt,
       'rw': 3,
       'keterangan': note,
-      'sumber_input': 'LAPANGAN',
     };
 
 void main() {
@@ -221,7 +220,6 @@ void main() {
       'jenis_kelamin': 'P',
       'rt': 3,
       'rw': 3,
-      'sumber_input': 'LAPANGAN',
       'dibuat_pada': timestamp(),
       'diubah_pada': timestamp(),
     });
@@ -654,6 +652,40 @@ void main() {
       final after = await newer.db.query('warga', orderBy: 'id');
       expect(after.map((r) => r['nama']), ['MUHAMAD HASAN', 'ORANG DUA']);
       expect(after.every((r) => r['kode_wilayah'] == null), isTrue);
+    } finally {
+      await newer.close();
+      await isolated.delete(recursive: true);
+    }
+  });
+
+  test('opening a v4 database on v5 keeps rows and leaves sumber_input unused',
+      () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v4-open-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 4);
+    await older.open();
+    await older.db.execute(
+        "ALTER TABLE warga ADD COLUMN sumber_input TEXT NOT NULL DEFAULT 'LAPANGAN'");
+    final saved = await older.saveWarga(fields());
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 5);
+    await newer.open();
+    try {
+      final after = await newer.db.query('warga');
+      expect(after, hasLength(1));
+      expect(after.first['id'], saved['id']);
+      expect(after.first['nama'], saved['nama']);
+      expect(after.first['sumber_input'], 'LAPANGAN');
+      expect(
+          Directory('${isolated.path}/snapshot')
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.contains('pre_migrasi_')),
+          isNotEmpty);
+      final report = await newer.rebuild();
+      expect(report.failed, 0);
+      final rebuilt = await newer.db.query('warga', orderBy: 'id');
+      expect(rebuilt.first['nama'], saved['nama']);
     } finally {
       await newer.close();
       await isolated.delete(recursive: true);
