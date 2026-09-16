@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/core/nama.dart';
 import 'package:pantarlih_kalitorong/core/nik.dart';
+import 'package:pantarlih_kalitorong/data/migrate.dart';
 import 'package:pantarlih_kalitorong/data/order.dart';
 
 void main() {
@@ -56,6 +57,24 @@ void main() {
     expect(periksaNik('123', null, null), ['NIK bukan 16 digit angka']);
     expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
   });
+  test('journal migrateEvent keeps v2 as identity and rejects a newer file',
+      () {
+    final event = {
+      'schema_v': 2,
+      'op': 'INSERT',
+      'tabel': 'warga',
+      'data': {'id': 1, 'nama': 'SITI'}
+    };
+    expect(migrateEvent(event, target: 2), event);
+    final raised = migrateEvent(event, target: 3);
+    expect(raised['schema_v'], 3);
+    expect((raised['data'] as Map)['nama'], 'SITI');
+    expect(
+        () => migrateEvent({'schema_v': 4, 'data': {}}, target: 3),
+        throwsA(isA<JournalVersionException>().having((e) => e.message,
+            'message', contains('lebih baru'))));
+  });
+
   test('sparse insert keys leave room then report a exhausted gap', () {
     expect(urutAntara(null, null), 1000);
     expect(urutAntara(1000, null), 2000);

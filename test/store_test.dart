@@ -278,6 +278,54 @@ void main() {
     expect(payload.containsKey('id_lama'), isFalse);
   });
 
+  test('opening a v2 database on v3 keeps every row and snapshots first',
+      () async {
+    final saved = await store.saveWarga(fields());
+    final before = await store.db.query('warga');
+    await store.close();
+    final newer = AppStore(root, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+      2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
+    });
+    await newer.open();
+    try {
+      final after = await newer.db.query('warga');
+      expect(after, hasLength(before.length));
+      expect(after.first['id'], saved['id']);
+      expect(after.first['nama'], saved['nama']);
+      expect(after.first['kolom_baru'], isNull);
+      expect(
+          Directory('${root.path}/snapshot')
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.contains('pre_migrasi_')),
+          isNotEmpty);
+    } finally {
+      await newer.close();
+    }
+  });
+
+  test('rebuild from v2 journal onto v3 keeps rows with the new column null',
+      () async {
+    await store.saveWarga(fields());
+    await store.saveWarga(fields(name: 'ORANG DUA'));
+    final before = await store.db.query('warga');
+    await store.close();
+    final newer = AppStore(root, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+      2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
+    });
+    await newer.open();
+    try {
+      final report = await newer.rebuild();
+      expect(report.failed, 0);
+      final after = await newer.db.query('warga');
+      expect(after, hasLength(before.length));
+      expect(after.map((r) => r['nama']), before.map((r) => r['nama']));
+      expect(after.every((r) => r['kolom_baru'] == null), isTrue);
+    } finally {
+      await newer.close();
+    }
+  });
+
   test('actual provided workbook imports all 504 reference rows', () async {
     final input = File('data-exel/DPS_RW03_Kalitorong_Gabungan.xlsx');
     if (!await input.exists()) {
