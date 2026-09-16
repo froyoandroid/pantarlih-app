@@ -9,6 +9,7 @@ import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/data/migrate.dart';
 import 'package:pantarlih_kalitorong/data/schema.dart';
 import 'package:pantarlih_kalitorong/data/spreadsheets.dart';
+import 'package:pantarlih_kalitorong/data/journal.dart';
 import 'package:pantarlih_kalitorong/data/store.dart';
 import 'package:pantarlih_kalitorong/ui/common.dart';
 import 'package:pantarlih_kalitorong/ui/survey_form.dart';
@@ -683,6 +684,74 @@ void main() {
     expect(session.workspace, isEmpty);
     expect(session.rt, 0);
     expect(session.rw, 0);
+  });
+
+  test('journal reader lists days and summarises events in Indonesian',
+      () async {
+    final a = await store.saveWarga(fields(name: 'AMIR'));
+    await store.saveWarga(fields(name: 'AMIR BIN ALI'), id: a['id'] as int);
+    await store.deleteWarga(a['id'] as int);
+    await File('${root.path}/journal/2020-01-01.jsonl')
+        .writeAsString('{rusak\n', flush: true);
+    final reader = JournalReader(root);
+    final hari = await reader.hari();
+    expect(hari.length, 2);
+    expect(hari.last.tanggal, '2020-01-01');
+    final events = await reader.baca(hari.first.file);
+    final ringkas = events.map(ringkasanEvent).toList();
+    expect(ringkas.first, 'Hapus warga AMIR BIN ALI');
+    expect(ringkas, contains('Ubah warga AMIR BIN ALI'));
+    expect(ringkas, contains('Tambah warga AMIR'));
+    expect(ringkas.any((r) => r.contains(';')), isFalse);
+    final rusak = await reader.baca(hari.last.file);
+    expect(rusak.single.rusak, isNotNull);
+    expect(ringkasanEvent(rusak.single), 'Baris 1 tidak terbaca');
+    final riwayat = await reader.riwayatWarga(a['id'] as int);
+    expect(riwayat.map((e) => e.op), ['DELETE', 'UPDATE', 'INSERT']);
+    final sebelum = await reader.versiSebelum(riwayat[1]);
+    expect(sebelum!.data['nama'], 'AMIR');
+  });
+
+  test('kembalikanWarga restores a version or undeletes under the same id',
+      () async {
+    final a = await store.saveWarga(fields(name: 'AMIR'));
+    final id = a['id'] as int;
+    await store.saveWarga(fields(name: 'AMIR SALAH'), id: id);
+    final riwayat = await JournalReader(root).riwayatWarga(id);
+    final versiAwal = riwayat.last;
+    await store.kembalikanWarga(versiAwal.data);
+    expect((await store.warga(id))!['nama'], 'AMIR');
+    await store.deleteWarga(id);
+    expect(await store.warga(id), isNull);
+    final hapus = (await JournalReader(root).riwayatWarga(id)).first;
+    expect(hapus.op, 'DELETE');
+    await store.kembalikanWarga(hapus.data);
+    final kembali = await store.warga(id);
+    expect(kembali!['nama'], 'AMIR');
+    expect(kembali['dibuat_pada'], a['dibuat_pada']);
+    final rebuilt = await store.rebuild();
+    expect(rebuilt.failed, 0);
+    expect((await store.warga(id))!['nama'], 'AMIR');
+  });
+
+  test('periksaJurnal dry-runs the journal and leaves no file behind',
+      () async {
+    await store.saveWarga(fields());
+    final bersih = await store.periksaJurnal();
+    expect(bersih.failed, 0);
+    expect(bersih.applied, greaterThan(0));
+    await File('${root.path}/journal/2020-01-01.jsonl')
+        .writeAsString('{rusak\n', flush: true);
+    final rusak = await store.periksaJurnal();
+    expect(rusak.failed, 1);
+    expect(rusak.failurePath, isNull);
+    expect(
+        Directory('${root.path}/recovered')
+            .listSync()
+            .where((f) => f.path.contains('periksa_')),
+        isEmpty);
+    // The live database is untouched by the dry run.
+    expect(await store.allWarga(), hasLength(1));
   });
 
   test('journal payload is the full warga row, not a delta', () async {
