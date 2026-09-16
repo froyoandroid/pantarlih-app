@@ -594,8 +594,8 @@ class ExportService {
     final duplicateNames = await store.duplicateNameRows(rw: rw, rt: rt);
     final missing = await store.tanpaNik(rw: rw, rt: rt);
     // One wargaRt query per (rw, rt) group instead of one query per row.
-    final nomorDari = await _posisiPeta(
-        [...duplicateRows, ...duplicateNames, ...missing]);
+    final nomorDari =
+        await _posisiPeta([...duplicateRows, ...duplicateNames, ...missing]);
     int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
     await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
       'DUPLIKAT NIK': (
