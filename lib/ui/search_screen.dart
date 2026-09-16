@@ -11,17 +11,19 @@ import 'survey_form.dart';
 class HasilCari {
   const HasilCari(
       {this.aktif = false,
-      this.diperluas = false,
       this.wargaDiperluas = false,
       this.warga = const [],
       this.referensi = const []});
   final bool aktif;
-  final bool diperluas;
 
   /// True when the typed-warga list widened from the active RT to the whole
   /// active RW, so the screen can say so instead of doing it silently.
   final bool wargaDiperluas;
   final List<(RecordMap, double)> warga;
+
+  /// Every match in the active RW, active RT first - never limited to the
+  /// active RT, since a person already logged for a neighboring RT should
+  /// still surface instead of inviting a duplicate entry.
   final List<(RecordMap, double)> referensi;
 }
 
@@ -114,9 +116,9 @@ class _SearchScreenState extends State<SearchScreen> {
   HasilCari _hitung(String q, bool tanggal) {
     if (!tanggal) {
       if (q.length < 3) return const HasilCari();
-      // Same scope for both lists: active RT first, widened to the whole
-      // active RW only when the RT has no match - and the widening is
-      // announced, never silent.
+      // Typed-warga list: active RT first, widened to the whole active RW
+      // only when the RT has no match - and the widening is announced,
+      // never silent.
       var pool = warga
           .where((r) => r['rt'] == session.rt && r['rw'] == session.rw)
           .toList();
@@ -127,15 +129,11 @@ class _SearchScreenState extends State<SearchScreen> {
         existing = _rank(pool, q, 5);
         wargaDiperluas = existing.isNotEmpty;
       }
-      var refPool = referensi.where((r) => r['rt'] == session.rt).toList();
-      final diperluas = refPool.isEmpty && referensi.isNotEmpty;
-      if (diperluas) refPool = referensi;
       return HasilCari(
           aktif: true,
-          diperluas: diperluas,
           wargaDiperluas: wargaDiperluas,
           warga: existing,
-          referensi: _rank(refPool, q, 5));
+          referensi: _rank(referensi, q, 5, rtUtama: session.rt));
     }
     final iso = parseTanggal(q);
     if (iso == null) return const HasilCari();
@@ -171,9 +169,18 @@ class _SearchScreenState extends State<SearchScreen> {
         referensi: refs);
   }
 
-  List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas) {
+  /// Ranks by name score. When rtUtama is given, rows from that RT sort
+  /// above every other RT first, score deciding order within each group -
+  /// so a neighboring RT's match is never hidden, only placed lower.
+  List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas,
+      {int? rtUtama}) {
     final ranked = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
     ranked.sort((a, b) {
+      if (rtUtama != null) {
+        final grup = (a.$1['rt'] == rtUtama ? 0 : 1)
+            .compareTo(b.$1['rt'] == rtUtama ? 0 : 1);
+        if (grup != 0) return grup;
+      }
       final cmp = b.$2.compareTo(a.$2);
       return cmp != 0
           ? cmp
@@ -283,10 +290,6 @@ class _SearchScreenState extends State<SearchScreen> {
                                     ? 'Isi tanggal lengkap. Semua kecocokan ditampilkan, RT aktif lebih dulu.'
                                     : 'Ketik sedikitnya 3 karakter. Nama dapat dicari dari kata mana pun.',
                                 icon: Icons.person_search_outlined),
-                          if (hasil.diperluas)
-                            const Notice(
-                                'RT aktif tidak memiliki referensi. Pencarian diperluas ke seluruh RW aktif.',
-                                warning: true),
                           if (hasil.wargaDiperluas)
                             const Notice(
                                 'Tidak ada yang cocok di RT aktif. Daftar warga diperluas ke seluruh RW aktif.',
@@ -324,7 +327,10 @@ class _SearchScreenState extends State<SearchScreen> {
                               ResidentCard(candidate.$1,
                                   score: byDate ? null : candidate.$2,
                                   label: candidate.$1['rt'] != session.rt
-                                      ? 'REFERENSI · RT ${candidate.$1['rt']}'
+                                      ? 'Referensi di RT ${candidate.$1['rt']}'
+                                      : null,
+                                  labelColor: candidate.$1['rt'] != session.rt
+                                      ? amber
                                       : null,
                                   onTap: () => _openForm(seed: candidate.$1)),
                           ],
