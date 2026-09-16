@@ -81,7 +81,18 @@ class AppStore extends ChangeNotifier {
         throw AppException('Pemeriksaan integritas database gagal');
       }
       startupRecovery = await _replay(db);
-      await trimStoredText();
+      // One-time cleanup: scan warga only until the marker is journaled.
+      final trimMarker = await db
+          .query('setelan', where: 'kunci = ?', whereArgs: ['trim_v1_selesai']);
+      if (trimMarker.isEmpty ||
+          (trimMarker.first['nilai'] as String? ?? '').isEmpty) {
+        await trimStoredText();
+        await _commit('UPDATE', 'setelan', (txn, ts) async => {
+              'records': [
+                {'kunci': 'trim_v1_selesai', 'nilai': '1'}
+              ]
+            });
+      }
     } catch (e) {
       throw AppException(
           'Database tidak dapat dibuka. Berkas aman di ${root.path}. '
