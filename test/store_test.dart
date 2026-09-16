@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/data/spreadsheets.dart';
 import 'package:pantarlih_kalitorong/data/store.dart';
 import 'package:pantarlih_kalitorong/ui/common.dart';
+import 'package:pantarlih_kalitorong/ui/survey_form.dart';
 
 WorkbookSource fixture() {
   final book = Excel.createExcel();
@@ -228,6 +230,25 @@ void main() {
     final updates =
         await store.db.query('log', where: "tabel='warga' AND op='UPDATE'");
     expect(updates, isNotEmpty);
+  });
+
+  testWidgets('new form shows SIMPAN & LANJUT', (tester) async {
+    await tester.pumpWidget(MaterialApp(home: SurveyForm(session: Session(store))));
+    expect(find.text('SIMPAN & LANJUT'), findsOneWidget);
+    expect(find.textContaining('orang ke-1'), findsOneWidget);
+  });
+
+  test('five chained inserts keep rising urut_sort in input order', () async {
+    RecordMap? previous;
+    for (final name in ['SATU', 'DUA', 'TIGA', 'EMPAT', 'LIMA']) {
+      previous = await store.saveWarga(fields(name: name, nik: null),
+          afterId: previous?['id'] as int?);
+    }
+    final rows = await store.wargaRt(3, 3);
+    expect(rows.map((r) => r['nama']), ['SATU', 'DUA', 'TIGA', 'EMPAT', 'LIMA']);
+    final sorts = rows.map((r) => r['urut_sort'] as int).toList();
+    expect(sorts, sorts.toList()..sort());
+    expect(sorts.toSet(), hasLength(5));
   });
 
   test('insert between rows uses sparse keys and export follows that order',
