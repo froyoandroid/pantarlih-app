@@ -333,12 +333,14 @@ class ResidentCard extends StatelessWidget {
       this.score,
       this.onTap,
       this.label,
+      this.labelColor,
       this.trailing,
       this.highlight = false});
   final RecordMap row;
   final double? score;
   final VoidCallback? onTap;
   final String? label;
+  final Color? labelColor;
   final Widget? trailing;
   final bool highlight;
   @override
@@ -369,7 +371,8 @@ class ResidentCard extends StatelessWidget {
                                   style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.blueGrey.shade700))),
+                                      color:
+                                          labelColor ?? Colors.blueGrey.shade700))),
                         Text('${row['nama']}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 16)),
