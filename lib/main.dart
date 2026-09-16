@@ -144,7 +144,7 @@ class _StartupScreenState extends State<StartupScreen> {
       final wilayah = await WilayahRepo.open();
       final session =
           Session(store!, usingPublic: resolved.usingPublic, wilayah: wilayah);
-      await session.load();
+      await session.pastikanWorkspace();
       await session.selaraskanFolderDesa();
       store = session.store;
       await tandaiIntroSelesai(dataRoot: session.store.root);
