@@ -612,7 +612,7 @@ class AppStore extends ChangeNotifier {
       'urut_sort': urut,
       'grup_id': null,
       'nik': nik,
-      'nama': fields['nama'].toString().trim(),
+      'nama': fields['nama'].toString().trim().toUpperCase(),
       'nama_norm': normalisasiNama(fields['nama'].toString()),
       'jenis_kelamin': fields['jenis_kelamin'],
       'tempat_lahir': nullableText('${fields['tempat_lahir'] ?? ''}'),
