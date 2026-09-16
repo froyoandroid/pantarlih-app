@@ -227,7 +227,7 @@ class _SurveyFormState extends State<SurveyForm> {
                   .map((w) => Notice(w, warning: true)),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
-                initialValue: gender,
+                value: gender, // ignore: deprecated_member_use
                 decoration: deco('JENIS KELAMIN'),
                 items: const [
                   DropdownMenuItem(value: 'L', child: Text('LAKI-LAKI')),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
+import '../data/order.dart';
 import 'common.dart';
 import 'search_screen.dart';
 import 'survey_form.dart';
@@ -79,13 +80,15 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
+    final ids = [for (final row in rows) row['id'] as int];
+    final neighbors = reorderNeighbors(ids, oldIndex, newIndex);
+    if (newIndex > oldIndex) newIndex -= 1;
     if (oldIndex == newIndex) return;
     final moved = rows[oldIndex];
     final next = [...rows]..removeAt(oldIndex);
     next.insert(newIndex, moved);
-    final beforeId = newIndex > 0 ? next[newIndex - 1]['id'] as int : null;
-    final afterId =
-        newIndex + 1 < next.length ? next[newIndex + 1]['id'] as int : null;
+    final beforeId = neighbors.beforeId;
+    final afterId = neighbors.afterId;
     setState(() => rows = next);
     try {
       await widget.session.store
@@ -138,7 +141,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                     const EdgeInsets.fromLTRB(12, 0, 12, 24),
                                 buildDefaultDragHandles: false,
                                 itemCount: rows.length,
-                                onReorderItem: _reorder,
+                                onReorder: _reorder, // ignore: deprecated_member_use
                                 itemBuilder: (context, index) {
                                   final row = rows[index];
                                   final id = row['id'] as int;
