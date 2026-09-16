@@ -28,3 +28,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/wilayah.db
+    - assets/wilayah.meta.json

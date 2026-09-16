@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'data/storage.dart';
 import 'data/store.dart';
+import 'data/wilayah.dart';
 import 'ui/common.dart';
 import 'ui/home.dart';
+import 'ui/lokasi_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,11 +71,22 @@ class _StartupScreenState extends State<StartupScreen> {
       } else {
         await store!.open();
       }
-      final session = Session(store!, usingPublic: resolved.usingPublic);
+      final wilayah = await WilayahRepo.open();
+      final session = Session(store!,
+          usingPublic: resolved.usingPublic, wilayah: wilayah);
       await session.load();
       if (!mounted) return;
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (_) => HomeScreen(session: session)));
+      final home = HomeScreen(session: session);
+      if (session.kodeWilayah == null || session.kodeWilayah!.isEmpty) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => LokasiScreen(
+                    session: session, allowSkip: true, nextPage: home)));
+      } else {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => home));
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -104,7 +117,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                     fontSize: 36,
                                     fontWeight: FontWeight.w800,
                                     color: forest)),
-                            const Text('KALITORONG · PENDATAAN DPS',
+                            const Text('PENDATAAN DPS OFFLINE',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                     letterSpacing: 1.7, fontSize: 12)),

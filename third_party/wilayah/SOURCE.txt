@@ -1,0 +1,12 @@
+Sumber     : https://github.com/cahyadsn/wilayah
+Berkas     : db/wilayah.sql
+Commit SHA : d68e8d5516f969d1905d0b2940f20034becb0db7
+URL commit : https://github.com/cahyadsn/wilayah/commit/d68e8d5516f969d1905d0b2940f20034becb0db7
+Tanggal unduh : 2026-09-16
+Kepmendagri   : No. 300.2.2-2430 Tahun 2025
+Lisensi       : MIT (Cahya DSN)
+
+Catatan: header komentar di wilayah.sql masih menyebut Kepmendagri
+No. 300.2.2-2138 Tahun 2025. README sumber pada tanggal unduh menyatakan
+db/wilayah.sql sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025.
+Wilayah pack ini mengikuti README sumber dan WILAYAH.md.

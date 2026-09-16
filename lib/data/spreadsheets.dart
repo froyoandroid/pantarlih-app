@@ -7,6 +7,7 @@ import 'package:xml/xml.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
 import '../core/nik.dart';
+import 'schema.dart';
 import 'store.dart';
 
 const importFields = <String, String>{
@@ -32,6 +33,24 @@ const dpsHeaders = [
   'RW',
   'KETERANGAN'
 ];
+
+String slugWilayah(String nama) {
+  final slug = nama
+      .toUpperCase()
+      .replaceAll(RegExp(r'[^A-Z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (slug.isEmpty) return '';
+  return slug.length <= 24 ? slug : slug.substring(0, 24);
+}
+
+String kodeBerkasEkspor(RecordMap? lokasi) {
+  if (lokasi == null || intValue(lokasi['manual']) == 1) return 'TANPALOKASI';
+  final kode = '${lokasi['kode'] ?? ''}'.replaceAll('.', '');
+  return kode.isEmpty ? 'TANPALOKASI' : kode;
+}
+
+String namaBerkasBagian(List<String> parts) =>
+    parts.where((p) => p.isNotEmpty).join('_');
 
 class ImportPrep {
   ImportPrep(this.records, this.skipped);
@@ -394,20 +413,26 @@ class ExportService {
       ];
 
   void _sheet(
-      Excel book, String name, List<String> headers, List<List<Object?>> rows) {
+      Excel book, String name, List<String> headers, List<List<Object?>> rows,
+      {List<List<Object?>> kop = const []}) {
     final sheet = book[name];
     CellValue? value(Object? raw) => raw == null
         ? null
         : raw is int
             ? IntCellValue(raw)
             : TextCellValue(raw.toString());
+    for (final row in kop) {
+      sheet.appendRow(row.map(value).toList());
+    }
+    final headerRow = kop.length;
     sheet.appendRow(headers.map(TextCellValue.new).toList());
     for (final row in rows) {
       sheet.appendRow(row.map(value).toList());
     }
     for (var i = 0; i < headers.length; i++) {
       sheet
-              .cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+              .cell(CellIndex.indexByColumnRow(
+                  columnIndex: i, rowIndex: headerRow))
               .cellStyle =
           CellStyle(
               bold: true,
@@ -423,11 +448,57 @@ class ExportService {
     }
   }
 
+  List<List<Object?>> _kop(RecordMap? lokasi, int rw, int rt) => [
+        ['Provinsi', lokasi?['nama_prov'] ?? ''],
+        ['Kabupaten/Kota', lokasi?['nama_kab'] ?? ''],
+        ['Kecamatan', lokasi?['nama_kec'] ?? ''],
+        ['Desa/Kelurahan', lokasi?['nama_desa'] ?? ''],
+        [
+          'RT / RW',
+          '${rt.toString().padLeft(2, '0')} / ${rw.toString().padLeft(2, '0')}'
+        ],
+        [
+          'Kode wilayah',
+          intValue(lokasi?['manual']) == 1
+              ? '(manual)'
+              : (lokasi?['kode'] ?? 'TANPALOKASI')
+        ],
+      ];
+
+  (List<String>, List<List<Object?>>) _info(
+      {required RecordMap? lokasi,
+      required int rw,
+      int? rt,
+      required int jumlah,
+      required int tanpaNik}) {
+    final kode = intValue(lokasi?['manual']) == 1
+        ? '(manual)'
+        : (lokasi?['kode'] ?? '');
+    return (
+      ['Label', 'Nilai'],
+      [
+        ['Provinsi', lokasi?['nama_prov'] ?? ''],
+        ['Kabupaten/Kota', lokasi?['nama_kab'] ?? ''],
+        ['Kecamatan', lokasi?['nama_kec'] ?? ''],
+        ['Desa/Kelurahan', lokasi?['nama_desa'] ?? ''],
+        ['Kode wilayah', kode],
+        ['RT', rt == null ? '' : rt.toString().padLeft(2, '0')],
+        ['RW', rw.toString().padLeft(2, '0')],
+        ['Jumlah baris', jumlah],
+        ['Tanpa NIK', tanpaNik],
+        ['Diekspor pada', waktuTampil(timestamp())],
+        ['Sumber kode wilayah', lokasi?['sumber_versi'] ?? ''],
+        ['Versi aplikasi', appVersion],
+      ]
+    );
+  }
+
   Future<List<File>> generate(
       {required int rw,
       int? rt,
       bool combined = false,
-      bool automatic = false}) async {
+      bool automatic = false,
+      bool kop = false}) async {
     final rts = rt == null ? await store.rtList(rw) : [rt];
     final date = timestamp().substring(0, 10);
     final kind = automatic ? 'auto' : 'manual';
@@ -441,12 +512,17 @@ class ExportService {
     await target.create(recursive: true);
     final files = <File>[];
     final metadata = <RecordMap>[];
+    final lokasiRow = (await store.activeLokasi())?.toRow();
     Future<void> write(String name,
-        Map<String, (List<String>, List<List<Object?>>)> sheets) async {
+        Map<String, (List<String>, List<List<Object?>>)> sheets,
+        {List<List<Object?>> kopRows = const []}) async {
       final book = Excel.createExcel();
       final initial = book.getDefaultSheet();
+      var first = true;
       for (final entry in sheets.entries) {
-        _sheet(book, entry.key, entry.value.$1, entry.value.$2);
+        _sheet(book, entry.key, entry.value.$1, entry.value.$2,
+            kop: first ? kopRows : const []);
+        first = false;
       }
       if (initial != null && !sheets.containsKey(initial)) book.delete(initial);
       if (sheets.isEmpty) _sheet(book, 'DPS', dpsHeaders, []);
@@ -463,27 +539,73 @@ class ExportService {
       });
     }
 
+    String slugFrom(List<RecordMap> warga) => slugWilayah(
+        '${lokasiRow?['nama_desa'] ?? (warga.isEmpty ? '' : warga.first['desa'] ?? '')}');
+    final code = kodeBerkasEkspor(lokasiRow);
+    final rwPad = rw.toString().padLeft(2, '0');
+
     final dpsSheets = <String, (List<String>, List<List<Object?>>)>{};
+    var combinedRows = 0;
+    var combinedMissing = 0;
     for (final selectedRt in rts) {
       final warga = await store.exportWarga(selectedRt, rw);
       final rows = [
         for (var i = 0; i < warga.length; i++) dpsRow(warga[i], i + 1)
       ];
+      combinedRows += rows.length;
+      combinedMissing +=
+          warga.where((r) => r['nik'] == null || '${r['nik']}'.isEmpty).length;
+      final info = _info(
+          lokasi: lokasiRow,
+          rw: rw,
+          rt: selectedRt,
+          jumlah: rows.length,
+          tanpaNik: warga
+              .where((r) => r['nik'] == null || '${r['nik']}'.isEmpty)
+              .length);
+      final kopRows = kop ? _kop(lokasiRow, rw, selectedRt) : const <List<Object?>>[];
       if (combined) {
         dpsSheets['RT $selectedRt'] = (dpsHeaders, rows);
       } else {
-        await write('DPS_RT${selectedRt}_RW${rw}_$date.xlsx',
-            {'RT $selectedRt': (dpsHeaders, rows)});
+        await write(
+            '${namaBerkasBagian([
+              'DPS',
+              code,
+              slugFrom(warga),
+              'RT${selectedRt.toString().padLeft(2, '0')}',
+              'RW$rwPad',
+              date
+            ])}.xlsx',
+            {'RT $selectedRt': (dpsHeaders, rows), 'INFO': info},
+            kopRows: kopRows);
       }
     }
-    if (combined) await write('DPS_GABUNGAN_RW${rw}_$date.xlsx', dpsSheets);
+    if (combined) {
+      final info = _info(
+          lokasi: lokasiRow,
+          rw: rw,
+          rt: null,
+          jumlah: combinedRows,
+          tanpaNik: combinedMissing);
+      await write(
+          '${namaBerkasBagian([
+            'DPS_GABUNGAN',
+            code,
+            'RW$rwPad',
+            date
+          ])}.xlsx',
+          {...dpsSheets, 'INFO': info},
+          kopRows: kop && rts.isNotEmpty
+              ? _kop(lokasiRow, rw, rts.first)
+              : const []);
+    }
     if (automatic) {
       await store.recordExport(metadata, rw, rts);
       await _rotateAutoExports();
       return files;
     }
     final duplicateRows = await store.duplicateRows();
-    await write('DUPLIKAT_NIK_$date.xlsx', {
+    await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
       'DUPLIKAT NIK': (
         dpsHeaders,
         [
@@ -491,10 +613,16 @@ class ExportService {
             dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
                 row['rt'] as int))
         ],
-      )
+      ),
+      'INFO': _info(
+          lokasi: lokasiRow,
+          rw: rw,
+          rt: rt,
+          jumlah: duplicateRows.length,
+          tanpaNik: 0),
     });
     final duplicateNames = await store.duplicateNameRows();
-    await write('DUPLIKAT_NAMA_$date.xlsx', {
+    await write('${namaBerkasBagian(['DUPLIKAT_NAMA', code, date])}.xlsx', {
       'DUPLIKAT NAMA': (
         dpsHeaders,
         [
@@ -502,10 +630,16 @@ class ExportService {
             dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
                 row['rt'] as int))
         ],
-      )
+      ),
+      'INFO': _info(
+          lokasi: lokasiRow,
+          rw: rw,
+          rt: rt,
+          jumlah: duplicateNames.length,
+          tanpaNik: 0),
     });
     final missing = await store.tanpaNik(rw: rw, rt: rt);
-    await write('TANPA_NIK_$date.xlsx', {
+    await write('${namaBerkasBagian(['TANPA_NIK', code, date])}.xlsx', {
       'TANPA NIK': (
         dpsHeaders,
         [
@@ -513,7 +647,13 @@ class ExportService {
             dpsRow(row, await store.posisi(row['id'] as int, row['rw'] as int,
                 row['rt'] as int))
         ],
-      )
+      ),
+      'INFO': _info(
+          lokasi: lokasiRow,
+          rw: rw,
+          rt: rt,
+          jumlah: missing.length,
+          tanpaNik: missing.length),
     });
     await store.recordExport(metadata, rw, rts);
     return files;

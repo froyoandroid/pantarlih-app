@@ -3,26 +3,48 @@ import '../core/format.dart';
 import '../data/storage.dart';
 import '../data/store.dart';
 import '../data/spreadsheets.dart';
+import '../data/wilayah.dart';
+import 'lokasi_screen.dart';
 
 const forest = Color(0xFF194B3C);
 const canvas = Color(0xFFF5F5EF);
 const amber = Color(0xFF95641A);
 
 class Session extends ChangeNotifier {
-  Session(this.store, {this.usingPublic = true});
+  Session(this.store, {this.usingPublic = true, WilayahRepo? wilayah})
+      : wilayah = wilayah ?? WilayahRepo.unavailable();
   AppStore store;
   bool usingPublic;
-  int rt = 3, rw = 3;
+  WilayahRepo wilayah;
+  int rt = 0, rw = 0;
   String source = 'LAPANGAN';
-  String village = 'KALITORONG';
+  String village = '';
+  String? kodeWilayah;
+  Lokasi? lokasi;
   String get label =>
       'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
+  String get lokasiLabel {
+    if (kodeWilayah == null || kodeWilayah!.isEmpty) {
+      return 'Lokasi belum diatur';
+    }
+    if (village.isEmpty) return 'Lokasi belum diatur';
+    if (rt <= 0 || rw <= 0) return village;
+    return '$village · $label';
+  }
+
   Future<void> load() async {
     final values = await store.settings();
-    rt = intValue(values['rt_aktif'], 3);
-    rw = intValue(values['rw_aktif'], 3);
-    village = values['desa_default']!;
+    rt = intValue(values['rt_aktif']);
+    rw = intValue(values['rw_aktif']);
+    kodeWilayah = nullableText(values['kode_wilayah_aktif'] ?? '');
+    lokasi = await store.activeLokasi();
+    village = values['desa_default'] ?? '';
     notifyListeners();
+  }
+
+  Future<void> saveLokasi(Lokasi next) async {
+    await store.setLokasi(next.toRow());
+    await load();
   }
 
   Future<void> change(int newRt, int newRw) async {
@@ -38,7 +60,7 @@ class Session extends ChangeNotifier {
 
   Future<void> setVillage(String value) async {
     await store.setDesa(value);
-    village = (await store.settings())['desa_default']!;
+    village = (await store.settings())['desa_default'] ?? '';
     notifyListeners();
   }
 
@@ -84,9 +106,15 @@ class AppPage extends StatelessWidget {
                       Text(title,
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.w700)),
-                      Text('${session.village} · ${session.label}',
-                          style: const TextStyle(
-                              fontSize: 11, letterSpacing: .6)),
+                      InkWell(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      LokasiScreen(session: session))),
+                          child: Text(session.lokasiLabel,
+                              style: const TextStyle(
+                                  fontSize: 11, letterSpacing: .6))),
                     ]),
                 actions: actions),
             body: SafeArea(

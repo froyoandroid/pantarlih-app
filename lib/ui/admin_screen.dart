@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import '../core/format.dart';
 import '../data/spreadsheets.dart';
 import 'common.dart';
 import 'history_screen.dart';
@@ -13,9 +14,11 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  bool busy = false, allRt = true, combined = false;
+  bool busy = false, allRt = true, combined = false, kop = false;
   List<File> files = [], snapshots = [];
   String? report;
+  Map<String, String> pack = {};
+  int missingKode = 0;
   @override
   void initState() {
     super.initState();
@@ -24,7 +27,15 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Future<void> load() async {
     final result = await widget.session.store.snapshots();
-    if (mounted) setState(() => snapshots = result);
+    final groups = await widget.session.store.missingKodeGroups();
+    final meta = await widget.session.wilayah.meta();
+    if (mounted) {
+      setState(() {
+        snapshots = result;
+        pack = meta;
+        missingKode = groups.fold<int>(0, (n, r) => n + intValue(r['jumlah']));
+      });
+    }
   }
 
   Future<void> run(Future<String> Function() action) async {
@@ -54,7 +65,7 @@ class _AdminScreenState extends State<AdminScreen> {
     try {
       await SharePlus.instance.share(ShareParams(
           files: selected.map((f) => XFile(f.path)).toList(),
-          subject: 'Pendataan DPS Kalitorong'));
+          subject: 'Pendataan DPS'));
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     }
@@ -108,6 +119,12 @@ class _AdminScreenState extends State<AdminScreen> {
             subtitle: const Text('Nonaktif: satu file per RT'),
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
+        SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Sertakan kop di atas tabel'),
+            subtitle: const Text('Header tabel bergeser ke baris 7.'),
+            value: kop,
+            onChanged: busy ? null : (v) => setState(() => kop = v)),
         const Notice(
             'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di file mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK dibuat terpisah.'),
         FilledButton.icon(
@@ -118,7 +135,8 @@ class _AdminScreenState extends State<AdminScreen> {
                           .generate(
                               rw: widget.session.rw,
                               rt: allRt ? null : widget.session.rt,
-                              combined: combined);
+                              combined: combined,
+                              kop: kop);
                       return '${files.length} berkas Excel dibuat. Belum dibagikan ke siapa pun.';
                     }),
             icon: const Icon(Icons.table_view_outlined),
@@ -136,6 +154,46 @@ class _AdminScreenState extends State<AdminScreen> {
               icon: const Icon(Icons.share_outlined),
               label: const Text('BAGIKAN FILE')),
         ],
+        const SizedBox(height: 28),
+        const Text('Wilayah',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        Notice(widget.session.wilayah.available
+            ? '${pack['kepmendagri'] ?? '—'}\n${pack['jumlah_total'] ?? '—'} baris · SHA ${pack['sha_sumber'] ?? '—'}'
+            : 'Berkas wilayah tidak terbuka. Mode manual tetap berfungsi.'),
+        if (missingKode > 0)
+          OutlinedButton.icon(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      final kode = widget.session.kodeWilayah;
+                      if (kode == null || kode.isEmpty) {
+                        feedback(context,
+                            'Pilih lokasi kerja dulu sebelum menetapkan kode pada baris lama.',
+                            error: true);
+                        return;
+                      }
+                      final groups =
+                          await widget.session.store.missingKodeGroups();
+                      final ringkas = groups
+                          .map((g) =>
+                              '• ${g['desa'] == '' ? '(kosong)' : g['desa']} · ${g['jumlah']} baris')
+                          .join('\n');
+                      if (!context.mounted) return;
+                      if (!await confirm(
+                          context,
+                          'Tetapkan kode wilayah untuk baris lama?',
+                          '$missingKode baris tanpa kode akan diisi $kode.\n\n$ringkas\n\nIni bukan tebakan otomatis. Anda harus yakin baris lama berasal dari desa yang sekarang dipilih.',
+                          action: 'TETAPKAN')) {
+                        return;
+                      }
+                      await run(() async {
+                        final n = await widget.session.store
+                            .backfillKodeWilayah(kode);
+                        return '$n baris diperbarui.';
+                      });
+                    },
+              icon: const Icon(Icons.pin_drop_outlined),
+              label: const Text('TETAPKAN KODE WILAYAH UNTUK BARIS LAMA')),
         const SizedBox(height: 28),
         const Text('Ketahanan & pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -197,5 +255,11 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text(
             'Salin folder ini lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan cadangan di lokasi yang aman.',
             style: TextStyle(fontSize: 12, color: Colors.black54)),
+        const SizedBox(height: 28),
+        const Text('Tentang',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        const Notice(
+            'Pantarlih memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
+            icon: Icons.info_outline),
       ]));
 }

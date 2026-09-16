@@ -8,6 +8,7 @@ import '../core/nama.dart';
 import 'migrate.dart';
 import 'order.dart';
 import 'schema.dart';
+import 'wilayah.dart';
 
 class AppException implements Exception {
   AppException(this.message);
@@ -131,9 +132,10 @@ class AppStore extends ChangeNotifier {
   Future<Map<String, String>> settings() async {
     final rows = await db.query('setelan');
     return {
-      'rt_aktif': '3',
-      'rw_aktif': '3',
-      'desa_default': 'KALITORONG',
+      'rt_aktif': '',
+      'rw_aktif': '',
+      'desa_default': '',
+      'kode_wilayah_aktif': '',
       'schema_v': '$schemaV',
       for (final row in rows)
         row['kunci'] as String: row['nilai'] as String? ?? ''
@@ -160,10 +162,58 @@ class AppStore extends ChangeNotifier {
               'records': [
                 {
                   'kunci': 'desa_default',
-                  'nilai': nullableText(value) ?? 'KALITORONG',
+                  'nilai': nullableText(value) ?? '',
                 },
               ]
             });
+  }
+
+  Future<RecordMap> setLokasi(RecordMap fields) async {
+    return _commit('INSERT', 'lokasi', (txn, ts) async {
+      return _full(lokasiColumns, {
+        ...fields,
+        'manual': intValue(fields['manual']),
+        'dicatat_pada': fields['dicatat_pada'] ?? ts,
+      });
+    });
+  }
+
+  Future<Lokasi?> activeLokasi() async {
+    final kode = (await settings())['kode_wilayah_aktif'];
+    if (kode == null || kode.isEmpty) return null;
+    final rows =
+        await db.query('lokasi', where: 'kode = ?', whereArgs: [kode]);
+    return rows.isEmpty ? null : Lokasi.fromRow(rows.first);
+  }
+
+  Future<List<RecordMap>> missingKodeGroups() => db.rawQuery('''
+    SELECT COALESCE(desa, '') AS desa, COUNT(*) AS jumlah
+    FROM warga
+    WHERE kode_wilayah IS NULL OR kode_wilayah = ''
+    GROUP BY COALESCE(desa, '')
+    ORDER BY jumlah DESC, desa''');
+
+  Future<int> backfillKodeWilayah(String kode) async {
+    final rows = await db.query('warga',
+        where: "kode_wilayah IS NULL OR kode_wilayah = ''", orderBy: 'id');
+    var n = 0;
+    for (final row in rows) {
+      await saveWarga({
+        'nik': row['nik'],
+        'nama': row['nama'],
+        'jenis_kelamin': row['jenis_kelamin'],
+        'tempat_lahir': row['tempat_lahir'],
+        'tgl_lahir': row['tgl_lahir'],
+        'desa': row['desa'],
+        'kode_wilayah': kode,
+        'rt': row['rt'],
+        'rw': row['rw'],
+        'keterangan': row['keterangan'],
+        'sumber_input': row['sumber_input'],
+      }, id: row['id'] as int);
+      n++;
+    }
+    return n;
   }
 
   Future<bool> _hasUrutanId(DatabaseExecutor txn) async {
@@ -215,6 +265,14 @@ class AppStore extends ChangeNotifier {
   RecordMap _full(Iterable<String> columns, RecordMap source) => {
         for (final column in columns) column: source[column],
       };
+
+  Iterable<String> get _wargaCols => schemaV >= 4
+      ? wargaColumns
+      : wargaColumns.where((c) => c != 'kode_wilayah');
+
+  Iterable<String> get _refCols => schemaV >= 4
+      ? referensiColumns
+      : referensiColumns.where((c) => c != 'kode_wilayah');
 
   Future<RecordMap> _commit(String op, String table,
           Future<RecordMap> Function(Transaction txn, String ts) prepare,
@@ -305,15 +363,16 @@ class AppStore extends ChangeNotifier {
     final op = event['op'];
     if (table == 'referensi' && op == 'IMPORT') {
       for (final raw in data['records'] as List) {
-        await txn.insert('referensi', Map<String, Object?>.from(raw as Map));
+        await txn.insert(
+            'referensi', _full(_refCols, Map<String, Object?>.from(raw as Map)));
       }
     } else if (table == 'referensi' && op == 'DELETE') {
       await txn.delete('referensi');
     } else if (table == 'warga') {
       if (op == 'INSERT') {
-        await txn.insert('warga', _full(wargaColumns, data));
+        await txn.insert('warga', _full(_wargaCols, data));
       } else if (op == 'UPDATE') {
-        final record = _full(wargaColumns, data);
+        final record = _full(_wargaCols, data);
         final count = await txn.update('warga', record,
             where: 'id = ?', whereArgs: [record['id']]);
         if (count != 1) {
@@ -325,6 +384,19 @@ class AppStore extends ChangeNotifier {
         await _applyUrutMap(txn, data['peta'] as Map);
       } else {
         throw AppException('Operasi warga tidak dikenal: $op');
+      }
+    } else if (table == 'lokasi' && (op == 'INSERT' || op == 'UPDATE')) {
+      await txn.insert('lokasi', _full(lokasiColumns, data),
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.insert(
+          'setelan',
+          {'kunci': 'kode_wilayah_aktif', 'nilai': '${data['kode'] ?? ''}'},
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      if (data['nama_desa'] != null) {
+        await txn.insert(
+            'setelan',
+            {'kunci': 'desa_default', 'nilai': '${data['nama_desa']}'},
+            conflictAlgorithm: ConflictAlgorithm.replace);
       }
     } else if (table == 'setelan' && op == 'UPDATE') {
       for (final raw in data['records'] as List) {
@@ -451,6 +523,7 @@ class AppStore extends ChangeNotifier {
       'tempat_lahir': nullableText('${fields['tempat_lahir'] ?? ''}'),
       'tgl_lahir': fields['tgl_lahir'],
       'desa': nullableText('${fields['desa'] ?? ''}'),
+      'kode_wilayah': nullableText('${fields['kode_wilayah'] ?? ''}'),
       'rt': intValue(fields['rt']),
       'rw': intValue(fields['rw']),
       'keterangan': nullableText('${fields['keterangan'] ?? ''}'),
@@ -486,6 +559,7 @@ class AppStore extends ChangeNotifier {
         'tempat_lahir': row['tempat_lahir'],
         'tgl_lahir': row['tgl_lahir'],
         'desa': row['desa'],
+        'kode_wilayah': row['kode_wilayah'],
         'rt': row['rt'],
         'rw': row['rw'],
         'keterangan': row['keterangan'],
@@ -525,7 +599,7 @@ class AppStore extends ChangeNotifier {
       if (rows.isEmpty) {
         throw AppException('Baris warga $id tidak ditemukan');
       }
-      return _full(wargaColumns, rows.first);
+      return _full(_wargaCols, rows.first);
     });
   }
 
@@ -576,7 +650,7 @@ class AppStore extends ChangeNotifier {
     await _commit('IMPORT', 'referensi', (txn, ts) async {
       final records = <RecordMap>[];
       for (final row in ready) {
-        records.add(_full(referensiColumns, {
+        records.add(_full(_refCols, {
           ...row,
           'id': await _nextId(txn, 'referensi'),
           'diimpor_pada': ts,
@@ -595,7 +669,7 @@ class AppStore extends ChangeNotifier {
       final rows = await txn.query('referensi');
       return {
         'jumlah': rows.length,
-        'records': rows.map((r) => _full(referensiColumns, r)).toList(),
+        'records': rows.map((r) => _full(_refCols, r)).toList(),
       };
     });
   }

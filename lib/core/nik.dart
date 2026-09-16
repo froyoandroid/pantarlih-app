@@ -1,5 +1,10 @@
 /// Empty is clean. Length and date/JK mismatches are warnings and never block save.
-List<String> periksaNik(String nik, DateTime? tgl, String? jk) {
+///
+/// [prefixWilayah] is the 6-digit kecamatan code of the *current* work
+/// location. The first six NIK digits are the kecamatan of issuance, not
+/// present domicile, so a mismatch is a yellow warning and never a gate.
+List<String> periksaNik(String nik, DateTime? tgl, String? jk,
+    {String? prefixWilayah}) {
   if (nik.isEmpty) return [];
   if (!RegExp(r'^\d{16}$').hasMatch(nik)) {
     return ['NIK bukan 16 digit angka'];
@@ -17,6 +22,12 @@ List<String> periksaNik(String nik, DateTime? tgl, String? jk) {
     if (jk != null && perempuan != (jk == 'P')) {
       warnings.add('Jenis kelamin di NIK tidak cocok');
     }
+  }
+  if (prefixWilayah != null &&
+      prefixWilayah.length == 6 &&
+      nik.substring(0, 6) != prefixWilayah) {
+    warnings.add(
+        'Enam digit awal NIK (${nik.substring(0, 6)}) berbeda dari kecamatan lokasi ($prefixWilayah). Wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain.');
   }
   return warnings;
 }

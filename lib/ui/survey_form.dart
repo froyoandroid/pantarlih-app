@@ -97,13 +97,16 @@ class _SurveyFormState extends State<SurveyForm> {
         'tempat_lahir': nullableText(birthPlace.text),
         'tgl_lahir': iso,
         'desa': nullableText(village.text),
+        'kode_wilayah': widget.warga?['kode_wilayah'] ??
+            widget.session.kodeWilayah,
         'rt': int.tryParse(rt.text),
         'rw': int.tryParse(rw.text),
         'keterangan': note.text,
         'sumber_input': widget.warga?['sumber_input'] ?? widget.session.source,
       };
       final warnings = periksaNik(
-          nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender);
+          nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender,
+          prefixWilayah: widget.session.lokasi?.nikPrefix);
       final duplicates = nik.text.trim().isEmpty
           ? <RecordMap>[]
           : await widget.session.store
@@ -253,7 +256,8 @@ class _SurveyFormState extends State<SurveyForm> {
               ...periksaNik(
                       nik.text,
                       DateTime.tryParse(parseTanggal(birthDate.text) ?? ''),
-                      gender)
+                      gender,
+                      prefixWilayah: widget.session.lokasi?.nikPrefix)
                   .map((w) => Notice(w, warning: true)),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(

@@ -270,9 +270,16 @@ void main() {
     expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
     expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
     expect(files.any((f) => f.path.contains('DUPLIKAT_NAMA')), isTrue);
-    final dps = files.firstWhere((f) => f.path.contains('DPS_RT3'));
+    final dps = files.firstWhere((f) {
+      final n = f.path.split(Platform.pathSeparator).last;
+      return n.startsWith('DPS_') &&
+          n.contains('RT03') &&
+          !n.contains('GABUNGAN');
+    });
     final book = Excel.decodeBytes(await dps.readAsBytes());
-    final rows = book.tables.values.first.rows;
+    expect(book.tables.containsKey('INFO'), isTrue);
+    final data = book.tables.entries.firstWhere((e) => e.key != 'INFO').value;
+    final rows = data.rows;
     expect(cellText(rows[0][0]), 'NO');
     expect(cellText(rows[1][1]), 'ORANG TIGA');
     expect(cellText(rows[1][0]), '1');
@@ -341,6 +348,7 @@ void main() {
       () async {
     await store.saveWarga(fields());
     await store.saveWarga(fields(name: 'ORANG RT4', rt: 4, nik: '3327071909680099'));
+    await store.setSession(3, 3);
     final session = Session(store);
     await session.load();
     for (var i = 0; i < 12; i++) {
@@ -357,13 +365,14 @@ void main() {
         .whereType<File>()
         .map((f) => f.path.split(Platform.pathSeparator).last)
         .toList();
-    expect(names.where((n) => n.contains('DPS_RT4')), hasLength(1));
-    expect(names.where((n) => n.contains('DPS_RT3')), isEmpty);
+    expect(names.where((n) => n.contains('RT04')), hasLength(1));
+    expect(names.where((n) => n.contains('RT03')), isEmpty);
     expect(names.where((n) => n.contains('DUPLIKAT')), isEmpty);
     expect(names.where((n) => n.contains('TANPA_NIK')), isEmpty);
   });
 
   test('session changes create snapshot and automatic exports', () async {
+    await store.setSession(3, 3);
     final session = Session(store);
     await session.load();
     expect(session.rt, 3);
@@ -546,6 +555,156 @@ void main() {
     } finally {
       await actual.close();
       await actualRoot.delete(recursive: true);
+    }
+  });
+
+  test('opening a v3 database on v4 keeps rows, null kode_wilayah, empty lokasi',
+      () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v3-open-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3);
+    await older.open();
+    for (var i = 0; i < 50; i++) {
+      await older.saveWarga(fields(name: 'ORANG $i', nik: null, rt: 3));
+    }
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 4);
+    await newer.open();
+    try {
+      final after = await newer.db.query('warga');
+      expect(after, hasLength(50));
+      expect(after.every((r) => r['kode_wilayah'] == null), isTrue);
+      expect(await newer.db.query('lokasi'), isEmpty);
+      expect(
+          Directory('${isolated.path}/snapshot')
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.contains('pre_migrasi_')),
+          isNotEmpty);
+    } finally {
+      await newer.close();
+      await isolated.delete(recursive: true);
+    }
+  });
+
+  test('v2 journal replayed on v4 keeps names and null kode_wilayah', () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-v2-to-v4-');
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
+    await older.open();
+    await older.saveWarga(fields());
+    await older.saveWarga(fields(name: 'ORANG DUA'));
+    await older.close();
+    final newer = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 4);
+    await newer.open();
+    try {
+      final report = await newer.rebuild();
+      expect(report.failed, 0);
+      final after = await newer.db.query('warga', orderBy: 'id');
+      expect(after.map((r) => r['nama']), ['MUHAMAD HASAN', 'ORANG DUA']);
+      expect(after.every((r) => r['kode_wilayah'] == null), isTrue);
+    } finally {
+      await newer.close();
+      await isolated.delete(recursive: true);
+    }
+  });
+
+  test('saving lokasi writes one journal event and survives rebuild', () async {
+    await store.setLokasi({
+      'kode': '33.27.07.2016',
+      'nama_desa': 'Kalitorong',
+      'nama_kec': 'Randudongkal',
+      'nama_kab': 'Kabupaten Pemalang',
+      'nama_prov': 'Jawa Tengah',
+      'kode_kec': '33.27.07',
+      'nik_prefix': '332707',
+      'sumber_versi': 'Kepmendagri No. 300.2.2-2430 Tahun 2025',
+      'manual': 0,
+    });
+    final journalFiles = Directory('${root.path}/journal')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.jsonl'));
+    var lokasiEvents = 0;
+    var wilayahEvents = 0;
+    for (final file in journalFiles) {
+      for (final line in file.readAsLinesSync()) {
+        if (line.trim().isEmpty) continue;
+        final event = jsonDecode(line) as Map;
+        if (event['tabel'] == 'lokasi') lokasiEvents++;
+        if (event['tabel'] == 'wilayah') wilayahEvents++;
+      }
+    }
+    expect(lokasiEvents, 1);
+    expect(wilayahEvents, 0);
+    final before = await store.db.query('lokasi');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect(await store.db.query('lokasi'), before);
+    expect((await store.settings())['kode_wilayah_aktif'], '33.27.07.2016');
+  });
+
+  test('backfill writes one event per row and rebuild matches', () async {
+    for (var i = 0; i < 10; i++) {
+      await store.saveWarga(fields(name: 'LAMA $i', nik: null));
+    }
+    await store.setLokasi({
+      'kode': '33.27.07.2016',
+      'nama_desa': 'Kalitorong',
+      'manual': 0,
+    });
+    final beforeLog = (await store.db.query('log')).length;
+    expect(await store.backfillKodeWilayah('33.27.07.2016'), 10);
+    expect((await store.db.query('log')).length, beforeLog + 10);
+    expect(
+        (await store.db.query('warga',
+                where: "nama LIKE 'LAMA %'"))
+            .every((r) => r['kode_wilayah'] == '33.27.07.2016'),
+        isTrue);
+    final before = await store.db.query('warga', orderBy: 'id');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect(await store.db.query('warga', orderBy: 'id'), before);
+  });
+
+  test('export has INFO sheet and ten-column header on row 1', () async {
+    await store.saveWarga(fields());
+    await store.setLokasi({
+      'kode': 'MANUAL:kalitorong',
+      'nama_desa': 'Kalitorong',
+      'nama_prov': 'Jawa Tengah',
+      'manual': 1,
+    });
+    final files = await ExportService(store).generate(rw: 3, rt: 3);
+    final dps = files.firstWhere((f) {
+      final n = f.path.split(Platform.pathSeparator).last;
+      return n.startsWith('DPS_') && n.contains('TANPALOKASI');
+    });
+    final book = Excel.decodeBytes(await dps.readAsBytes());
+    expect(book.tables.length, 2);
+    expect(book.tables.containsKey('INFO'), isTrue);
+    final data = book.tables.entries.firstWhere((e) => e.key != 'INFO').value;
+    expect(cellText(data.rows[0][0]), 'NO');
+    expect(data.rows[0].length, 10);
+    final info = book.tables['INFO']!;
+    final kodeRow = info.rows.firstWhere(
+        (r) => cellText(r[0]) == 'Kode wilayah');
+    expect(cellText(kodeRow[1]), '(manual)');
+  });
+
+  test('empty database without lokasi still saves one person', () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-empty-lokasi-');
+    final fresh = AppStore(isolated, factory: databaseFactoryFfi);
+    await fresh.open();
+    try {
+      final saved = await fresh.saveWarga(fields());
+      expect(saved['nama'], 'MUHAMAD HASAN');
+      expect(saved['kode_wilayah'], isNull);
+      expect(await fresh.db.query('lokasi'), isEmpty);
+    } finally {
+      await fresh.close();
+      await isolated.delete(recursive: true);
     }
   });
 }

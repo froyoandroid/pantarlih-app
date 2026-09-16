@@ -63,6 +63,19 @@ void main() {
         contains('Jenis kelamin di NIK tidak cocok'));
     expect(periksaNik('123', null, null), ['NIK bukan 16 digit angka']);
     expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
+    expect(
+        periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P',
+            prefixWilayah: '332707'),
+        isEmpty);
+    expect(
+        periksaNik('3327995109730002', DateTime(1973, 9, 11), 'P',
+            prefixWilayah: '332707'),
+        contains(
+            'Enam digit awal NIK (332799) berbeda dari kecamatan lokasi (332707). Wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain.'));
+    expect(
+        periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P',
+            prefixWilayah: null),
+        isEmpty);
   });
   test('journal migrateEvent keeps v2 as identity and rejects a newer file',
       () {
@@ -76,8 +89,16 @@ void main() {
     final raised = migrateEvent(event, target: 3);
     expect(raised['schema_v'], 3);
     expect((raised['data'] as Map)['nama'], 'SITI');
+    final raised4 = migrateEvent(event, target: 4);
+    expect(raised4['schema_v'], 4);
+    expect((raised4['data'] as Map)['nama'], 'SITI');
+    expect((raised4['data'] as Map)['kode_wilayah'], isNull);
     expect(
         () => migrateEvent({'schema_v': 4, 'data': {}}, target: 3),
+        throwsA(isA<JournalVersionException>().having((e) => e.message,
+            'message', contains('lebih baru'))));
+    expect(
+        () => migrateEvent({'schema_v': 5, 'data': {}}, target: 4),
         throwsA(isA<JournalVersionException>().having((e) => e.message,
             'message', contains('lebih baru'))));
   });

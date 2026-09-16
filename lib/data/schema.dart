@@ -1,5 +1,6 @@
-const schemaVersion = 3;
+const schemaVersion = 4;
 const schemaBaseVersion = 2;
+const appVersion = '1.0.0+1';
 
 const dropStatements = <String>[
   'DROP VIEW IF EXISTS v_duplikat_nama',
@@ -93,6 +94,7 @@ const wargaColumns = <String>[
   'tempat_lahir',
   'tgl_lahir',
   'desa',
+  'kode_wilayah',
   'rt',
   'rw',
   'keterangan',
@@ -114,7 +116,21 @@ const referensiColumns = <String>[
   'desa',
   'rt',
   'rw',
+  'kode_wilayah',
   'sumber_file',
   'sumber_baris',
   'diimpor_pada',
+];
+
+const lokasiColumns = <String>[
+  'kode',
+  'nama_desa',
+  'nama_kec',
+  'nama_kab',
+  'nama_prov',
+  'kode_kec',
+  'nik_prefix',
+  'sumber_versi',
+  'manual',
+  'dicatat_pada',
 ];

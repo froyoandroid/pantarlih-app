@@ -4,6 +4,7 @@ import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
 import 'import_screen.dart';
+import 'lokasi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
 
@@ -94,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
                         labelText: 'Desa',
-                        hintText: 'KALITORONG')),
+                        hintText: 'nama desa atau dusun')),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx),
@@ -166,6 +167,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                               'RW ${widget.session.rw.toString().padLeft(2, '0')} · ${widget.session.village}',
                               style: const TextStyle(color: Colors.black54)),
+                          Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                  onPressed: busy
+                                      ? null
+                                      : () => _open(LokasiScreen(
+                                          session: widget.session)),
+                                  child: const Text('Ganti lokasi'))),
                           Align(
                               alignment: Alignment.centerLeft,
                               child: TextButton(
