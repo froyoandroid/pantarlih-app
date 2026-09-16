@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:excel/excel.dart';
+import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
@@ -98,7 +98,8 @@ abstract class TabularSource {
     return {
       for (final field in importFields.keys)
         // Unmapped field names degrade to not-found (-1) instead of crashing.
-        field: header.indexWhere((h) => (aliases[field] ?? const []).contains(h))
+        field:
+            header.indexWhere((h) => (aliases[field] ?? const []).contains(h))
     };
   }
 
@@ -236,7 +237,14 @@ abstract class TabularSource {
 }
 
 class WorkbookSource extends TabularSource {
+  /// Sync constructor for small in-memory fixtures; the UI path uses open().
   WorkbookSource(this.name, this.bytes) : workbook = _decodeWorkbook(bytes);
+  WorkbookSource._decoded(this.name, this.bytes, this.workbook);
+
+  /// Decodes on a background isolate: unzipping and re-parsing a workbook
+  /// blocks the UI thread for seconds on multi-MB files.
+  static Future<WorkbookSource> open(String name, Uint8List bytes) async =>
+      WorkbookSource._decoded(name, bytes, await compute(_decodeWorkbook, bytes));
   @override
   final String name;
   @override
@@ -251,7 +259,11 @@ class WorkbookSource extends TabularSource {
 }
 
 class CsvSource extends TabularSource {
+  /// Sync constructor for small in-memory fixtures; the UI path uses open().
   CsvSource(this.name, this.bytes) : table = parseCsv(decodeCsvBytes(bytes));
+  CsvSource._parsed(this.name, this.bytes, this.table);
+  static Future<CsvSource> open(String name, Uint8List bytes) async =>
+      CsvSource._parsed(name, bytes, await compute(_csvTable, bytes));
   @override
   final String name;
   @override
@@ -263,9 +275,11 @@ class CsvSource extends TabularSource {
   List<List<String>> rows(String sheet) => table;
 }
 
-TabularSource openTabular(String name, Uint8List bytes) {
-  if (name.toLowerCase().endsWith('.csv')) return CsvSource(name, bytes);
-  return WorkbookSource(name, bytes);
+List<List<String>> _csvTable(Uint8List bytes) => parseCsv(decodeCsvBytes(bytes));
+
+Future<TabularSource> openTabular(String name, Uint8List bytes) async {
+  if (name.toLowerCase().endsWith('.csv')) return CsvSource.open(name, bytes);
+  return WorkbookSource.open(name, bytes);
 }
 
 String decodeCsvBytes(Uint8List bytes) {
