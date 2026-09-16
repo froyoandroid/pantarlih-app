@@ -95,7 +95,7 @@ Opsional: `dart run tool/build_wilayah.dart --prov=33` hanya memasukkan Jawa Ten
 
 ## Atribusi
 
-Aplikasi ini memakai kode dan nama wilayah administrasi pemerintahan Indonesia dari proyek WILAYAH (https://github.com/cahyadsn/wilayah), Copyright (c) 2017-2025 Cahya DSN, lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025.
+Aplikasi ini memakai kode dan nama wilayah administrasi pemerintahan Indonesia dari proyek WILAYAH (<https://github.com/cahyadsn/wilayah>), Copyright (c) 2017-2025 Cahya DSN, lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025.
 
 ## Pengujian
 

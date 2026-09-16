@@ -207,8 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           else ...[
                             for (final rw
                                 in widget.session.workspaceByRw.keys) ...[
-                              if (rw !=
-                                  widget.session.workspaceByRw.keys.first)
+                              if (rw != widget.session.workspaceByRw.keys.first)
                                 const SizedBox(height: 12),
                               Text('RW ${rw.toString().padLeft(2, '0')}',
                                   style: const TextStyle(
@@ -218,27 +217,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                 for (final pair
                                     in widget.session.workspaceByRw[rw]!)
                                   ChoiceChip(
-                                      label: Row(mainAxisSize: MainAxisSize.min,
+                                      label: Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text('RT ${pair.rt.toString().padLeft(2, '0')}'),
+                                            Text(
+                                                'RT ${pair.rt.toString().padLeft(2, '0')}'),
                                             if (widget.session.rt == pair.rt &&
-                                                widget.session.rw == pair.rw) ...[
+                                                widget.session.rw ==
+                                                    pair.rw) ...[
                                               const SizedBox(width: 4),
                                               GestureDetector(
                                                   onTap: busy
                                                       ? null
                                                       : () => _lepas(pair),
-                                                  child: const Icon(
-                                                      Icons.close,
+                                                  child: const Icon(Icons.close,
                                                       size: 14)),
                                             ],
                                           ]),
-                                      selected:
-                                          widget.session.rt == pair.rt &&
-                                              widget.session.rw == pair.rw,
-                                      onSelected: busy
-                                          ? null
-                                          : (_) => _focus(pair)),
+                                      selected: widget.session.rt == pair.rt &&
+                                          widget.session.rw == pair.rw,
+                                      onSelected:
+                                          busy ? null : (_) => _focus(pair)),
                               ]),
                             ],
                             if (widget.session.rt > 0 &&
