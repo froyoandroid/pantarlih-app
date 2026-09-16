@@ -128,6 +128,21 @@ class _SurveyFormState extends State<SurveyForm> {
         'keterangan': nilaiKeterangan(ketChip, note.text),
         'warna': widget.warga?['warna'],
       };
+      // A typed RT/RW outside the workspace would silently store the row in
+      // an invisible area, so offer to add the pair first.
+      final rtBaru = int.tryParse(rt.text) ?? 0;
+      final rwBaru = int.tryParse(rw.text) ?? 0;
+      if (rtBaru > 0 &&
+          rwBaru > 0 &&
+          !widget.session.workspace.contains(RtRw(rwBaru, rtBaru))) {
+        final tambah = await confirm(
+            context,
+            'RT ${rtBaru.toString().padLeft(2, '0')} RW ${rwBaru.toString().padLeft(2, '0')} belum ada di wilayah kerja',
+            'Tambahkan agar data ini tampil di daftar. Bila dilewati, data tetap tersimpan dan bisa ditambahkan dari Beranda.',
+            action: 'TAMBAHKAN');
+        if (!mounted) return;
+        if (tambah) await widget.session.addRtRw(rtBaru, rwBaru);
+      }
       final warnings = periksaNik(
           nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender,
           prefixWilayah: widget.session.lokasi?.nikPrefix);
