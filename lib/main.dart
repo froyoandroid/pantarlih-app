@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:mcp_toolkit/mcp_toolkit.dart';
+
 import 'data/storage.dart';
 import 'data/store.dart';
 import 'data/wilayah.dart';
@@ -7,8 +11,16 @@ import 'ui/home.dart';
 import 'ui/lokasi_screen.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(const PantarlihApp());
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    MCPToolkitBinding.instance
+      ..initialize()
+      ..initializeFlutterToolkit();
+    runApp(const PantarlihApp());
+  },
+      (error, stack) =>
+          MCPToolkitBinding.instance.handleZoneError(error, stack));
 }
 
 class PantarlihApp extends StatelessWidget {
@@ -72,8 +84,8 @@ class _StartupScreenState extends State<StartupScreen> {
         await store!.open();
       }
       final wilayah = await WilayahRepo.open();
-      final session = Session(store!,
-          usingPublic: resolved.usingPublic, wilayah: wilayah);
+      final session =
+          Session(store!, usingPublic: resolved.usingPublic, wilayah: wilayah);
       await session.load();
       if (!mounted) return;
       final home = HomeScreen(session: session);
