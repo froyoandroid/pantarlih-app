@@ -44,7 +44,13 @@ String slugWilayah(String nama) {
 }
 
 String kodeBerkasEkspor(RecordMap? lokasi) {
-  if (lokasi == null || intValue(lokasi['manual']) == 1) return 'TANPALOKASI';
+  if (lokasi == null) return 'TANPALOKASI';
+  if (intValue(lokasi['manual']) == 1) {
+    // MANUAL:sidomulyo -> MANUAL_SIDOMULYO so two different manual desas
+    // never produce the same filename.
+    final slug = slugWilayah('${lokasi['kode'] ?? ''}');
+    return slug.isEmpty ? 'TANPALOKASI' : slug;
+  }
   final kode = '${lokasi['kode'] ?? ''}'.replaceAll('.', '');
   return kode.isEmpty ? 'TANPALOKASI' : kode;
 }
