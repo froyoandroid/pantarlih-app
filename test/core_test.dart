@@ -52,7 +52,7 @@ void main() {
         isEmpty);
     expect(periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P', '332707'),
         contains('Jenis kelamin di NIK tidak cocok'));
-    expect(periksaNik('123', null, null, null), ['NIK harus 16 digit angka']);
+    expect(periksaNik('123', null, null, null), ['NIK bukan 16 digit angka']);
     expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P', '332707'),
         hasLength(1));
     expect(prefixNik('332707**********'), '332707');

@@ -84,9 +84,7 @@ class _SurveyFormState extends State<SurveyForm> {
   Future<void> save() async {
     setState(() => saving = true);
     try {
-      if (!RegExp(r'^\d{16}$').hasMatch(nik.text.trim())) {
-        throw AppException('NIK harus 16 digit angka');
-      }
+      if (nik.text.trim().isEmpty) throw AppException('NIK wajib diisi');
       if (name.text.trim().isEmpty) throw AppException('Nama wajib diisi');
       final iso =
           birthDate.text.trim().isEmpty ? null : parseTanggal(birthDate.text);
@@ -224,16 +222,14 @@ class _SurveyFormState extends State<SurveyForm> {
                 textInputAction: TextInputAction.next,
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                decoration: deco('NIK *', hint: '16 digit angka')),
+                decoration: deco('NIK *', hint: 'sebaiknya 16 digit angka')),
             if (nik.text.isNotEmpty)
               ...periksaNik(
                       nik.text,
                       DateTime.tryParse(parseTanggal(birthDate.text) ?? ''),
                       gender,
                       linkedLegacy?['nik_prefix'] as String?)
-                  .map((w) => Notice(w,
-                      warning: true,
-                      error: !RegExp(r'^\d{16}$').hasMatch(nik.text))),
+                  .map((w) => Notice(w, warning: true)),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
                 initialValue: gender,
@@ -287,7 +283,7 @@ class _SurveyFormState extends State<SurveyForm> {
                         'Teks bebas; tidak dipakai untuk penilaian atau pencarian')),
             const SizedBox(height: 18),
             const Notice(
-                'NIK harus tepat 16 digit agar bisa disimpan. Perbedaan prefix wilayah atau tanggal lahir hanya peringatan.',
+                'NIK sebaiknya tepat 16 digit. NIK yang bukan 16 digit, perbedaan prefix wilayah, atau tanggal lahir hanya peringatan dan tetap bisa disimpan.',
                 warning: true),
             if (surveyId != null && legacyId != null)
               OutlinedButton.icon(

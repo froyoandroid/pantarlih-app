@@ -52,8 +52,9 @@ class _AdminScreenState extends State<AdminScreen> {
       return;
     }
     try {
-      await Share.shareXFiles(selected.map((f) => XFile(f.path)).toList(),
-          subject: 'Pendataan DPS Kalitorong');
+      await SharePlus.instance.share(ShareParams(
+          files: selected.map((f) => XFile(f.path)).toList(),
+          subject: 'Pendataan DPS Kalitorong'));
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     }

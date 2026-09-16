@@ -1,1 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The Flutter tool needs Internet access in debug mode for the VM service (hot reload). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+</manifest>

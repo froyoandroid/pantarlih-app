@@ -133,19 +133,20 @@ void main() {
   });
   test('surveys, duplicate allowance, grey count, conflicts, unlink and relink',
       () async {
-    await expectLater(store.saveSurvey(fields(nik: '123'), oldId: 1),
+    await expectLater(store.saveSurvey(fields(nik: ''), oldId: 1),
         throwsA(isA<AppException>()));
+    await store.saveSurvey(fields(nik: '123'), oldId: 1);
     await store.mark(2, true);
-    expect((await store.progress(3, 3))['remaining'], 2);
-    await store.saveSurvey(fields(rt: 4, note: '  bebas  '), oldId: 1);
+    expect((await store.progress(3, 3))['remaining'], 1);
+    await store.saveSurvey(fields(rt: 4, note: '  bebas  '), oldId: 2);
     expect(await store.conflicts(), hasLength(1));
     expect((await store.conflicts()).first['keterangan'], '  bebas  ');
-    expect((await store.remaining(3, 3)).first['survey_id'], 1);
+    expect((await store.remaining(3, 3)).first['survey_id'], 2);
     await expectLater(
         store.saveSurvey(fields(), oldId: 1), throwsA(isA<AppException>()));
     await store.saveSurvey(fields(name: 'WARGA BARU', note: '   '));
     expect(await store.duplicateRows(), hasLength(2));
-    expect((await store.survey(2))!['keterangan'], isNull);
+    expect((await store.survey(3))!['keterangan'], isNull);
     await store.relink(1, null);
     expect((await store.survey(1))!['rt_lama'], isNull);
     expect((await store.progress(3, 3))['remaining'], 2);
