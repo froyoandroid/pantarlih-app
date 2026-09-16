@@ -6,10 +6,96 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
+import 'package:pantarlih_kalitorong/data/migrate.dart';
 import 'package:pantarlih_kalitorong/data/spreadsheets.dart';
 import 'package:pantarlih_kalitorong/data/store.dart';
 import 'package:pantarlih_kalitorong/ui/common.dart';
 import 'package:pantarlih_kalitorong/ui/survey_form.dart';
+
+/// The frozen v2 shape, kept verbatim so upgrade-path tests create genuinely
+/// old databases instead of franken-databases with a lowered user_version.
+const legacyV2Schema = <String>[
+  '''CREATE TABLE referensi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    urut_asli INTEGER,
+    nama TEXT NOT NULL,
+    nama_norm TEXT NOT NULL,
+    nik_lama TEXT,
+    jenis_kelamin TEXT,
+    tempat_lahir TEXT,
+    tgl_lahir TEXT,
+    tgl_lahir_raw TEXT,
+    desa TEXT,
+    rt INTEGER,
+    rw INTEGER,
+    sumber_file TEXT,
+    sumber_baris INTEGER,
+    diimpor_pada TEXT NOT NULL
+  )''',
+  'CREATE INDEX idx_ref_norm ON referensi(nama_norm)',
+  'CREATE INDEX idx_ref_rt ON referensi(rw, rt)',
+  'CREATE INDEX idx_ref_tgl ON referensi(tgl_lahir)',
+  '''CREATE TABLE warga (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    urut_sort INTEGER NOT NULL,
+    grup_id INTEGER,
+    nik TEXT,
+    nama TEXT NOT NULL,
+    nama_norm TEXT NOT NULL,
+    jenis_kelamin TEXT CHECK (jenis_kelamin IN ('L','P')),
+    tempat_lahir TEXT,
+    tgl_lahir TEXT,
+    desa TEXT,
+    rt INTEGER NOT NULL,
+    rw INTEGER NOT NULL,
+    keterangan TEXT,
+    dibuat_pada TEXT NOT NULL,
+    diubah_pada TEXT NOT NULL
+  )''',
+  'CREATE UNIQUE INDEX idx_warga_urut ON warga(rw, rt, urut_sort)',
+  'CREATE INDEX idx_warga_rt ON warga(rw, rt)',
+  'CREATE INDEX idx_warga_nik ON warga(nik)',
+  'CREATE INDEX idx_warga_norm ON warga(nama_norm)',
+  'CREATE INDEX idx_warga_waktu ON warga(dibuat_pada)',
+  '''CREATE TABLE log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    op TEXT NOT NULL,
+    tabel TEXT NOT NULL,
+    row_id INTEGER,
+    payload TEXT NOT NULL,
+    schema_v INTEGER NOT NULL
+  )''',
+  'CREATE TABLE setelan (kunci TEXT PRIMARY KEY, nilai TEXT)',
+  '''CREATE VIEW v_duplikat_nik AS
+    SELECT nik, COUNT(*) AS jumlah
+    FROM warga
+    WHERE nik IS NOT NULL AND nik <> ''
+    GROUP BY nik HAVING COUNT(*) > 1''',
+  '''CREATE VIEW v_duplikat_nama AS
+    SELECT nama_norm, rw, rt, COUNT(*) AS jumlah
+    FROM warga
+    GROUP BY nama_norm, rw, rt HAVING COUNT(*) > 1''',
+];
+
+/// Creates a genuinely old database file: frozen v2 schema plus the real
+/// production upgrade SQL, so onUpgrade in the store under test runs on the
+/// same shapes a field device would carry.
+Future<void> buatLegacy(Directory root, int version) async {
+  final db = await databaseFactoryFfi.openDatabase('${root.path}/pantarlih.db',
+      options: OpenDatabaseOptions(
+          version: version,
+          singleInstance: false,
+          onCreate: (db, v) async {
+            for (final sql in legacyV2Schema) {
+              await db.execute(sql);
+            }
+            for (final sql in upgradeStatements(2, v)) {
+              await db.execute(sql);
+            }
+          }));
+  await db.close();
+}
 
 WorkbookSource fixture() {
   final book = Excel.createExcel();
@@ -594,6 +680,7 @@ void main() {
       File('${dir.path}/$nama').writeAsStringSync('p$i');
       File('${dir.path}/$nama-wal').writeAsStringSync('w$i');
     }
+    await buatLegacy(isolated, 2);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
     await older.open();
     await older.saveWarga(fields());
@@ -635,6 +722,7 @@ void main() {
       () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v2-open-');
+    await buatLegacy(isolated, 2);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
     await older.open();
     final saved = await older.saveWarga(fields());
@@ -667,6 +755,7 @@ void main() {
       () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v2-rebuild-');
+    await buatLegacy(isolated, 2);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
     await older.open();
     await older.saveWarga(fields());
@@ -782,6 +871,7 @@ void main() {
       () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v3-open-');
+    await buatLegacy(isolated, 3);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3);
     await older.open();
     for (var i = 0; i < 50; i++) {
@@ -810,6 +900,7 @@ void main() {
   test('v2 journal replayed on v4 keeps names and null kode_wilayah', () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v2-to-v4-');
+    await buatLegacy(isolated, 2);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
     await older.open();
     await older.saveWarga(fields());
@@ -833,6 +924,7 @@ void main() {
       () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v4-open-');
+    await buatLegacy(isolated, 4);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 4);
     await older.open();
     await older.db.execute(
@@ -866,6 +958,7 @@ void main() {
   test('opening a v5 database on v6 adds warna and keeps rows', () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-v5-open-');
+    await buatLegacy(isolated, 5);
     final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 5);
     await older.open();
     final saved = await older.saveWarga(fields());
@@ -881,6 +974,52 @@ void main() {
     } finally {
       await newer.close();
       await isolated.delete(recursive: true);
+    }
+  });
+
+  test('fresh database and upgraded v2 database share one schema shape',
+      () async {
+    final freshRoot = await Directory.systemTemp.createTemp('pantarlih-fresh-');
+    final fresh = AppStore(freshRoot, factory: databaseFactoryFfi);
+    await fresh.open();
+    final legacyRoot =
+        await Directory.systemTemp.createTemp('pantarlih-legacy-');
+    await buatLegacy(legacyRoot, 2);
+    final upgraded = AppStore(legacyRoot, factory: databaseFactoryFfi);
+    await upgraded.open();
+    try {
+      // Column order legitimately differs (ALTER appends), so shapes are
+      // compared per column name instead of by position.
+      Future<Map<String, Object?>> bentuk(AppStore s) async => {
+            for (final t in [
+              'warga',
+              'referensi',
+              'log',
+              'setelan',
+              'urutan_id',
+              'lokasi'
+            ])
+              t: {
+                for (final c in await s.db.rawQuery('PRAGMA table_info($t)'))
+                  '${c['name']}': '${c['type']}'
+              },
+            'views': [
+              for (final r in await s.db.rawQuery(
+                  "SELECT name FROM sqlite_master WHERE type='view' ORDER BY name"))
+                '${r['name']}'
+            ],
+            'indexes': [
+              for (final r in await s.db.rawQuery(
+                  "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name"))
+                '${r['name']}'
+            ],
+          };
+      expect(await bentuk(upgraded), await bentuk(fresh));
+    } finally {
+      await fresh.close();
+      await upgraded.close();
+      await freshRoot.delete(recursive: true);
+      await legacyRoot.delete(recursive: true);
     }
   });
 
