@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/format.dart';
 import '../core/keterangan.dart';
 import '../core/nik.dart';
+import '../data/store.dart';
 import 'common.dart';
 
 class SurveyForm extends StatefulWidget {
@@ -106,12 +107,13 @@ class _SurveyFormState extends State<SurveyForm> {
   Future<void> save({bool lanjut = false}) async {
     setState(() => saving = true);
     try {
-      if (name.text.trim().isEmpty) throw Exception('Nama wajib diisi');
+      if (name.text.trim().isEmpty) throw AppException('Nama wajib diisi');
       final iso =
           birthDate.text.trim().isEmpty ? null : parseTanggal(birthDate.text);
       if (birthDate.text.trim().isNotEmpty && iso == null) {
-        throw Exception(
-            'Tanggal harus DD-MM-YYYY, DD/MM/YYYY, atau DD.MM.YYYY');
+        // The input formatter only lets dashes through, so that is the one
+        // shape worth naming.
+        throw AppException('Tanggal harus DD-MM-YYYY');
       }
       final data = <String, Object?>{
         'nik': nullableText(nik.text),
@@ -131,6 +133,11 @@ class _SurveyFormState extends State<SurveyForm> {
       // an invisible area, so offer to add the pair first.
       final rtBaru = int.tryParse(rt.text) ?? 0;
       final rwBaru = int.tryParse(rw.text) ?? 0;
+      // Required fields are validated up front, before any dialog, instead
+      // of surfacing as a red snackbar after the flow.
+      if (rtBaru <= 0 || rwBaru <= 0) {
+        throw AppException('RT dan RW wajib diisi dengan angka lebih dari nol');
+      }
       if (rtBaru > 0 &&
           rwBaru > 0 &&
           !widget.session.workspace.contains(RtRw(rwBaru, rtBaru))) {
@@ -142,14 +149,13 @@ class _SurveyFormState extends State<SurveyForm> {
         if (!mounted) return;
         if (tambah) await widget.session.addRtRw(rtBaru, rwBaru);
       }
-      final warnings = periksaNik(
-          nik.text.trim(), iso == null ? null : DateTime.parse(iso), gender,
-          prefixWilayah: widget.session.lokasi?.nikPrefix);
       final duplicates = nik.text.trim().isEmpty
           ? <RecordMap>[]
           : await widget.session.store
               .duplicates(nik.text.trim(), exceptId: wargaId);
-      if (warnings.isNotEmpty || duplicates.isNotEmpty) {
+      // Format warnings stay inline under the field; the dialog is only for
+      // duplicate NIK, which needs the list of the rows already holding it.
+      if (duplicates.isNotEmpty) {
         if (!mounted) return;
         final positions = <int, int>{};
         for (final row in duplicates) {
@@ -158,22 +164,14 @@ class _SurveyFormState extends State<SurveyForm> {
         }
         if (!mounted) return;
         final isi = [
-          if (warnings.isNotEmpty) warnings.join('\n'),
-          if (duplicates.isNotEmpty)
-            'NIK ini sudah dipakai oleh:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
+          'NIK ini sudah dipakai oleh:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
           'Peringatan ini boleh diabaikan',
         ].join('\n');
         final decision = await showDialog<String>(
             context: context,
             builder: (ctx) => AlertDialog(
-                    title: Text(
-                        duplicates.isNotEmpty
-                            ? 'Peringatan NIK duplikat'
-                            : 'Periksa NIK',
-                        style: TextStyle(
-                            color: duplicates.isNotEmpty
-                                ? Colors.red.shade800
-                                : amber)),
+                    title: Text('Peringatan NIK duplikat',
+                        style: TextStyle(color: Colors.red.shade800)),
                     content: SingleChildScrollView(
                         child:
                             Column(mainAxisSize: MainAxisSize.min, children: [
@@ -346,14 +344,14 @@ class _SurveyFormState extends State<SurveyForm> {
                       controller: rt,
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
-                      decoration: deco('RT'))),
+                      decoration: deco('RT *'))),
               const SizedBox(width: 14),
               Expanded(
                   child: TextField(
                       controller: rw,
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
-                      decoration: deco('RW')))
+                      decoration: deco('RW *')))
             ]),
             const SizedBox(height: 14),
             InputDecorator(
@@ -400,7 +398,7 @@ class _SurveyFormState extends State<SurveyForm> {
             ],
             const SizedBox(height: 18),
             const Notice(
-                'NIK boleh kosong. Bila diisi, panjang selain 16 digit hanya peringatan dan tetap bisa disimpan.',
+                'NIK boleh kosong. Bila diisi, kurang dari 16 digit hanya peringatan dan tetap bisa disimpan.',
                 warning: true),
           ]));
 }
