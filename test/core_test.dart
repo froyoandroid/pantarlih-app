@@ -75,6 +75,15 @@ void main() {
             'message', contains('lebih baru'))));
   });
 
+  test('onReorder index correction keeps the same beforeId and afterId', () {
+    const ids = [10, 20, 30];
+    expect(reorderNeighbors(ids, 0, 3), (beforeId: 30, afterId: null));
+    expect(reorderNeighbors(ids, 2, 0), (beforeId: null, afterId: 10));
+    expect(reorderNeighbors(ids, 0, 2), (beforeId: 20, afterId: 30));
+    expect(reorderNeighbors(ids, 1, 0), (beforeId: null, afterId: 10));
+    expect(reorderNeighbors(ids, 1, 3), (beforeId: 30, afterId: null));
+  });
+
   test('sparse insert keys leave room then report a exhausted gap', () {
     expect(urutAntara(null, null), 1000);
     expect(urutAntara(1000, null), 2000);

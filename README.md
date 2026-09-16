@@ -4,7 +4,15 @@ Aplikasi Flutter/Dart untuk Android, satu pengguna dan perangkat, sepenuhnya off
 
 ## Jalankan / build
 
-Toolchain: Flutter 3.35.7 / Dart 3.9.2, Java 21, Android SDK 36, NDK 27.0.12077973. Dependensi dikunci di `pubspec.lock`.
+Toolchain yang terbukti membangun (output `flutter --version`):
+
+```text
+Flutter 3.47.4 • channel stable
+Framework • revision 9584c6713b • 2026-09-10
+Dart 3.13.3
+```
+
+UI memakai API stabil (`ReorderableListView.onReorder` dan `DropdownButtonFormField.value`) supaya mesin dengan Flutter lebih lama tetap dapat mengompilasi. `pubspec.yaml` membatasi Dart `>=3.3.0 <4.0.0`. Java 21, Android SDK 36, NDK 27.0.12077973. Dependensi dikunci di `pubspec.lock`.
 
 ```sh
 flutter pub get

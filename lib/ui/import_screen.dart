@@ -166,7 +166,7 @@ class _ImportScreenState extends State<ImportScreen> {
             const SizedBox(height: 20),
             DropdownButtonFormField<String>(
                 key: ValueKey('${source!.name}:$sheet'),
-                initialValue: sheet,
+                value: sheet, // ignore: deprecated_member_use
                 decoration: const InputDecoration(labelText: 'Sheet'),
                 items: source!.sheets
                     .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -206,7 +206,7 @@ class _ImportScreenState extends State<ImportScreen> {
                   child: DropdownButtonFormField<int>(
                       key:
                           ValueKey('$sheet:${entry.key}:${mapping[entry.key]}'),
-                      initialValue: mapping[entry.key] ?? -1,
+                      value: mapping[entry.key] ?? -1, // ignore: deprecated_member_use
                       isExpanded: true,
                       decoration: InputDecoration(labelText: entry.value),
                       items: [
