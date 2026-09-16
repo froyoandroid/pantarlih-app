@@ -21,10 +21,6 @@ class _LokasiScreenState extends State<LokasiScreen> {
   List<Wilayah> provs = [], kabs = [], kecs = [], desas = [];
   List<(Wilayah, String)> hits = [];
   final globalSearch = TextEditingController();
-  final filterProv = TextEditingController();
-  final filterKab = TextEditingController();
-  final filterKec = TextEditingController();
-  final filterDesa = TextEditingController();
   bool busy = false;
 
   WilayahRepo get repo => widget.session.wilayah;
@@ -37,30 +33,13 @@ class _LokasiScreenState extends State<LokasiScreen> {
 
   @override
   void dispose() {
-    for (final c in [
-      globalSearch,
-      filterProv,
-      filterKab,
-      filterKec,
-      filterDesa
-    ]) {
-      c.dispose();
-    }
+    globalSearch.dispose();
     super.dispose();
   }
 
   Future<void> _loadProv() async {
     provs = await repo.anak(null);
     if (mounted) setState(() {});
-  }
-
-  List<Wilayah> _filter(List<Wilayah> source, String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return source;
-    return [
-      for (final w in source)
-        if (w.nama.toLowerCase().contains(q) || w.kode.contains(q)) w
-    ];
   }
 
   Future<void> _pickProv(Wilayah value) async {
@@ -256,46 +235,59 @@ class _LokasiScreenState extends State<LokasiScreen> {
     }
   }
 
-  Widget _picker(String title, List<Wilayah> items, Wilayah? selected,
-      TextEditingController filter, ValueChanged<Wilayah> onPick) {
-    final shown = _filter(items, filter.text);
-    return Card(
-        child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: filter,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, size: 20),
-                      hintText: 'Cari nama atau kode',
-                      isDense: true)),
-              const SizedBox(height: 8),
-              if (items.isEmpty)
-                const Text('Pilih tingkat di atasnya terlebih dahulu.',
-                    style: TextStyle(color: Colors.black54, fontSize: 12))
-              else
-                ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 180),
-                    child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: shown.length,
-                        itemBuilder: (ctx, i) {
-                          final w = shown[i];
-                          final on = selected?.kode == w.kode;
-                          return ListTile(
-                              dense: true,
-                              selected: on,
-                              title: Text(w.nama,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600)),
-                              subtitle: Text(w.kode,
-                                  style: const TextStyle(fontSize: 11)),
-                              onTap: () => onPick(w));
-                        })),
-            ])));
+  Widget _picker(
+      String title, List<Wilayah> items, Wilayah? selected, ValueChanged<Wilayah> onPick,
+      {String? emptyHint}) {
+    if (items.isEmpty) {
+      return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: InputDecorator(
+              decoration: InputDecoration(labelText: title),
+              child: Text(emptyHint ?? 'Pilih tingkat di atasnya terlebih dahulu.',
+                  style: const TextStyle(color: Colors.black54))));
+    }
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: DropdownButtonFormField<String>(
+            key: ValueKey('$title:${selected?.kode}:${items.length}'),
+            value: selected?.kode, // ignore: deprecated_member_use
+            isExpanded: true,
+            itemHeight: null,
+            decoration: InputDecoration(
+                labelText: title, helperText: selected?.kode),
+            hint: const Text('Pilih'),
+            selectedItemBuilder: (ctx) => [
+                  for (final w in items)
+                    Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(w.nama,
+                            overflow: TextOverflow.ellipsis, maxLines: 1))
+                ],
+            items: [
+              for (final w in items)
+                DropdownMenuItem(
+                    value: w.kode,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(w.nama, overflow: TextOverflow.ellipsis),
+                          Text(w.kode,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.black54)),
+                        ]))
+            ],
+            onChanged: busy
+                ? null
+                : (kode) {
+                    if (kode == null) return;
+                    for (final w in items) {
+                      if (w.kode == kode) {
+                        onPick(w);
+                        return;
+                      }
+                    }
+                  }));
   }
 
   @override
@@ -332,10 +324,17 @@ class _LokasiScreenState extends State<LokasiScreen> {
                     onTap: () => _applyHit(hit.$1))),
         ],
         const SizedBox(height: 12),
-        _picker('Provinsi', provs, prov, filterProv, _pickProv),
-        _picker('Kabupaten / Kota', kabs, kab, filterKab, _pickKab),
-        _picker('Kecamatan', kecs, kec, filterKec, _pickKec),
-        _picker('Desa / Kelurahan', desas, desa, filterDesa, _pickDesa),
+        Card(
+            child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                child: Column(children: [
+                  _picker('Provinsi', provs, prov, _pickProv),
+                  if (prov != null)
+                    _picker('Kabupaten / Kota', kabs, kab, _pickKab),
+                  if (kab != null) _picker('Kecamatan', kecs, kec, _pickKec),
+                  if (kec != null)
+                    _picker('Desa / Kelurahan', desas, desa, _pickDesa),
+                ]))),
         if (desa != null) ...[
           const SizedBox(height: 8),
           Notice(
