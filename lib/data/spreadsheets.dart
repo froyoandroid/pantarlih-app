@@ -522,20 +522,23 @@ class ExportService {
     );
   }
 
+  /// Writes the workbooks into a stamped subfolder of [tujuan], the public
+  /// ekspor folder (or ekspor/otomatis for the RT-switch export). The
+  /// private data root never receives exports.
   Future<List<File>> generate(
-      {required int rw,
+      {required Directory tujuan,
+      required int rw,
       int? rt,
       bool combined = false,
       bool automatic = false,
       bool kop = false}) async {
     final rts = rt == null ? await store.rtList(rw) : [rt];
     final date = timestamp().substring(0, 10);
-    final kind = automatic ? 'auto' : 'manual';
     var stamp = fileStamp();
-    var target = Directory('${store.root.path}/export/$kind/$stamp');
+    var target = Directory('${tujuan.path}/$stamp');
     var extra = 1;
     while (await target.exists()) {
-      target = Directory('${store.root.path}/export/$kind/${stamp}_$extra');
+      target = Directory('${tujuan.path}/${stamp}_$extra');
       extra++;
     }
     await target.create(recursive: true);
@@ -626,7 +629,7 @@ class ExportService {
     }
     if (automatic) {
       await store.recordExport(metadata, rw, rts);
-      await _rotateAutoExports();
+      await _rotateAutoExports(tujuan);
       return files;
     }
     final duplicateRows = await store.duplicateRows(rw: rw, rt: rt);
@@ -693,8 +696,7 @@ class ExportService {
     return posisi;
   }
 
-  Future<void> _rotateAutoExports({int keep = 10}) async {
-    final dir = Directory('${store.root.path}/export/auto');
+  Future<void> _rotateAutoExports(Directory dir, {int keep = 10}) async {
     if (!await dir.exists()) return;
     final folders = await dir
         .list()

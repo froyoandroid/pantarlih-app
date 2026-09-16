@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../core/format.dart';
+import '../data/exchange.dart';
 import '../data/storage.dart';
 import '../data/store.dart';
 import '../data/spreadsheets.dart';
@@ -12,11 +13,19 @@ const canvas = Color(0xFFF5F5EF);
 const amber = Color(0xFF95641A);
 
 class Session extends ChangeNotifier {
-  Session(this.store, {this.usingPublic = true, WilayahRepo? wilayah})
+  Session(this.store, {WilayahRepo? wilayah, this.pertukaranInduk})
       : wilayah = wilayah ?? WilayahRepo.unavailable();
   AppStore store;
-  bool usingPublic;
   WilayahRepo wilayah;
+
+  /// Overrides the public Documents parent of the exchange folder. Tests and
+  /// desktop pass a temp dir, Android leaves it null and asks the platform.
+  final Directory? pertukaranInduk;
+
+  /// Why the last automatic cadangan could not be written, or null when the
+  /// last RT switch mirrored fine (or had no permission yet, which is not
+  /// an error). Beranda shows it so a silent backup failure never hides.
+  String? peringatanCadangan;
   int rt = 0, rw = 0;
   String village = '';
   String? kodeWilayah;
@@ -42,7 +51,7 @@ class Session extends ChangeNotifier {
   }
 
   /// Read-only state refresh. Safe from anywhere: startup, after saving a
-  /// lokasi, after a folder move, after a rebuild.
+  /// lokasi, after a rebuild.
   Future<void> load() async {
     final values = await store.settings();
     rt = intValue(values['rt_aktif']);
@@ -83,27 +92,21 @@ class Session extends ChangeNotifier {
   Future<void> saveLokasi(Lokasi next) async {
     await store.setLokasi(next.toRow());
     await load();
-    await selaraskanFolderDesa();
   }
 
-  Future<void> selaraskanFolderDesa() async {
-    final nama = (lokasi?.namaDesa ?? village).trim();
-    if (nama.isEmpty) return;
-    final ingin = namaFolderDesa(nama, kodeWilayah: lokasi?.kode);
-    if (basenameDir(store.root) == ingin) {
-      await tulisFolderAktif(store.root.parent, ingin);
-      return;
-    }
-    final next = Directory('${store.root.parent.path}/$ingin');
-    await store.recordStorageMove(store.root.path, next.path);
-    final lama = store.root;
-    await store.close();
-    await relocateDataRoot(lama, next);
-    store = AppStore(next);
-    await store.open();
-    await tulisFolderAktif(next.parent, ingin);
-    await load();
-  }
+  /// Public exchange folder for this desa. [minta] true prompts for the
+  /// storage permission (export, import), false never prompts and yields
+  /// null while the permission is missing (automatic backups).
+  Future<ExchangeFolder?> folderPertukaran({required bool minta}) =>
+      bukaFolderPertukaran(
+          desa: (lokasi?.namaDesa ?? village).trim(),
+          kodeWilayah: lokasi?.kode,
+          minta: minta,
+          induk: pertukaranInduk);
+
+  /// Label of the exchange folder for the UI, without touching storage.
+  String get labelFolderPertukaran =>
+      'Documents/${namaFolderDesa((lokasi?.namaDesa ?? village).trim(), kodeWilayah: lokasi?.kode)}';
 
   Future<void> _remember(int newRt, int newRw) async {
     rt = newRt;
@@ -114,10 +117,24 @@ class Session extends ChangeNotifier {
 
   Future<void> focusRt(RtRw pair) async {
     if (rt == pair.rt && rw == pair.rw) return;
-    // ponytail: unconditional snapshot + auto-export on every switch; a
-    // dirty-since-last-snapshot check needs change tracking we don't have.
-    await store.snapshot();
-    await ExportService(store).generate(rw: rw, rt: rt, automatic: true);
+    // Every switch snapshots privately, then mirrors it as a cadangan bundle
+    // plus automatic Excel into the public folder, but only when the storage
+    // permission is already granted: a switch must never open a dialog.
+    final snap = await store.snapshot();
+    try {
+      final folder = await folderPertukaran(minta: false);
+      if (folder != null) {
+        await tulisCadangan(store, snap, folder.cadangan);
+        await ExportService(store).generate(
+            tujuan: folder.eksporOtomatis, rw: rw, rt: rt, automatic: true);
+      }
+      peringatanCadangan = null;
+    } catch (e) {
+      // The private snapshot already exists, so the switch must go on. A
+      // public folder that cannot be written is reported, not fatal.
+      peringatanCadangan =
+          'Cadangan otomatis ke folder publik gagal ditulis. Snapshot di dalam aplikasi tetap tersimpan. Buka Ekspor & pemulihan untuk mencoba lagi.';
+    }
     if (!workspace.contains(pair)) {
       workspace = [...workspace, pair]..sort();
     }
@@ -164,24 +181,6 @@ class Session extends ChangeNotifier {
     village = (await store.settings())['desa_default'] ?? '';
     notifyListeners();
   }
-
-  Future<bool> adoptPublicRoot(ResolvedStorage resolved) async {
-    if (!resolved.usingPublic) return false;
-    if (store.root.path == resolved.root.path) {
-      usingPublic = true;
-      notifyListeners();
-      return true;
-    }
-    await store.recordStorageMove(store.root.path, resolved.root.path);
-    await store.close();
-    await relocateDataRoot(store.root, resolved.root);
-    store = AppStore(resolved.root);
-    await store.open();
-    usingPublic = true;
-    await tulisFolderAktif(resolved.root.parent, basenameDir(resolved.root));
-    await load();
-    return true;
-  }
 }
 
 class AppPage extends StatelessWidget {
@@ -192,8 +191,7 @@ class AppPage extends StatelessWidget {
       required this.child,
       this.bottom,
       this.actions,
-      this.subtitle,
-      this.storageBanner = false});
+      this.subtitle});
   final Session session;
   final String title;
   final Widget child;
@@ -203,10 +201,6 @@ class AppPage extends StatelessWidget {
   /// Small secondary line rendered directly under the title, e.g. the
   /// long-form date on Beranda.
   final String? subtitle;
-
-  /// The red internal-storage banner eats vertical space on small screens,
-  /// so it renders only where storage decisions happen (Beranda and Admin).
-  final bool storageBanner;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
       listenable: session,
@@ -228,58 +222,17 @@ class AppPage extends StatelessWidget {
                     ]),
                 actions: actions),
             body: SafeArea(
-                child: Column(children: [
-              if (storageBanner && !session.usingPublic)
-                _PrivateStorageBanner(session: session),
-              Expanded(
-                  child: Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 840),
-                          child: child))),
-            ])),
+                child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 840),
+                        child: child))),
             bottomNavigationBar: bottom == null
                 ? null
                 : SafeArea(
                     child: Padding(
                         padding: const EdgeInsets.all(16), child: bottom)),
           ));
-}
-
-class _PrivateStorageBanner extends StatelessWidget {
-  const _PrivateStorageBanner({required this.session});
-  final Session session;
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-        color: const Color(0xFF8B1E1E),
-        child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-            child: Column(children: [
-              const Text(
-                  'Cadangan tidak tersimpan ke Documents atau Dokumen. Ekspor manual dan bagikan berkas secara berkala.',
-                  style: TextStyle(color: Colors.white, height: 1.35)),
-              Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                      onPressed: () async {
-                        try {
-                          final resolved = await resolveDataRoot();
-                          final moved = await session.adoptPublicRoot(resolved);
-                          if (!moved && context.mounted) {
-                            feedback(context,
-                                'Izin berkas masih ditolak. Aplikasi tetap memakai folder internal.');
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            feedback(context, e, error: true);
-                          }
-                        }
-                      },
-                      child: const Text('Coba minta izin lagi',
-                          style: TextStyle(color: Colors.white))))
-            ])));
-  }
 }
 
 class Notice extends StatelessWidget {
