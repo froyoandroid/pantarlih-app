@@ -276,6 +276,12 @@ class _RtListScreenState extends State<RtListScreen> {
                                                   .deleteWarga(id);
                                               await _load();
                                             } catch (e) {
+                                              // The row is already gone from
+                                              // the widget tree; reload or the
+                                              // screen pretends it was deleted.
+                                              await _load();
+                                              // Closure context from the item
+                                              // builder, so guard it directly.
                                               if (context.mounted) {
                                                 feedback(context, e,
                                                     error: true);
