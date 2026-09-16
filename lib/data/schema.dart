@@ -1,6 +1,5 @@
 const schemaVersion = 6;
 const schemaBaseVersion = 6;
-const appVersion = '1.0.0+1';
 
 /// The complete, current database shape. Fresh installs run only these
 /// statements; existing databases upgrade stepwise via builtinUpgrades in

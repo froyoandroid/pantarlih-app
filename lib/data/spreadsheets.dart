@@ -4,10 +4,10 @@ import 'package:archive/archive.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
+import '../core/app_info.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
 import '../core/nik.dart';
-import 'schema.dart';
 import 'store.dart';
 
 const importFields = <String, String>{
