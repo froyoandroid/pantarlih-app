@@ -58,7 +58,7 @@ class PantarlihApp extends StatelessWidget {
   final Future<bool> Function()? introSudah;
   @override
   Widget build(BuildContext context) => MaterialApp(
-      title: 'Pantarlih Kalitorong',
+      title: 'Pantarlih',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
