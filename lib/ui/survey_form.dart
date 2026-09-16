@@ -46,32 +46,30 @@ class _SurveyFormState extends State<SurveyForm> {
     super.initState();
     final edit = widget.warga;
     final seed = widget.seed;
+    String pilih(List<Object?> values, [String fallback = '']) {
+      for (final v in values) {
+        final t = teks(v);
+        if (t.isNotEmpty) return t;
+      }
+      return fallback;
+    }
+
     name = TextEditingController(
-        text: '${edit?['nama'] ?? seed?['nama'] ?? widget.initialName ?? ''}');
-    nik = TextEditingController(
-        text: '${edit?['nik'] ?? ''}' == 'null' ? '' : '${edit?['nik'] ?? ''}');
+        text: pilih([edit?['nama'], seed?['nama'], widget.initialName]));
+    nik = TextEditingController(text: pilih([edit?['nik']]));
     birthPlace = TextEditingController(
-        text:
-            '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}' == 'null'
-                ? ''
-                : '${edit?['tempat_lahir'] ?? seed?['tempat_lahir'] ?? ''}');
+        text: pilih([edit?['tempat_lahir'], seed?['tempat_lahir']]));
     birthDate = TextEditingController(
         text: edit?['tgl_lahir'] != null
             ? tanggalTampil(edit?['tgl_lahir'])
-            : seed?['tgl_lahir_raw'] as String? ??
-                tanggalTampil(seed?['tgl_lahir']));
-    village = TextEditingController(
-        text: '${edit?['desa'] ?? seed?['desa'] ?? widget.session.village}' ==
-                'null'
-            ? widget.session.village
-            : '${edit?['desa'] ?? seed?['desa'] ?? widget.session.village}');
+            : pilih([seed?['tgl_lahir_raw'], tanggalTampil(seed?['tgl_lahir'])]));
+    village = TextEditingController(text:
+        pilih([edit?['desa'], seed?['desa']], widget.session.village));
     rt = TextEditingController(
-        text: '${edit?['rt'] ?? seed?['rt'] ?? widget.session.rt}');
+        text: teks(edit?['rt'] ?? seed?['rt'] ?? widget.session.rt));
     rw = TextEditingController(
-        text: '${edit?['rw'] ?? seed?['rw'] ?? widget.session.rw}');
-    final rawNote = '${edit?['keterangan'] ?? ''}' == 'null'
-        ? ''
-        : '${edit?['keterangan'] ?? ''}';
+        text: teks(edit?['rw'] ?? seed?['rw'] ?? widget.session.rw));
+    final rawNote = pilih([edit?['keterangan']]);
     note = TextEditingController(text: rawNote);
     ketChip = chipKeterangan(rawNote);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;

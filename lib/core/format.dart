@@ -51,6 +51,16 @@ String? nullableText(String value) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
+/// SQLite text values from older app versions can be the literal string
+/// 'null'. Current writers never produce it (every write goes through
+/// nullableText), so this is a display-side guard for legacy rows: null and
+/// 'null' both become the empty string, everything else is trimmed.
+String teks(Object? v) {
+  if (v == null) return '';
+  final t = '$v'.trim();
+  return t == 'null' ? '' : t;
+}
+
 int intValue(Object? value, [int fallback = 0]) =>
     int.tryParse('$value') ?? fallback;
 String jkTampil(Object? value) => value == 'L'

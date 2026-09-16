@@ -41,6 +41,15 @@ void main() {
     expect(skorNama('ahmad', 'EHMAD'), greaterThan(30));
     expect(skorNama('ahmad', 'ZZZZZ'), 0);
   });
+  test('teks treats null and the literal string null as empty', () {
+    expect(teks(null), '');
+    expect(teks('null'), '');
+    expect(teks('  null '), '');
+    expect(teks(''), '');
+    expect(teks(' 3327071909680001 '), '3327071909680001');
+    expect(teks(3), '3');
+  });
+
   test('date formatter inserts dashes and still parses to ISO', () {
     final formatted = TanggalInputFormatter().formatEditUpdate(
         TextEditingValue.empty, const TextEditingValue(text: '19091968'));
