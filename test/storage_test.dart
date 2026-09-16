@@ -8,6 +8,18 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
 
+  test('folder name suffixes the wilayah kode to split look-alike desas',
+      () {
+    expect(namaFolderDesa('Sido Mulyo'), namaFolderDesa('Sidomulyo'));
+    expect(namaFolderDesa('Sido Mulyo', kodeWilayah: '33.27.07.2001'),
+        'PantarlihSidomulyo_3327072001');
+    expect(namaFolderDesa('Sidomulyo', kodeWilayah: '33.27.07.2002'),
+        isNot(namaFolderDesa('Sidomulyo', kodeWilayah: '33.27.07.2001')));
+    expect(namaFolderDesa('Sido Mulyo', kodeWilayah: 'MANUAL:sido mulyo'),
+        'PantarlihSidomulyo_MANUALsidomulyo');
+    expect(namaFolderDesa('', kodeWilayah: ''), 'Pantarlih');
+  });
+
   test('denied permission still opens on the internal directory', () async {
     final internal = await Directory.systemTemp.createTemp('pantarlih-int-');
     addTearDown(() => internal.delete(recursive: true));

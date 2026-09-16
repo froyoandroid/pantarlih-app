@@ -88,7 +88,7 @@ class Session extends ChangeNotifier {
   Future<void> selaraskanFolderDesa() async {
     final nama = (lokasi?.namaDesa ?? village).trim();
     if (nama.isEmpty) return;
-    final ingin = namaFolderDesa(nama);
+    final ingin = namaFolderDesa(nama, kodeWilayah: lokasi?.kode);
     if (basenameDir(store.root) == ingin) {
       await tulisFolderAktif(store.root.parent, ingin);
       return;
