@@ -87,6 +87,7 @@ class AppStore extends ChangeNotifier {
       throw AppException('Pemeriksaan integritas database gagal. Berkas aman '
           'di ${root.path}. Gunakan pemulihan dari jurnal.');
     }
+    await _muatKolom();
     // Fase 3: journal replay and cleanup on a healthy, open database.
     // Suggesting a rebuild here would mislead: the database is fine.
     try {
@@ -323,15 +324,26 @@ class AppStore extends ChangeNotifier {
         for (final column in columns) column: source[column],
       };
 
-  Iterable<String> get _wargaCols => wargaColumns.where((c) {
-        if (c == 'kode_wilayah' && schemaV < 4) return false;
-        if (c == 'warna' && schemaV < 6) return false;
-        return true;
-      });
+  /// Column sets read from the live database at open time. The truth is the
+  /// file itself: a schemaVersion check would always pass in production and
+  /// only mislead, while PRAGMA reflects whatever shape the database has.
+  Set<String> _wargaDbCols = {};
+  Set<String> _refDbCols = {};
 
-  Iterable<String> get _refCols => schemaV >= 4
-      ? referensiColumns
-      : referensiColumns.where((c) => c != 'kode_wilayah');
+  Future<void> _muatKolom() async {
+    _wargaDbCols = {
+      for (final c in await db.rawQuery('PRAGMA table_info(warga)'))
+        '${c['name']}'
+    };
+    _refDbCols = {
+      for (final c in await db.rawQuery('PRAGMA table_info(referensi)'))
+        '${c['name']}'
+    };
+  }
+
+  Iterable<String> get _wargaCols => wargaColumns.where(_wargaDbCols.contains);
+
+  Iterable<String> get _refCols => referensiColumns.where(_refDbCols.contains);
 
   Future<RecordMap> _commit(String op, String table,
           Future<RecordMap> Function(Transaction txn, String ts) prepare,
@@ -1019,6 +1031,7 @@ class AppStore extends ChangeNotifier {
         }
         await File(candidatePath).rename(dbPath);
         db = await _openDatabase(dbPath);
+        await _muatKolom();
         report.previousDatabase = backup;
         _recoveryRequired = false;
         notifyListeners();
