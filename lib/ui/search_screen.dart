@@ -6,6 +6,20 @@ import '../core/nik.dart';
 import 'common.dart';
 import 'survey_form.dart';
 
+/// Precomputed search results for one query, computed outside build() so
+/// keyboard pops and snackbars never re-run Levenshtein over every row.
+class HasilCari {
+  const HasilCari(
+      {this.aktif = false,
+      this.diperluas = false,
+      this.warga = const [],
+      this.referensi = const []});
+  final bool aktif;
+  final bool diperluas;
+  final List<(RecordMap, double)> warga;
+  final List<(RecordMap, double)> referensi;
+}
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen(
       {super.key, required this.session, this.afterId, this.beforeId});
@@ -25,8 +39,9 @@ class _SearchScreenState extends State<SearchScreen> {
   String typed = '';
   String? error;
   Timer? debounce;
+  HasilCari hasil = const HasilCari();
+  final cacheSkor = <String, HasilCari>{};
   Session get session => widget.session;
-
   @override
   void initState() {
     super.initState();
@@ -44,6 +59,8 @@ class _SearchScreenState extends State<SearchScreen> {
           loading = false;
           error = null;
         });
+        cacheSkor.clear();
+        if (query.text.trim().isNotEmpty) _perbaruiSkor(query.text);
       }
     } catch (e) {
       if (mounted) {
@@ -65,9 +82,67 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _onChanged(String value) {
     debounce?.cancel();
-    debounce = Timer(const Duration(milliseconds: 60), () {
-      if (mounted) setState(() => typed = value);
+    // 180 ms: scoring stays out of build and waits for a typing pause.
+    debounce = Timer(const Duration(milliseconds: 180), () {
+      if (mounted) _perbaruiSkor(value);
     });
+  }
+
+  /// Scores outside build, memoized per query and mode. The cache lives
+  /// only between data loads; _load() clears it since rows may have changed.
+  void _perbaruiSkor(String value) {
+    final q = value.trim();
+    final kunci = '$byDate|$q';
+    final hasilBaru =
+        cacheSkor.putIfAbsent(kunci, () => _hitung(q, byDate));
+    cacheSkor
+      ..remove(kunci)
+      ..[kunci] = hasilBaru;
+    while (cacheSkor.length > 8) {
+      cacheSkor.remove(cacheSkor.keys.first);
+    }
+    setState(() {
+      typed = value;
+      hasil = hasilBaru;
+    });
+  }
+
+  HasilCari _hitung(String q, bool tanggal) {
+    if (!tanggal) {
+      if (q.length < 3) return const HasilCari();
+      var pool = warga
+          .where((r) => r['rt'] == session.rt && r['rw'] == session.rw)
+          .toList();
+      var existing = _rank(pool, q, 10);
+      if (existing.isEmpty) existing = _rank(warga, q, 10);
+      var refPool = referensi.where((r) => r['rt'] == session.rt).toList();
+      final diperluas = refPool.isEmpty && referensi.isNotEmpty;
+      if (diperluas) refPool = referensi;
+      return HasilCari(
+          aktif: true,
+          diperluas: diperluas,
+          warga: existing,
+          referensi: _rank(refPool, q, 5));
+    }
+    final iso = parseTanggal(q);
+    if (iso == null) return const HasilCari();
+    final refs = [
+      for (final r in referensi)
+        if (r['tgl_lahir'] == iso) (r, 100.0),
+    ]..sort((a, b) => (a.$1['rt'] == session.rt ? 0 : 1)
+        .compareTo(b.$1['rt'] == session.rt ? 0 : 1));
+    return HasilCari(aktif: true, referensi: refs);
+  }
+
+  List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas) {
+    final ranked = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
+    ranked.sort((a, b) {
+      final cmp = b.$2.compareTo(a.$2);
+      return cmp != 0
+          ? cmp
+          : intValue(a.$1['id']).compareTo(intValue(b.$1['id']));
+    });
+    return ranked.where((e) => e.$2 >= 30).take(batas).toList();
   }
 
   Future<void> _openForm({RecordMap? wargaRow, RecordMap? seed}) async {
@@ -89,60 +164,16 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
     query.clear();
-    typed = '';
+    cacheSkor.clear();
+    _perbaruiSkor('');
     await _load();
     focus.requestFocus();
-  }
-
-  List<(RecordMap, double)> _score(List<RecordMap> pool, String q) {
-    final ranked = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
-    ranked.sort((a, b) {
-      final cmp = b.$2.compareTo(a.$2);
-      return cmp != 0
-          ? cmp
-          : intValue(a.$1['id']).compareTo(intValue(b.$1['id']));
-    });
-    return ranked;
   }
 
   @override
   Widget build(BuildContext context) {
     final q = typed.trim();
-    final active = byDate ? parseTanggal(q) != null : q.length >= 3;
-    var existing = <(RecordMap, double)>[];
-    var refs = <(RecordMap, double)>[];
-    var expanded = false;
-    if (active) {
-      if (byDate) {
-        final iso = parseTanggal(q);
-        refs = referensi
-            .where((r) => r['tgl_lahir'] == iso)
-            .map((r) => (r, 100.0))
-            .toList();
-        refs.sort((a, b) => (a.$1['rt'] == session.rt ? 0 : 1)
-            .compareTo(b.$1['rt'] == session.rt ? 0 : 1));
-      } else {
-        existing = _score(
-                warga
-                    .where(
-                        (r) => r['rt'] == session.rt && r['rw'] == session.rw)
-                    .toList(),
-                q)
-            .where((e) => e.$2 >= 30)
-            .take(10)
-            .toList();
-        if (existing.isEmpty) {
-          existing =
-              _score(warga, q).where((e) => e.$2 >= 30).take(10).toList();
-        }
-        var pool = referensi.where((r) => r['rt'] == session.rt).toList();
-        if (pool.isEmpty) {
-          pool = referensi;
-          expanded = referensi.isNotEmpty;
-        }
-        refs = _score(pool, q).take(5).toList();
-      }
-    }
+    final active = hasil.aktif;
     return AppPage(
         session: session,
         title: 'Ketik nama',
@@ -182,7 +213,6 @@ class _SearchScreenState extends State<SearchScreen> {
                             onPressed: () => setState(() {
                                   byDate = !byDate;
                                   query.clear();
-                                  typed = '';
                                 }),
                             icon: Icon(
                                 byDate
@@ -209,18 +239,18 @@ class _SearchScreenState extends State<SearchScreen> {
                                     ? 'Isi tanggal lengkap. Semua kecocokan ditampilkan, RT aktif lebih dulu.'
                                     : 'Ketik sedikitnya 3 karakter. Nama dapat dicari dari kata mana pun.',
                                 icon: Icons.person_search_outlined),
-                          if (expanded)
+                          if (hasil.diperluas)
                             const Notice(
                                 'RT aktif tidak memiliki referensi. Pencarian diperluas ke seluruh RW aktif.',
                                 warning: true),
-                          if (active && existing.isNotEmpty) ...[
+                          if (active && hasil.warga.isNotEmpty) ...[
                             const Padding(
                                 padding: EdgeInsets.only(top: 8, bottom: 4),
                                 child: Text('SUDAH DIINPUT',
                                     style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: .6))),
-                            for (final candidate in existing)
+                            for (final candidate in hasil.warga)
                               ResidentCard(candidate.$1,
                                   highlight: true,
                                   score: byDate ? null : candidate.$2,
@@ -237,12 +267,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                     style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: .6))),
-                            if (refs.isEmpty)
+                            if (hasil.referensi.isEmpty)
                               const Text(
                                   'Tidak ada saran referensi. Ketik manual lewat TAMBAH BARU.',
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54)),
-                            for (final candidate in refs)
+                            for (final candidate in hasil.referensi)
                               ResidentCard(candidate.$1,
                                   score: byDate ? null : candidate.$2,
                                   label: candidate.$1['rt'] != session.rt
