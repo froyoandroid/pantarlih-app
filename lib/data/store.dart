@@ -128,6 +128,7 @@ class AppStore extends ChangeNotifier {
       if (!await source.exists()) continue;
       await source.copy('${root.path}/snapshot/pre_migrasi_$stamp.db$suffix');
     }
+    await _rotateSnapshot('pre_migrasi', 5);
   }
 
   Future<void> _applySchema(Database db, int version) async {
@@ -913,21 +914,40 @@ class AppStore extends ChangeNotifier {
         }
         final copy = await File(dbPath)
             .copy('${root.path}/snapshot/db_${fileStamp()}.db');
-        final files = await snapshots();
-        for (final old in files.skip(20)) {
-          await old.delete();
-        }
+        await _rotateSnapshot('db', 20);
         return copy;
       });
 
   Future<List<File>> snapshots() async {
     final files = await Directory('${root.path}/snapshot')
         .list()
-        .where((e) => e is File && RegExp(r'/db_\d+\.db$').hasMatch(e.path))
+        .where((e) => e is File && RegExp(r'/db_.+\.db$').hasMatch(e.path))
         .cast<File>()
         .toList();
     files.sort((a, b) => b.path.compareTo(a.path));
     return files;
+  }
+
+  /// Keeps only the newest [keep] stamped `<prefix>_*.db` files and removes
+  /// their -wal/-shm sidecars. Matching is prefix-based, not digit-based, so
+  /// a future fileStamp format change cannot silently stop the rotation.
+  Future<void> _rotateSnapshot(String prefix, int keep) async {
+    final dir = Directory('${root.path}/snapshot');
+    if (!await dir.exists()) return;
+    final all = await dir
+        .list()
+        .where((e) => e is File)
+        .cast<File>()
+        .toList();
+    final utama = all
+        .where((f) => RegExp('/${prefix}_.+\\.db\$').hasMatch(f.path))
+        .toList()
+      ..sort((a, b) => b.path.compareTo(a.path));
+    for (final old in utama.skip(keep)) {
+      for (final f in all) {
+        if (f.path.startsWith(old.path)) await f.delete();
+      }
+    }
   }
 
   Future<RecoveryReport> _replay(Database target,

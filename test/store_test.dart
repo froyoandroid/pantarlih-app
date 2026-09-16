@@ -183,8 +183,7 @@ void main() {
     });
     expect(await store.duplicateRows(), hasLength(2));
     expect(await store.duplicateRows(rw: 3, rt: 3), hasLength(1));
-    expect(
-        (await store.duplicateRows(rw: 3, rt: 3)).single['rt'], 3);
+    expect((await store.duplicateRows(rw: 3, rt: 3)).single['rt'], 3);
   });
 
   test('trim cleanup runs once per install and is marked in setelan', () async {
@@ -555,6 +554,72 @@ void main() {
     expect(report.failed, 0);
     expect(await store.db.query('warga'), before);
     expect((await store.warga(second['id'] as int))!['nama'], 'PENGGANTI');
+  });
+
+  test('snapshot rotation trims the oldest db copies', () async {
+    final dir = Directory('${root.path}/snapshot');
+    for (var i = 1; i <= 24; i++) {
+      File('${dir.path}/db_20260901${i.toString().padLeft(6, '0')}.db')
+          .writeAsStringSync('x$i');
+    }
+    await store.snapshot();
+    final sisa = await store.snapshots();
+    expect(sisa, hasLength(20));
+    expect(await File('${dir.path}/db_20260901000001.db').exists(), isFalse);
+    expect(await File('${dir.path}/db_20260901000005.db').exists(), isFalse);
+    expect(await File('${dir.path}/db_20260901000006.db').exists(), isTrue);
+  });
+
+  test('pre-migration snapshots rotate with their own cap plus sidecars',
+      () async {
+    final isolated =
+        await Directory.systemTemp.createTemp('pantarlih-premig-');
+    final dir = Directory('${isolated.path}/snapshot')..createSync();
+    for (var i = 1; i <= 8; i++) {
+      final nama =
+          'pre_migrasi_20260901${i.toString().padLeft(6, '0')}.db';
+      File('${dir.path}/$nama').writeAsStringSync('p$i');
+      File('${dir.path}/$nama-wal').writeAsStringSync('w$i');
+    }
+    final older = AppStore(isolated, factory: databaseFactoryFfi, schemaV: 2);
+    await older.open();
+    await older.saveWarga(fields());
+    await older.close();
+    final newer =
+        AppStore(isolated, factory: databaseFactoryFfi, schemaV: 3, upgrades: {
+      2: ['ALTER TABLE warga ADD COLUMN kolom_baru TEXT']
+    });
+    await newer.open();
+    try {
+      final sisa = Directory('${isolated.path}/snapshot')
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.path.split('/').last)
+          .toList();
+      final utama = sisa.where((n) => n.endsWith('.db')).toList();
+      // The fresh copy counts inside the cap of 5.
+      expect(utama, hasLength(5));
+      expect(
+          utama.any((n) => n.startsWith('pre_migrasi_20260901000001')), isFalse);
+      expect(
+          utama.any((n) => n.startsWith('pre_migrasi_20260901000004')), isFalse);
+      expect(
+          utama.any((n) => n.startsWith('pre_migrasi_20260901000005')), isTrue);
+      // Sidecars of trimmed stamps are gone too.
+      expect(
+          await File(
+                  '${dir.path}/pre_migrasi_20260901000001.db-wal')
+              .exists(),
+          isFalse);
+      expect(
+          await File(
+                  '${dir.path}/pre_migrasi_20260901000005.db-wal')
+              .exists(),
+          isTrue);
+    } finally {
+      await newer.close();
+      await isolated.delete(recursive: true);
+    }
   });
 
   test('opening a v2 database on v3 keeps every row and snapshots first',

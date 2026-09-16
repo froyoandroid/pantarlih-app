@@ -163,4 +163,7 @@ void main() {
     expect(timestamp(DateTime.utc(2026, 9, 15, 2, 14, 22)),
         '2026-09-15T09:14:22.000+07:00');
   });
+  test('fileStamp stays digits only so snapshot rotation matching holds', () {
+    expect(RegExp(r'^\d+$').hasMatch(fileStamp()), isTrue);
+  });
 }
