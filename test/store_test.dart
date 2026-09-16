@@ -1079,6 +1079,63 @@ void main() {
     }
   });
 
+  test('official lokasi never clobbers a typed village name', () async {
+    await store.setSession(3, 3);
+    final session = Session(store);
+    await session.pastikanWorkspace();
+    await session.setVillage('DUSUN KETIK');
+    // saveLokasi() also relocates the folder, which needs the platform
+    // databaseFactory - drive the lokasi write directly instead.
+    await store.setLokasi({
+      'kode': '33.27.07.2016',
+      'nama_desa': 'Kalitorong',
+      'manual': 0,
+    });
+    await session.load();
+    expect(session.village, 'DUSUN KETIK');
+    expect((await store.settings())['desa_default'], 'DUSUN KETIK');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect((await store.settings())['desa_default'], 'DUSUN KETIK');
+  });
+
+  test('village label falls back to lokasi.nama_desa after rebuild', () async {
+    await store.setLokasi({
+      'kode': '33.27.07.2016',
+      'nama_desa': 'Kalitorong',
+      'manual': 0,
+    });
+    expect((await store.settings())['desa_default'], '');
+    final session = Session(store);
+    await session.pastikanWorkspace();
+    expect(session.village, 'Kalitorong');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    final after = Session(store);
+    await after.pastikanWorkspace();
+    expect(after.village, 'Kalitorong');
+  });
+
+  test('renaming a manual lokasi keeps the kode and updates nama_desa',
+      () async {
+    await store.setLokasi({
+      'kode': 'MANUAL:sidomulyo',
+      'nama_desa': 'Sidomulyo',
+      'manual': 1,
+    });
+    final session = Session(store);
+    await session.pastikanWorkspace();
+    await session.setVillage('Sido Mulyo Barat');
+    final row = (await store.db.query('lokasi')).single;
+    expect(row['kode'], 'MANUAL:sidomulyo');
+    expect(row['nama_desa'], 'Sido Mulyo Barat');
+    expect(session.village, 'Sido Mulyo Barat');
+    final report = await store.rebuild();
+    expect(report.failed, 0);
+    expect((await store.db.query('lokasi')).single['nama_desa'],
+        'Sido Mulyo Barat');
+  });
+
   test('saving lokasi writes one journal event and survives rebuild', () async {
     await store.setLokasi({
       'kode': '33.27.07.2016',
