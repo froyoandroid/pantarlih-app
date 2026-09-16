@@ -52,3 +52,49 @@ String jkTampil(Object? value) => value == 'L'
 String fileStamp() => timestamp().replaceAll(RegExp(r'[^0-9]'), '');
 
 typedef RecordMap = Map<String, Object?>;
+
+class RtRw implements Comparable<RtRw> {
+  const RtRw(this.rw, this.rt);
+  final int rw;
+  final int rt;
+
+  static List<RtRw> decode(String raw) {
+    final out = <RtRw>[];
+    for (final part in raw.split(',')) {
+      final token = part.trim();
+      if (token.isEmpty) continue;
+      final bits = token.split('.');
+      if (bits.length != 2) continue;
+      final nextRw = int.tryParse(bits[0]);
+      final nextRt = int.tryParse(bits[1]);
+      if (nextRw == null || nextRt == null || nextRw <= 0 || nextRt <= 0) {
+        continue;
+      }
+      final item = RtRw(nextRw, nextRt);
+      if (!out.contains(item)) out.add(item);
+    }
+    out.sort();
+    return out;
+  }
+
+  static String encode(List<RtRw> items) {
+    final copy = [...items]..sort();
+    return copy.map((e) => '${e.rw}.${e.rt}').join(',');
+  }
+
+  String get label =>
+      'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
+
+  @override
+  int compareTo(RtRw other) {
+    final byRw = rw.compareTo(other.rw);
+    return byRw != 0 ? byRw : rt.compareTo(other.rt);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is RtRw && other.rw == rw && other.rt == rt;
+
+  @override
+  int get hashCode => Object.hash(rw, rt);
+}

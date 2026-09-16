@@ -23,6 +23,9 @@ class RecoveryReport {
   int failed = 0;
   String? failurePath;
   String? previousDatabase;
+  List<String> details = [];
+  bool showNotice = false;
+  String get fingerprint => details.join('\n');
   @override
   String toString() =>
       '$processed baris diproses · $applied diterapkan · $failed gagal';
@@ -136,13 +139,15 @@ class AppStore extends ChangeNotifier {
       'rw_aktif': '',
       'desa_default': '',
       'kode_wilayah_aktif': '',
+      'ruang_kerja': '',
+      'laporan_jurnal_diabaikan': '',
       'schema_v': '$schemaV',
       for (final row in rows)
         row['kunci'] as String: row['nilai'] as String? ?? ''
     };
   }
 
-  Future<void> setSession(int rt, int rw) async {
+  Future<void> setSession(int rt, int rw, {String? ruangKerja}) async {
     await _commit(
         'UPDATE',
         'setelan',
@@ -150,6 +155,8 @@ class AppStore extends ChangeNotifier {
               'records': [
                 {'kunci': 'rt_aktif', 'nilai': '$rt'},
                 {'kunci': 'rw_aktif', 'nilai': '$rw'},
+                if (ruangKerja != null)
+                  {'kunci': 'ruang_kerja', 'nilai': ruangKerja},
               ]
             });
   }
@@ -166,6 +173,48 @@ class AppStore extends ChangeNotifier {
                 },
               ]
             });
+  }
+
+  Future<void> dismissJournalReport() async {
+    final fingerprint = startupRecovery?.fingerprint ?? '';
+    await _commit(
+        'UPDATE',
+        'setelan',
+        (txn, ts) async => {
+              'records': [
+                {'kunci': 'laporan_jurnal_diabaikan', 'nilai': fingerprint},
+              ]
+            });
+    await _deleteFailureLogs();
+    if (startupRecovery != null) {
+      startupRecovery!.showNotice = false;
+      startupRecovery!.failurePath = null;
+    }
+    notifyListeners();
+  }
+
+  Future<String> journalReportText() async {
+    final report = startupRecovery;
+    if (report == null || report.details.isEmpty) {
+      return 'Tidak ada laporan jurnal rusak.';
+    }
+    final prefix = '${root.path}/';
+    return [
+      for (final line in report.details)
+        line.startsWith(prefix) ? line.substring(prefix.length) : line
+    ].join('\n');
+  }
+
+  Future<void> _deleteFailureLogs() async {
+    final dir = Directory('${root.path}/recovered');
+    if (!await dir.exists()) return;
+    await for (final entity in dir.list()) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last;
+      if (name.startsWith('gagal_') && name.endsWith('.log')) {
+        await entity.delete();
+      }
+    }
   }
 
   Future<RecordMap> setLokasi(RecordMap fields) async {
@@ -761,6 +810,11 @@ class AppStore extends ChangeNotifier {
       COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
     FROM warga WHERE rw = ? GROUP BY rt ORDER BY rt''', [rw]);
 
+  Future<List<RecordMap>> countsByRtRw() => db.rawQuery('''
+    SELECT rw, rt, COUNT(*) AS jumlah,
+      COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
+    FROM warga GROUP BY rw, rt ORDER BY rw, rt''');
+
   Future<List<int>> rtList(int rw) async {
     final rows = await db.rawQuery(
         'SELECT rt FROM warga WHERE rw=? UNION SELECT rt FROM referensi WHERE rw=? ORDER BY rt',
@@ -805,7 +859,8 @@ class AppStore extends ChangeNotifier {
     return files;
   }
 
-  Future<RecoveryReport> _replay(Database target) async {
+  Future<RecoveryReport> _replay(Database target,
+      {bool honorDismiss = true}) async {
     final report = RecoveryReport();
     final errors = <String>[];
     final knownRows = await target.query('log', columns: ['id']);
@@ -845,11 +900,19 @@ class AppStore extends ChangeNotifier {
         }
       }
     }
-    if (errors.isNotEmpty) {
-      report.failurePath = '${root.path}/recovered/gagal_${fileStamp()}.log';
-      await File(report.failurePath!)
-          .writeAsString('${errors.join('\n')}\n', flush: true);
+    if (errors.isEmpty) return report;
+    report.details = errors;
+    var ignored = '';
+    if (honorDismiss) {
+      final rows = await target.query('setelan',
+          where: 'kunci = ?', whereArgs: ['laporan_jurnal_diabaikan']);
+      ignored = rows.isEmpty ? '' : '${rows.first['nilai'] ?? ''}';
     }
+    if (honorDismiss && report.fingerprint == ignored) return report;
+    report.showNotice = true;
+    report.failurePath = '${root.path}/recovered/gagal_${fileStamp()}.log';
+    await File(report.failurePath!)
+        .writeAsString('${errors.join('\n')}\n', flush: true);
     return report;
   }
 
@@ -859,7 +922,7 @@ class AppStore extends ChangeNotifier {
         final candidate = await _openDatabase(candidatePath);
         RecoveryReport report;
         try {
-          report = await _replay(candidate);
+          report = await _replay(candidate, honorDismiss: false);
           await candidate.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
         } finally {
           await candidate.close();

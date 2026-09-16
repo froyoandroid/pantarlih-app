@@ -21,6 +21,7 @@ class Session extends ChangeNotifier {
   String village = '';
   String? kodeWilayah;
   Lokasi? lokasi;
+  List<RtRw> workspace = [];
   String get label =>
       'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
   String get lokasiLabel {
@@ -32,6 +33,14 @@ class Session extends ChangeNotifier {
     return '$village · $label';
   }
 
+  Map<int, List<RtRw>> get workspaceByRw {
+    final grouped = <int, List<RtRw>>{};
+    for (final item in [...workspace]..sort()) {
+      grouped.putIfAbsent(item.rw, () => []).add(item);
+    }
+    return grouped;
+  }
+
   Future<void> load() async {
     final values = await store.settings();
     rt = intValue(values['rt_aktif']);
@@ -39,6 +48,19 @@ class Session extends ChangeNotifier {
     kodeWilayah = nullableText(values['kode_wilayah_aktif'] ?? '');
     lokasi = await store.activeLokasi();
     village = values['desa_default'] ?? '';
+    workspace = RtRw.decode(values['ruang_kerja'] ?? '');
+    var persist = false;
+    if (workspace.isEmpty && rt > 0 && rw > 0) {
+      final known = await store.rtList(rw);
+      workspace = [for (final n in {...known, rt}) RtRw(rw, n)]..sort();
+      persist = true;
+    } else if (rt > 0 && rw > 0 && !workspace.contains(RtRw(rw, rt))) {
+      workspace = [...workspace, RtRw(rw, rt)]..sort();
+      persist = true;
+    }
+    if (persist) {
+      await store.setSession(rt, rw, ruangKerja: RtRw.encode(workspace));
+    }
     notifyListeners();
   }
 
@@ -47,15 +69,53 @@ class Session extends ChangeNotifier {
     await load();
   }
 
+  Future<void> _remember(int newRt, int newRw) async {
+    rt = newRt;
+    rw = newRw;
+    await store.setSession(rt, rw, ruangKerja: RtRw.encode(workspace));
+    notifyListeners();
+  }
+
   Future<void> change(int newRt, int newRw) async {
     if (rt != newRt || rw != newRw) {
       await store.snapshot();
       await ExportService(store).generate(rw: rw, rt: rt, automatic: true);
     }
-    await store.setSession(newRt, newRw);
-    rt = newRt;
-    rw = newRw;
-    notifyListeners();
+    final pair = RtRw(newRw, newRt);
+    if (!workspace.contains(pair)) {
+      workspace = [...workspace, pair]..sort();
+    }
+    await _remember(newRt, newRw);
+  }
+
+  Future<void> focusRt(RtRw pair) async {
+    if (rt == pair.rt && rw == pair.rw) return;
+    if (!workspace.contains(pair)) {
+      workspace = [...workspace, pair]..sort();
+    }
+    await _remember(pair.rt, pair.rw);
+  }
+
+  Future<void> addRtRw(int newRt, int newRw) async {
+    final pair = RtRw(newRw, newRt);
+    if (!workspace.contains(pair)) {
+      workspace = [...workspace, pair]..sort();
+    }
+    await _remember(newRt, newRw);
+  }
+
+  Future<void> removeRtRw(RtRw pair) async {
+    if (workspace.length <= 1) {
+      throw AppException('Wilayah kerja perlu minimal satu RT.');
+    }
+    workspace = [for (final item in workspace) if (item != pair) item];
+    var nextRt = rt;
+    var nextRw = rw;
+    if (rt == pair.rt && rw == pair.rw) {
+      nextRt = workspace.first.rt;
+      nextRw = workspace.first.rw;
+    }
+    await _remember(nextRt, nextRw);
   }
 
   Future<void> setVillage(String value) async {
@@ -174,10 +234,15 @@ class _PrivateStorageBanner extends StatelessWidget {
 
 class Notice extends StatelessWidget {
   const Notice(this.text,
-      {super.key, this.warning = false, this.error = false, this.icon});
+      {super.key,
+      this.warning = false,
+      this.error = false,
+      this.icon,
+      this.actions});
   final String text;
   final bool warning, error;
   final IconData? icon;
+  final Widget? actions;
   @override
   Widget build(BuildContext context) {
     final color = error
@@ -201,7 +266,12 @@ class Notice extends StatelessWidget {
               color: color),
           const SizedBox(width: 10),
           Expanded(
-              child: Text(text, style: TextStyle(color: color, height: 1.45))),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(text, style: TextStyle(color: color, height: 1.45)),
+                if (actions != null) actions!,
+              ])),
         ]));
   }
 }

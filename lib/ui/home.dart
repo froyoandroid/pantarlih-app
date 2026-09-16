@@ -16,7 +16,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<int> rts = [];
   List<RecordMap> counts = [];
   bool busy = false;
   @override
@@ -26,16 +25,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    rts = await widget.session.store.rtList(widget.session.rw);
-    counts = await widget.session.store.countsByRt(widget.session.rw);
+    counts = await widget.session.store.countsByRtRw();
     if (mounted) setState(() {});
   }
 
-  Future<void> _change(int value, [int? newRw]) async {
+  Future<void> _focus(RtRw pair) async {
     if (busy) return;
     setState(() => busy = true);
     try {
-      await widget.session.change(value, newRw ?? widget.session.rw);
+      await widget.session.focusRt(pair);
       await _load();
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
@@ -44,71 +42,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> chooseSession() async {
-    final rt = TextEditingController(text: '${widget.session.rt}');
-    final rw = TextEditingController(text: '${widget.session.rw}');
+  Future<void> _addRtRw() async {
     final chosen = await showDialog<(int, int)>(
         context: context,
-        builder: (ctx) => AlertDialog(
-                title: const Text('Wilayah kerja aktif'),
-                content: Column(mainAxisSize: MainAxisSize.min, children: [
-                  TextField(
-                      controller: rt,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'RT')),
-                  const SizedBox(height: 12),
-                  TextField(
-                      controller: rw,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'RW')),
-                  const SizedBox(height: 12),
-                  const Text(
-                      'Mengganti wilayah membuat snapshot dan ekspor otomatis lokal terlebih dahulu.'),
-                ]),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Batal')),
-                  FilledButton(
-                      onPressed: () {
-                        if (intValue(rt.text) > 0 && intValue(rw.text) > 0) {
-                          Navigator.pop(
-                              ctx, (intValue(rt.text), intValue(rw.text)));
-                        }
-                      },
-                      child: const Text('AKTIFKAN'))
-                ]));
-    if (chosen != null) await _change(chosen.$1, chosen.$2);
-  }
-
-  Future<void> editVillage() async {
-    final desa = TextEditingController(text: widget.session.village);
-    final chosen = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-                title: const Text('Nama desa atau dusun'),
-                content: TextField(
-                    controller: desa,
-                    autofocus: true,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                        labelText: 'Desa',
-                        hintText: 'nama desa atau dusun')),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Batal')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(ctx, desa.text),
-                      child: const Text('SIMPAN'))
-                ]));
-    desa.dispose();
+        builder: (_) => _TambahRtRwDialog(
+            rwAwal: widget.session.rw > 0 ? widget.session.rw : null));
     if (chosen == null) return;
     setState(() => busy = true);
     try {
-      await widget.session.setVillage(chosen);
+      await widget.session.addRtRw(chosen.$1, chosen.$2);
+      await _load();
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     } finally {
@@ -116,11 +59,79 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  RecordMap? _countFor(int rt) {
+  Future<void> _lepas(RtRw pair) async {
+    if (!await confirm(
+        context,
+        'Lepas dari wilayah kerja?',
+        '${pair.label} dilepas dari wilayah kerja. Data yang sudah diketik tetap ada.',
+        action: 'LEPAS')) {
+      return;
+    }
+    setState(() => busy = true);
+    try {
+      await widget.session.removeRtRw(pair);
+      await _load();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _bukaLaporanJurnal() async {
+    final text = await widget.session.store.journalReportText();
+    if (!mounted) return;
+    await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                title: const Text('Laporan jurnal rusak'),
+                content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                        child: SelectableText(text,
+                            style: const TextStyle(
+                                fontSize: 12, height: 1.4)))),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Tutup')),
+                ]));
+  }
+
+  Future<void> _hapusLaporanJurnal() async {
+    if (!await confirm(
+        context,
+        'Hapus pemberitahuan ini?',
+        'Laporan di layar dihilangkan. Baris jurnal yang rusak tetap di folder journal dan tidak ikut dihapus.',
+        action: 'HAPUS',
+        dangerous: true)) {
+      return;
+    }
+    setState(() => busy = true);
+    try {
+      await widget.session.store.dismissJournalReport();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  RecordMap? _countFor(RtRw pair) {
     for (final row in counts) {
-      if (intValue(row['rt']) == rt) return row;
+      if (intValue(row['rt']) == pair.rt && intValue(row['rw']) == pair.rw) {
+        return row;
+      }
     }
     return null;
+  }
+
+  String get _lokasiSub {
+    final loc = widget.session.lokasi;
+    if (loc == null) return 'Pilih desa, lalu nama pada formulir';
+    final kec = loc.namaKec?.trim() ?? '';
+    if (kec.isEmpty) return loc.kode;
+    return '$kec · ${loc.kode}';
   }
 
   @override
@@ -136,6 +147,23 @@ class _HomeScreenState extends State<HomeScreen> {
           onRefresh: _load,
           child: ListView(padding: const EdgeInsets.all(20), children: [
             Card(
+                child: ListTile(
+                    minVerticalPadding: 12,
+                    leading: CircleAvatar(
+                        backgroundColor: forest.withValues(alpha: .1),
+                        child: const Icon(Icons.place_outlined, color: forest)),
+                    title: Text(
+                        widget.session.village.isEmpty
+                            ? 'Lokasi kerja'
+                            : widget.session.village,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(_lokasiSub),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: busy
+                        ? null
+                        : () => _open(LokasiScreen(session: widget.session)))),
+            const SizedBox(height: 8),
+            Card(
                 child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(
@@ -144,48 +172,76 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('RT aktif',
+                                const Text('Wilayah kerja',
                                     style:
                                         TextStyle(fontWeight: FontWeight.w700)),
                                 TextButton(
-                                    onPressed: busy ? null : chooseSession,
-                                    child: const Text('Ganti RT / RW'))
+                                    onPressed: busy ? null : _addRtRw,
+                                    child: const Text('Tambahkan RT / RW'))
                               ]),
-                          const SizedBox(height: 10),
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            for (final rt in {
-                              ...rts,
-                              widget.session.rt,
-                            })
-                              ChoiceChip(
-                                  label: Text(
-                                      'RT ${rt.toString().padLeft(2, '0')}'),
-                                  selected: widget.session.rt == rt,
-                                  onSelected: (_) => _change(rt))
-                          ]),
-                          const SizedBox(height: 10),
-                          Text(
-                              'RW ${widget.session.rw.toString().padLeft(2, '0')} · ${widget.session.village}',
-                              style: const TextStyle(color: Colors.black54)),
-                          Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
-                                  onPressed: busy
-                                      ? null
-                                      : () => _open(LokasiScreen(
-                                          session: widget.session)),
-                                  child: const Text('Ganti lokasi'))),
-                          Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
-                                  onPressed: busy ? null : editVillage,
-                                  child: const Text('Ganti nama desa'))),
+                          if (widget.session.village.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(widget.session.village,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                          if (widget.session.workspace.isEmpty)
+                            const Padding(
+                                padding: EdgeInsets.only(top: 10),
+                                child: Text(
+                                    'Belum ada RT. Tambahkan RT di bawah RW desa ini. Boleh lebih dari satu RW.',
+                                    style: TextStyle(color: Colors.black54)))
+                          else ...[
+                            for (final rw
+                                in widget.session.workspaceByRw.keys) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                  'RW ${rw.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              Wrap(spacing: 8, runSpacing: 8, children: [
+                                for (final pair
+                                    in widget.session.workspaceByRw[rw]!)
+                                  GestureDetector(
+                                      onLongPress: busy
+                                          ? null
+                                          : () => _lepas(pair),
+                                      child: ChoiceChip(
+                                          label: Text(
+                                              'RT ${pair.rt.toString().padLeft(2, '0')}'),
+                                          selected: widget.session.rt ==
+                                                  pair.rt &&
+                                              widget.session.rw == pair.rw,
+                                          onSelected: busy
+                                              ? null
+                                              : (_) => _focus(pair))),
+                              ]),
+                            ],
+                            if (widget.session.rt > 0 &&
+                                widget.session.rw > 0) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                  'Ketik data memakai ${widget.session.label}. Tahan chip untuk lepas dari wilayah kerja.',
+                                  style: const TextStyle(
+                                      color: Colors.black54, fontSize: 12)),
+                            ],
+                          ],
                         ]))),
             if (busy) const LinearProgressIndicator(),
-            if ((widget.session.store.startupRecovery?.failed ?? 0) > 0)
+            if ((widget.session.store.startupRecovery?.showNotice ?? false))
               Notice(
-                  'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Periksa laporan di folder recovered.',
-                  warning: true),
+                  'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Buka laporan di aplikasi, atau hapus pemberitahuan ini.',
+                  warning: true,
+                  actions: Wrap(spacing: 8, children: [
+                    TextButton(
+                        onPressed: busy ? null : _bukaLaporanJurnal,
+                        child: const Text('BUKA LAPORAN')),
+                    TextButton(
+                        onPressed: busy ? null : _hapusLaporanJurnal,
+                        child: const Text('HAPUS')),
+                  ])),
             Card(
                 child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -195,23 +251,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Text('Jumlah baris per RT',
                               style: TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 12),
-                          if (counts.isEmpty)
-                            const Text('Belum ada data yang diketik.',
-                                style: TextStyle(color: Colors.black54)),
-                          for (final row in counts)
-                            Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: Text(
-                                    'RT ${intValue(row['rt']).toString().padLeft(2, '0')} · ${row['jumlah']} baris · ${row['tanpa_nik']} tanpa NIK')),
-                          if (_countFor(widget.session.rt) == null)
-                            Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                child: Text(
-                                    'RT ${widget.session.rt.toString().padLeft(2, '0')} · 0 baris · 0 tanpa NIK',
-                                    style: const TextStyle(
-                                        color: Colors.black54))),
+                          if (widget.session.workspace.isEmpty)
+                            const Text('Belum ada RT di wilayah kerja.',
+                                style: TextStyle(color: Colors.black54))
+                          else
+                            for (final rw
+                                in widget.session.workspaceByRw.keys) ...[
+                              Padding(
+                                  padding:
+                                      const EdgeInsets.only(top: 4, bottom: 2),
+                                  child: Text(
+                                      'RW ${rw.toString().padLeft(2, '0')}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black54))),
+                              for (final pair
+                                  in widget.session.workspaceByRw[rw]!)
+                                Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 4),
+                                    child: Text(
+                                        'RT ${pair.rt.toString().padLeft(2, '0')} · ${_countFor(pair)?['jumlah'] ?? 0} baris · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK')),
+                            ],
                         ]))),
             const SizedBox(height: 8),
             _action(
@@ -264,4 +325,59 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => page))
         .then((_) => _load());
   }
+}
+
+class _TambahRtRwDialog extends StatefulWidget {
+  const _TambahRtRwDialog({this.rwAwal});
+  final int? rwAwal;
+  @override
+  State<_TambahRtRwDialog> createState() => _TambahRtRwDialogState();
+}
+
+class _TambahRtRwDialogState extends State<_TambahRtRwDialog> {
+  late final TextEditingController rw =
+      TextEditingController(text: widget.rwAwal == null ? '' : '${widget.rwAwal}');
+  final rt = TextEditingController();
+
+  @override
+  void dispose() {
+    rw.dispose();
+    rt.dispose();
+    super.dispose();
+  }
+
+  void _simpan() {
+    final nextRt = intValue(rt.text);
+    final nextRw = intValue(rw.text);
+    if (nextRt > 0 && nextRw > 0) {
+      Navigator.pop(context, (nextRt, nextRw));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+          title: const Text('Tambah RT / RW'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text(
+                'RT berada di bawah RW, RW berada di bawah desa. Boleh menambah RW lain di desa yang sama.'),
+            const SizedBox(height: 12),
+            TextField(
+                controller: rw,
+                autofocus: widget.rwAwal == null,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'RW')),
+            const SizedBox(height: 12),
+            TextField(
+                controller: rt,
+                autofocus: widget.rwAwal != null,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'RT')),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Batal')),
+            FilledButton(
+                onPressed: _simpan, child: const Text('TAMBAHKAN')),
+          ]);
 }
