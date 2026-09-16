@@ -97,7 +97,8 @@ abstract class TabularSource {
     };
     return {
       for (final field in importFields.keys)
-        field: header.indexWhere((h) => aliases[field]!.contains(h))
+        // Unmapped field names degrade to not-found (-1) instead of crashing.
+        field: header.indexWhere((h) => (aliases[field] ?? const []).contains(h))
     };
   }
 
@@ -384,7 +385,12 @@ Excel _decodeWorkbook(Uint8List bytes) {
       normalized.addFile(file);
     }
   }
-  return Excel.decodeBytes(ZipEncoder().encode(normalized)!);
+  final encoded = ZipEncoder().encode(normalized);
+  if (encoded == null) {
+    throw AppException(
+        'Berkas spreadsheet tidak dapat dibaca. Simpan ulang berkas dari Excel, lalu coba lagi.');
+  }
+  return Excel.decodeBytes(encoded);
 }
 
 class ExportService {
