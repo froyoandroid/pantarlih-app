@@ -1220,8 +1220,12 @@ void main() {
     final files = await ExportService(store).generate(rw: 3, rt: 3);
     final dps = files.firstWhere((f) {
       final n = f.path.split(Platform.pathSeparator).last;
-      return n.startsWith('DPS_') && n.contains('TANPALOKASI');
+      // Manual lokasi exports carry the slug of their kode, not a shared
+      // TANPALOKASI placeholder.
+      return n.startsWith('DPS_') && n.contains('MANUAL_KALITORONG');
     });
+    expect(
+        files.any((f) => f.path.contains('TANPALOKASI')), isFalse);
     final book = Excel.decodeBytes(await dps.readAsBytes());
     expect(book.tables.length, 2);
     expect(book.tables.containsKey('INFO'), isTrue);
@@ -1258,6 +1262,17 @@ void main() {
       'dibuat_pada': timestamp(),
       'diubah_pada': timestamp(),
     });
+  });
+
+  test('kodeBerkasEkspor distinguishes manual desas by their kode', () {
+    expect(kodeBerkasEkspor(null), 'TANPALOKASI');
+    expect(kodeBerkasEkspor({'kode': '33.27.07.2001', 'manual': 0}),
+        '3327072001');
+    expect(kodeBerkasEkspor({'kode': 'MANUAL:sidomulyo', 'manual': 1}),
+        'MANUAL_SIDOMULYO');
+    expect(kodeBerkasEkspor({'kode': 'MANUAL:sido mulyo', 'manual': 1}),
+        'MANUAL_SIDO_MULYO');
+    expect(kodeBerkasEkspor({'manual': 1}), 'TANPALOKASI');
   });
 
   test('empty database without lokasi still saves one person', () async {
