@@ -1046,8 +1046,8 @@ class AppStore extends ChangeNotifier {
   /// Highest applied event id plus the date it was reached, stored in
   /// setelan as 'id|yyyy-MM-dd'. Absent or malformed means no checkpoint.
   Future<(int, String)> _checkpointBaca(DatabaseExecutor target) async {
-    final rows = await target.query('setelan',
-        where: 'kunci = ?', whereArgs: ['jurnal_checkpoint']);
+    final rows = await target
+        .query('setelan', where: 'kunci = ?', whereArgs: ['jurnal_checkpoint']);
     if (rows.isEmpty) return (0, '');
     final parts = '${rows.first['nilai'] ?? ''}'.split('|');
     final id = int.tryParse(parts.first);
@@ -1066,15 +1066,18 @@ class AppStore extends ChangeNotifier {
     final (lama, _) = await _checkpointBaca(db);
     if (maxId <= lama) return;
     final tanggal = '${rows.first['ts'] ?? ''}';
-    await _commit('UPDATE', 'setelan', (txn, ts) async => {
-          'records': [
-            {
-              'kunci': 'jurnal_checkpoint',
-              'nilai':
-                  '$maxId|${tanggal.length >= 10 ? tanggal.substring(0, 10) : ''}'
-            }
-          ]
-        });
+    await _commit(
+        'UPDATE',
+        'setelan',
+        (txn, ts) async => {
+              'records': [
+                {
+                  'kunci': 'jurnal_checkpoint',
+                  'nilai':
+                      '$maxId|${tanggal.length >= 10 ? tanggal.substring(0, 10) : ''}'
+                }
+              ]
+            });
   }
 
   Future<RecoveryReport> rebuild() => exclusive(() async {

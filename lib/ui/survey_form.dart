@@ -62,9 +62,10 @@ class _SurveyFormState extends State<SurveyForm> {
     birthDate = TextEditingController(
         text: edit?['tgl_lahir'] != null
             ? tanggalTampil(edit?['tgl_lahir'])
-            : pilih([seed?['tgl_lahir_raw'], tanggalTampil(seed?['tgl_lahir'])]));
-    village = TextEditingController(text:
-        pilih([edit?['desa'], seed?['desa']], widget.session.village));
+            : pilih(
+                [seed?['tgl_lahir_raw'], tanggalTampil(seed?['tgl_lahir'])]));
+    village = TextEditingController(
+        text: pilih([edit?['desa'], seed?['desa']], widget.session.village));
     rt = TextEditingController(
         text: teks(edit?['rt'] ?? seed?['rt'] ?? widget.session.rt));
     rw = TextEditingController(
