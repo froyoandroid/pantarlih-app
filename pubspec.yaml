@@ -19,6 +19,14 @@ dependencies:
   permission_handler: ^11.0.0
   archive: ^3.6.1
   xml: ^6.6.1
+  mcp_toolkit: ^5.1.0
+
+dependency_overrides:
+  # Upstream 0.6.0 declares a native pluginClass but ships no
+  # android/build.gradle — build fails under AGP 9. Vendored copy in
+  # third_party/intentcall_platform adds the missing Gradle file.
+  intentcall_platform:
+    path: third_party/intentcall_platform
 
 dev_dependencies:
   flutter_test:

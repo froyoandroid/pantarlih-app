@@ -1,0 +1,33 @@
+group 'dev.intentcall.intentcall_platform'
+version '1.0'
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    // Upstream intentcall_platform 0.6.0 declares a native pluginClass but
+    // ships no android/build.gradle (packaging bug) — Gradle fails with
+    // "Configuration with name 'implementation' not found" under AGP 9.
+    // Vendored in third_party/ with this file added; drop the override when
+    // upstream publishes a fixed version. Kotlin is built in with AGP 9
+    // (no 'kotlin-android' plugin).
+    namespace 'dev.intentcall.intentcall_platform'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 24
+    }
+}
