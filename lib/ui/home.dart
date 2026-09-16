@@ -188,66 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style:
                         TextStyle(fontSize: 12, color: Colors.grey.shade700))),
             const SizedBox(height: 8),
-            Card(
-                child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                  onPressed: busy ? null : _addRtRw,
-                                  child: const Text('Tambahkan RT / RW',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.normal)))),
-                          if (widget.session.workspace.isEmpty)
-                            const Padding(
-                                padding: EdgeInsets.only(top: 10),
-                                child: Text(
-                                    'Belum ada RT. Tambahkan RT di bawah RW desa ini. Boleh lebih dari satu RW.',
-                                    style: TextStyle(color: Colors.black54)))
-                          else ...[
-                            for (final rw
-                                in widget.session.workspaceByRw.keys) ...[
-                              if (rw != widget.session.workspaceByRw.keys.first)
-                                const SizedBox(height: 12),
-                              Text('RW ${rw.toString().padLeft(2, '0')}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              Wrap(spacing: 8, runSpacing: 8, children: [
-                                for (final pair
-                                    in widget.session.workspaceByRw[rw]!)
-                                  RawChip(
-                                      label: Text(
-                                          'RT ${pair.rt.toString().padLeft(2, '0')}'),
-                                      selected: widget.session.rt == pair.rt &&
-                                          widget.session.rw == pair.rw,
-                                      onSelected:
-                                          busy ? null : (_) => _focus(pair),
-                                      showCheckmark: false,
-                                      deleteIcon:
-                                          const Icon(Icons.close, size: 16),
-                                      deleteButtonTooltipMessage:
-                                          'Lepas dari wilayah kerja',
-                                      onDeleted: !busy &&
-                                              widget.session.rt == pair.rt &&
-                                              widget.session.rw == pair.rw
-                                          ? () => _lepas(pair)
-                                          : null),
-                              ]),
-                            ],
-                            if (widget.session.rt > 0 &&
-                                widget.session.rw > 0) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                  'Ketik data memakai ${widget.session.label}. Ketuk ikon silang pada chip aktif untuk melepas dari wilayah kerja.',
-                                  style: const TextStyle(
-                                      color: Colors.black54, fontSize: 12)),
-                            ],
-                          ],
-                        ]))),
+            _kartuRtRw(),
             if (busy) const LinearProgressIndicator(),
             if ((widget.session.store.startupRecovery?.showNotice ?? false))
               Notice(
@@ -261,57 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: busy ? null : _hapusLaporanJurnal,
                         child: const Text('HAPUS')),
                   ])),
-            Card(
-                child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Jumlah warga per RT',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 12),
-                          if (widget.session.workspace.isEmpty)
-                            const Text('Belum ada RT di wilayah kerja.',
-                                style: TextStyle(color: Colors.black54))
-                          else
-                            for (final rw
-                                in widget.session.workspaceByRw.keys) ...[
-                              Padding(
-                                  padding:
-                                      const EdgeInsets.only(top: 4, bottom: 2),
-                                  child: Text(
-                                      'RW ${rw.toString().padLeft(2, '0')}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black54))),
-                              for (final pair
-                                  in widget.session.workspaceByRw[rw]!)
-                                Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 4),
-                                    child: Text(
-                                        'RT ${pair.rt.toString().padLeft(2, '0')} · ${_countFor(pair)?['jumlah'] ?? 0} warga · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK')),
-                            ],
-                          if (_luarWilayah.isNotEmpty) ...[
-                            const SizedBox(height: 14),
-                            const Text('Di luar wilayah kerja',
-                                style: TextStyle(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 2),
-                            const Text(
-                                'Data tersimpan tetapi tidak tampil di daftar. Ketuk untuk menambahkan ke wilayah kerja.',
-                                style: TextStyle(color: Colors.black54)),
-                            for (final pair in _luarWilayah)
-                              ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: Text(
-                                      '${pair.label} · ${_countFor(pair)?['jumlah'] ?? 0} warga · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK'),
-                                  trailing: const Icon(Icons.add_circle_outline,
-                                      size: 20),
-                                  onTap:
-                                      busy ? null : () => _tambahkanLuar(pair)),
-                          ],
-                        ]))),
             const SizedBox(height: 8),
             _action(
                 Icons.list_alt,
@@ -344,6 +234,102 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.shield_outlined),
           ])));
 
+  /// One card for the whole workspace: every RT / RW is a tile that carries
+  /// its own warga count, so picking the active RT and reading the numbers
+  /// happen in the same place.
+  Widget _kartuRtRw() {
+    final s = widget.session;
+    final ringkas = ringkasWarga(counts, s.workspace);
+    return Card(
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 12, 20),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Expanded(
+                    child: s.workspace.isEmpty
+                        ? const SizedBox.shrink()
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                                Text('${ringkas.jumlah} warga',
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: forest)),
+                                Text(
+                                    '${ringkas.rt} RT · ${ringkas.tanpaNik} tanpa NIK',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade700)),
+                              ])),
+                TextButton.icon(
+                    onPressed: busy ? null : _addRtRw,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Tambahkan RT / RW',
+                        style: TextStyle(fontWeight: FontWeight.normal))),
+              ]),
+              if (s.workspace.isEmpty)
+                const Padding(
+                    padding: EdgeInsets.only(top: 6, right: 8),
+                    child: Text(
+                        'Belum ada RT. Tambahkan RT di bawah RW desa ini. Boleh lebih dari satu RW.',
+                        style: TextStyle(color: Colors.black54)))
+              else ...[
+                const SizedBox(height: 10),
+                Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: LayoutBuilder(builder: (context, box) {
+                      const gap = 10.0;
+                      final kolom = box.maxWidth >= 520 ? 3 : 2;
+                      final lebar = (box.maxWidth - gap * (kolom - 1)) / kolom;
+                      return Wrap(spacing: gap, runSpacing: gap, children: [
+                        for (final pair
+                            in s.workspaceByRw.values.expand((list) => list))
+                          SizedBox(
+                              width: lebar,
+                              child: _RtTile(
+                                  pair: pair,
+                                  jumlah: intValue(_countFor(pair)?['jumlah']),
+                                  tanpaNik:
+                                      intValue(_countFor(pair)?['tanpa_nik']),
+                                  aktif: s.rt == pair.rt && s.rw == pair.rw,
+                                  onTap: busy ? null : () => _focus(pair),
+                                  onLepas: busy ? null : () => _lepas(pair))),
+                      ]);
+                    })),
+                if (s.rt > 0 && s.rw > 0) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                          'Ketik data memakai ${s.label}. Ketuk kartu lain untuk pindah RT, ketuk ikon silang pada kartu aktif untuk melepas dari wilayah kerja.',
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 12))),
+                ],
+              ],
+              if (_luarWilayah.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('Di luar wilayah kerja',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Text(
+                        'Data tersimpan tetapi tidak tampil di daftar. Ketuk untuk menambahkan ke wilayah kerja.',
+                        style: TextStyle(color: Colors.black54))),
+                for (final pair in _luarWilayah)
+                  ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: Text(
+                          '${pair.label} · ${intValue(_countFor(pair)?['jumlah'])} warga · ${intValue(_countFor(pair)?['tanpa_nik'])} tanpa NIK'),
+                      trailing: const Icon(Icons.add_circle_outline, size: 20),
+                      onTap: busy ? null : () => _tambahkanLuar(pair)),
+              ],
+            ])));
+  }
+
   Widget _action(
           IconData icon, String title, String detail, VoidCallback onTap) =>
       Card(
@@ -362,6 +348,95 @@ class _HomeScreenState extends State<HomeScreen> {
     if (busy) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => page))
         .then((_) => _load());
+  }
+}
+
+/// Workspace tile: full RT / RW label, warga count as the hero number, NIK gap
+/// underneath. The active tile is filled forest and carries the release icon.
+class _RtTile extends StatelessWidget {
+  const _RtTile(
+      {required this.pair,
+      required this.jumlah,
+      required this.tanpaNik,
+      required this.aktif,
+      this.onTap,
+      this.onLepas});
+  final RtRw pair;
+  final int jumlah;
+  final int tanpaNik;
+  final bool aktif;
+  final VoidCallback? onTap;
+  final VoidCallback? onLepas;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = aktif ? Colors.white : forest;
+    final muted = aktif ? Colors.white70 : Colors.grey.shade700;
+    final nikWarna = aktif
+        ? Colors.white70
+        : tanpaNik > 0
+            ? amber
+            : Colors.grey.shade700;
+    return Material(
+        color: aktif ? forest : canvas,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Container(
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: aktif ? forest : const Color(0xFFE2E5DD))),
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                            child: Text(pair.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: fg))),
+                        SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: aktif
+                                ? IconButton(
+                                    padding: EdgeInsets.zero,
+                                    iconSize: 18,
+                                    tooltip: 'Lepas dari wilayah kerja',
+                                    onPressed: onLepas,
+                                    icon: Icon(Icons.close, color: fg))
+                                : null),
+                      ]),
+                      const SizedBox(height: 4),
+                      Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text('$jumlah',
+                                style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.1,
+                                    color: fg)),
+                            const SizedBox(width: 6),
+                            Text('warga',
+                                style: TextStyle(fontSize: 13, color: muted)),
+                          ]),
+                      const SizedBox(height: 4),
+                      Text('$tanpaNik tanpa NIK',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: tanpaNik > 0 && !aktif
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: nikWarna)),
+                    ]))));
   }
 }
 

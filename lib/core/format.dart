@@ -117,3 +117,25 @@ class RtRw implements Comparable<RtRw> {
   @override
   int get hashCode => Object.hash(rw, rt);
 }
+
+/// Workspace-wide warga totals for the Beranda RT / RW card. Only pairs in
+/// [workspace] count, so rows typed outside the workspace never inflate it.
+class RingkasanWarga {
+  const RingkasanWarga(
+      {required this.rt, required this.jumlah, required this.tanpaNik});
+  final int rt;
+  final int jumlah;
+  final int tanpaNik;
+}
+
+RingkasanWarga ringkasWarga(List<RecordMap> counts, List<RtRw> workspace) {
+  var jumlah = 0, tanpaNik = 0;
+  for (final row in counts) {
+    final pair = RtRw(intValue(row['rw']), intValue(row['rt']));
+    if (!workspace.contains(pair)) continue;
+    jumlah += intValue(row['jumlah']);
+    tanpaNik += intValue(row['tanpa_nik']);
+  }
+  return RingkasanWarga(
+      rt: workspace.length, jumlah: jumlah, tanpaNik: tanpaNik);
+}
