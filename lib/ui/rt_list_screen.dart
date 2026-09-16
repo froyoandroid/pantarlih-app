@@ -132,7 +132,7 @@ class _RtListScreenState extends State<RtListScreen> {
           border: Border.all(color: Colors.black26)));
 
   Future<void> _ubahWarna(RecordMap row) async {
-    final sekarang = '${row['warna'] ?? ''}';
+    final sekarang = teks(row['warna']);
     final pilih = await showModalBottomSheet<String>(
         context: context,
         builder: (ctx) => SafeArea(
@@ -242,13 +242,13 @@ class _RtListScreenState extends State<RtListScreen> {
                                 itemBuilder: (context, index) {
                                   final row = rows[index];
                                   final id = row['id'] as int;
-                                  final nik = '${row['nik'] ?? ''}'.trim();
+                                  final nik = teks(row['nik']);
                                   final tgl = tanggalTampil(row['tgl_lahir']);
                                   final catatan =
                                       keteranganTampil(row['keterangan']);
                                   final kodeKet = kodeKeterangan(
-                                      '${row['keterangan'] ?? ''}');
-                                  final warnaKode = '${row['warna'] ?? ''}';
+                                      teks(row['keterangan']));
+                                  final warnaKode = teks(row['warna']);
                                   final warnaKartu =
                                       _warnaKartu[warnaKode] ?? Colors.white;
                                   return KeyedSubtree(

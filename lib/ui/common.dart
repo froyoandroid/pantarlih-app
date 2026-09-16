@@ -380,7 +380,12 @@ class ResidentCard extends StatelessWidget {
   final Widget? trailing;
   final bool highlight;
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) {
+    final nik = teks(row['nik']);
+    final tgl = teks(row['tgl_lahir_raw']).isEmpty
+        ? tanggalTampil(row['tgl_lahir'])
+        : teks(row['tgl_lahir_raw']);
+    return Card(
       color: highlight ? const Color(0xFFFFF4D6) : null,
       child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -405,14 +410,14 @@ class ResidentCard extends StatelessWidget {
                               fontWeight: FontWeight.w700, fontSize: 16)),
                       const SizedBox(height: 6),
                       Text(
-                          '${row['tgl_lahir_raw'] ?? tanggalTampil(row['tgl_lahir'])} · ${jkTampil(row['jenis_kelamin'])}',
+                          '$tgl · ${jkTampil(row['jenis_kelamin'])}',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey.shade700)),
                       const SizedBox(height: 4),
                       Text(
                           'RT ${row['rt']} / RW ${row['rw']}'
                           '${row['urut_asli'] == null ? '' : ' · No. ${row['urut_asli']}'}'
-                          '${row['nik'] == null || '${row['nik']}'.isEmpty ? '' : ' · ${row['nik']}'}',
+                          '${nik.isEmpty ? '' : ' · $nik'}',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey.shade700)),
                       if (row['dibuat_pada'] != null)
@@ -432,4 +437,5 @@ class ResidentCard extends StatelessWidget {
                               color: score! < 60 ? amber : forest))),
                 if (trailing != null) trailing!,
               ]))));
+  }
 }
