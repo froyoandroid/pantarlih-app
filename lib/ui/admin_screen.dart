@@ -6,6 +6,7 @@ import '../data/exchange.dart';
 import '../data/spreadsheets.dart';
 import 'common.dart';
 import 'history_screen.dart';
+import 'journal_screen.dart';
 import 'snapshot_screen.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -258,6 +259,21 @@ class _AdminScreenState extends State<AdminScreen> {
                                 builder: (_) =>
                                     SnapshotScreen(session: widget.session)))
                         .then((_) => load()))),
+        Card(
+            child: ListTile(
+                leading: const Icon(Icons.menu_book_outlined),
+                title: const Text('Jurnal',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle:
+                    const Text('Telusuri catatan, periksa, kembalikan versi'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: busy
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                JournalScreen(session: widget.session))))),
         const SizedBox(height: 28),
         const Text('Folder pertukaran',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),

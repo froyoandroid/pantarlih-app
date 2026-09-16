@@ -4,6 +4,7 @@ import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
 import 'import_screen.dart';
+import 'journal_screen.dart';
 import 'lokasi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
@@ -213,6 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Riwayat',
                 '20 input terakhir dan koreksi cepat',
                 () => _open(HistoryScreen(session: widget.session))),
+            _action(
+                Icons.menu_book_outlined,
+                'Jurnal',
+                'Semua catatan perubahan, kembalikan versi lama',
+                () => _open(JournalScreen(session: widget.session))),
             _action(
                 Icons.file_upload_outlined,
                 'Impor referensi',

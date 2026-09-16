@@ -990,7 +990,9 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<RecoveryReport> _replay(Database target,
-      {bool honorDismiss = true, bool useCheckpoint = true}) async {
+      {bool honorDismiss = true,
+      bool useCheckpoint = true,
+      bool tulisLaporan = true}) async {
     final report = RecoveryReport();
     final errors = <String>[];
     final knownRows = await target.query('log', columns: ['id']);
@@ -1073,6 +1075,7 @@ class AppStore extends ChangeNotifier {
     }
     if (honorDismiss && report.fingerprint == ignored) return report;
     report.showNotice = true;
+    if (!tulisLaporan) return report;
     report.failurePath = '${root.path}/recovered/gagal_${fileStamp()}.log';
     await File(report.failurePath!)
         .writeAsString('${errors.join('\n')}\n', flush: true);
@@ -1300,6 +1303,57 @@ class AppStore extends ChangeNotifier {
         notifyListeners();
         return report;
       });
+
+  /// Dry-run replay of the whole journal into a throwaway database. Reports
+  /// damaged or unapplicable lines without touching the live data, so the
+  /// user can check the journal any time, not only after a failure.
+  Future<RecoveryReport> periksaJurnal() => exclusive(() async {
+        final path = '${root.path}/recovered/periksa_${fileStamp()}.db';
+        final candidate = await _openDatabase(path);
+        try {
+          return await _replay(candidate,
+              honorDismiss: false, useCheckpoint: false, tulisLaporan: false);
+        } finally {
+          await candidate.close();
+          for (final suffix in ['', '-wal', '-shm']) {
+            final f = File('$path$suffix');
+            if (await f.exists()) await f.delete();
+          }
+        }
+      });
+
+  /// Brings a warga back to the state recorded in one journal event. A
+  /// living warga gets a normal journaled UPDATE, a deleted one is inserted
+  /// again under its original id at the end of its RT. No replay tricks:
+  /// this is just another event, so rebuild() reproduces it.
+  Future<RecordMap> kembalikanWarga(RecordMap versi) async {
+    final id = intValue(versi['id']);
+    if (id <= 0) throw AppException('Catatan jurnal tanpa id warga.');
+    final fields = <String, Object?>{
+      for (final k in const [
+        'nik',
+        'nama',
+        'jenis_kelamin',
+        'tempat_lahir',
+        'tgl_lahir',
+        'desa',
+        'kode_wilayah',
+        'rt',
+        'rw',
+        'keterangan',
+        'warna',
+      ])
+        k: versi[k],
+    };
+    if (await warga(id) != null) return saveWarga(fields, id: id);
+    _validateWarga(fields);
+    return _commit('INSERT', 'warga', (txn, ts) async {
+      final urut =
+          await urutAkhir(txn, intValue(fields['rw']), intValue(fields['rt']));
+      return _wargaRecord(
+          fields, id, urut, ts, '${versi['dibuat_pada'] ?? ts}');
+    });
+  }
 
   Future<void> close() async {
     await _tail;
