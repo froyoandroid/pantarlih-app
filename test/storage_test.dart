@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/data/exchange.dart';
 import 'package:pantarlih_kalitorong/data/storage.dart';
 import 'package:pantarlih_kalitorong/data/store.dart';
@@ -117,6 +119,49 @@ void main() {
     expect(names.where((n) => n.startsWith('journal/')).length,
         greaterThanOrEqualTo(2));
     expect(arsip.findFile('pantarlih.db')!.size, await snap.length());
+    await store.close();
+  });
+
+  test('restoring a cadangan bundle replays its journal and keeps the old pair',
+      () async {
+    final base = await Directory.systemTemp.createTemp('pantarlih-pulih-');
+    addTearDown(() => base.delete(recursive: true));
+    final store =
+        AppStore(await akarData(base: base), factory: databaseFactoryFfi);
+    await store.open();
+    RecordMap warga(String nama, String nik) => {
+          'nama': nama,
+          'nik': nik,
+          'jenis_kelamin': 'L',
+          'tempat_lahir': 'PEMALANG',
+          'tgl_lahir': '1968-09-19',
+          'desa': 'KALITORONG',
+          'rt': 3,
+          'rw': 3,
+        };
+    await store.saveWarga(warga('AMIR', '3327071909680001'));
+    final snap = await store.snapshot();
+    await store.saveWarga(warga('BUDI', '3327071909680002'));
+    final zip =
+        await tulisCadangan(store, snap, Directory('${base.path}/cadangan'));
+    await store.saveWarga(warga('CITRA', '3327071909680003'));
+    final report = await pulihkanCadangan(store, await zip.readAsBytes());
+    expect(report.failed, 0);
+    // BUDI lives only in the bundle's journal, CITRA only in the old one.
+    expect((await store.allWarga()).map((r) => r['nama']),
+        unorderedEquals(['AMIR', 'BUDI']));
+    final recovered = Directory('${store.root.path}/recovered').listSync();
+    expect(
+        recovered.any((e) => e.path.contains('db_sebelum_cadangan_')), isTrue);
+    expect(recovered.any((e) => e.path.contains('journal_sebelum_cadangan_')),
+        isTrue);
+    expect(recovered.any((e) => e.path.contains('cadangan_masuk_')), isFalse);
+    final rebuilt = await store.rebuild();
+    expect(rebuilt.failed, 0);
+    expect((await store.allWarga()).map((r) => r['nama']),
+        unorderedEquals(['AMIR', 'BUDI']));
+    await expectLater(pulihkanCadangan(store, Uint8List.fromList([1, 2, 3])),
+        throwsA(isA<AppException>()));
     await store.close();
   });
 
