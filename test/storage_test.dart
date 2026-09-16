@@ -23,6 +23,42 @@ void main() {
     await store.close();
   });
 
+  test('public parent prefers Documents then Dokumen then creates Documents',
+      () async {
+    final root = await Directory.systemTemp.createTemp('pantarlih-induk-');
+    addTearDown(() => root.delete(recursive: true));
+    final documents = Directory('${root.path}/Documents');
+    final dokumen = Directory('${root.path}/Dokumen');
+    await dokumen.create();
+    expect((await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
+        dokumen.path);
+    await documents.create();
+    expect((await pilihAtauBuatInduk(documents: documents, dokumen: dokumen)).path,
+        documents.path);
+  });
+
+  test('missing Documents and Dokumen creates Documents', () async {
+    final root = await Directory.systemTemp.createTemp('pantarlih-buat-');
+    addTearDown(() => root.delete(recursive: true));
+    final documents = Directory('${root.path}/Documents');
+    final dokumen = Directory('${root.path}/Dokumen');
+    final chosen =
+        await pilihAtauBuatInduk(documents: documents, dokumen: dokumen);
+    expect(chosen.path, documents.path);
+    expect(await documents.exists(), isTrue);
+  });
+
+  test('existing PantarlihKalitorong folder is reused before desa is known',
+      () async {
+    final parent = await Directory.systemTemp.createTemp('pantarlih-scan-');
+    addTearDown(() => parent.delete(recursive: true));
+    final lama = Directory('${parent.path}/PantarlihKalitorong');
+    await lama.create();
+    await File('${lama.path}/pantarlih.db').writeAsString('x', flush: true);
+    final chosen = await pilihFolderApp(parent);
+    expect(chosen.path, lama.path);
+  });
+
   test('intro flag is absent until marked', () async {
     final dir = await Directory.systemTemp.createTemp('pantarlih-intro-');
     addTearDown(() => dir.delete(recursive: true));
