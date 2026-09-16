@@ -67,7 +67,9 @@ class Session extends ChangeNotifier {
     var persist = false;
     if (workspace.isEmpty && rt > 0 && rw > 0) {
       final known = await store.rtListReferensi(rw);
-      workspace = [for (final n in {...known, rt}) RtRw(rw, n)]..sort();
+      workspace = [
+        for (final n in {...known, rt}) RtRw(rw, n)
+      ]..sort();
       persist = true;
     } else if (rt > 0 && rw > 0 && !workspace.contains(RtRw(rw, rt))) {
       workspace = [...workspace, RtRw(rw, rt)]..sort();
@@ -386,56 +388,55 @@ class ResidentCard extends StatelessWidget {
         ? tanggalTampil(row['tgl_lahir'])
         : teks(row['tgl_lahir_raw']);
     return Card(
-      color: highlight ? const Color(0xFFFFF4D6) : null,
-      child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(children: [
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      if (label != null)
-                        Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(label!,
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: amber))),
-                      Text('${row['nama']}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 16)),
-                      const SizedBox(height: 6),
-                      Text(
-                          '$tgl · ${jkTampil(row['jenis_kelamin'])}',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade700)),
-                      const SizedBox(height: 4),
-                      Text(
-                          'RT ${row['rt']} / RW ${row['rw']}'
-                          '${row['urut_asli'] == null ? '' : ' · No. ${row['urut_asli']}'}'
-                          '${nik.isEmpty ? '' : ' · $nik'}',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade700)),
-                      if (row['dibuat_pada'] != null)
-                        Text(waktuTampil(row['dibuat_pada']),
-                            style: const TextStyle(fontSize: 11)),
-                    ])),
-                if (score != null)
-                  Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: (score! < 60 ? amber : forest)
-                              .withValues(alpha: .1),
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Text('${score!.round()}%',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: score! < 60 ? amber : forest))),
-                if (trailing != null) trailing!,
-              ]))));
+        color: highlight ? const Color(0xFFFFF4D6) : null,
+        child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        if (label != null)
+                          Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(label!,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: amber))),
+                        Text('${row['nama']}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 16)),
+                        const SizedBox(height: 6),
+                        Text('$tgl · ${jkTampil(row['jenis_kelamin'])}',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade700)),
+                        const SizedBox(height: 4),
+                        Text(
+                            'RT ${row['rt']} / RW ${row['rw']}'
+                            '${row['urut_asli'] == null ? '' : ' · No. ${row['urut_asli']}'}'
+                            '${nik.isEmpty ? '' : ' · $nik'}',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade700)),
+                        if (row['dibuat_pada'] != null)
+                          Text(waktuTampil(row['dibuat_pada']),
+                              style: const TextStyle(fontSize: 11)),
+                      ])),
+                  if (score != null)
+                    Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                            color: (score! < 60 ? amber : forest)
+                                .withValues(alpha: .1),
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Text('${score!.round()}%',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: score! < 60 ? amber : forest))),
+                  if (trailing != null) trailing!,
+                ]))));
   }
 }

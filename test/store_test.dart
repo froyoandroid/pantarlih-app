@@ -559,7 +559,8 @@ void main() {
     final session = Session(store);
     await session.load();
     for (var i = 0; i < 12; i++) {
-      await session.focusRt(session.rt == 3 ? const RtRw(3, 4) : const RtRw(3, 3));
+      await session
+          .focusRt(session.rt == 3 ? const RtRw(3, 4) : const RtRw(3, 3));
     }
     final folders = Directory('${root.path}/export/auto')
         .listSync()
@@ -1225,8 +1226,7 @@ void main() {
       // TANPALOKASI placeholder.
       return n.startsWith('DPS_') && n.contains('MANUAL_KALITORONG');
     });
-    expect(
-        files.any((f) => f.path.contains('TANPALOKASI')), isFalse);
+    expect(files.any((f) => f.path.contains('TANPALOKASI')), isFalse);
     final book = Excel.decodeBytes(await dps.readAsBytes());
     expect(book.tables.length, 2);
     expect(book.tables.containsKey('INFO'), isTrue);
@@ -1267,8 +1267,8 @@ void main() {
 
   test('kodeBerkasEkspor distinguishes manual desas by their kode', () {
     expect(kodeBerkasEkspor(null), 'TANPALOKASI');
-    expect(kodeBerkasEkspor({'kode': '33.27.07.2001', 'manual': 0}),
-        '3327072001');
+    expect(
+        kodeBerkasEkspor({'kode': '33.27.07.2001', 'manual': 0}), '3327072001');
     expect(kodeBerkasEkspor({'kode': 'MANUAL:sidomulyo', 'manual': 1}),
         'MANUAL_SIDOMULYO');
     expect(kodeBerkasEkspor({'kode': 'MANUAL:sido mulyo', 'manual': 1}),
@@ -1289,11 +1289,8 @@ void main() {
     }
     final source =
         WorkbookSource(input.uri.pathSegments.last, await input.readAsBytes());
-    final header = source
-        .rows('RT 03')
-        .first
-        .map((c) => c.trim().toUpperCase())
-        .toList();
+    final header =
+        source.rows('RT 03').first.map((c) => c.trim().toUpperCase()).toList();
     // The other columns differ on purpose (NAMA PEMILIH, DUSUN, KET are the
     // reference-import wording); the date column is the one that matters.
     expect(dpsHeaders[5], 'TANGGAL LAHIR');
@@ -1315,7 +1312,11 @@ void main() {
         'tabel': 'warga',
         'data': {'id': 1, 'nama': 'B'}
       },
-      {'op': 'DELETE', 'tabel': 'warga', 'data': {'id': 1}},
+      {
+        'op': 'DELETE',
+        'tabel': 'warga',
+        'data': {'id': 1}
+      },
       {
         'op': 'REORDER',
         'tabel': 'warga',
@@ -1351,8 +1352,16 @@ void main() {
         'tabel': 'lokasi',
         'data': {'kode': '33.27.07.2016', 'nama_desa': 'Kalitorong'}
       },
-      {'op': 'EXPORT', 'tabel': 'export', 'data': {'files': [], 'jumlah': 0}},
-      {'op': 'RELOCATE', 'tabel': 'storage', 'data': {'dari': '/a', 'ke': '/b'}},
+      {
+        'op': 'EXPORT',
+        'tabel': 'export',
+        'data': {'files': [], 'jumlah': 0}
+      },
+      {
+        'op': 'RELOCATE',
+        'tabel': 'storage',
+        'data': {'dari': '/a', 'ke': '/b'}
+      },
     ];
     for (var from = 2; from < schemaVersion; from++) {
       for (final event in events) {
@@ -1380,7 +1389,8 @@ void main() {
     final checkpoint = await store.db
         .query('setelan', where: 'kunci = ?', whereArgs: ['jurnal_checkpoint']);
     expect(checkpoint, hasLength(1));
-    expect(RegExp(r'^\d+\|\d{4}-\d{2}-\d{2}$')
+    expect(
+        RegExp(r'^\d+\|\d{4}-\d{2}-\d{2}$')
             .hasMatch('${checkpoint.single['nilai']}'),
         isTrue);
     // Move today's journal file to an old date and append garbage: the

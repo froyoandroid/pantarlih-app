@@ -8,8 +8,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
 
-  test('folder name suffixes the wilayah kode to split look-alike desas',
-      () {
+  test('folder name suffixes the wilayah kode to split look-alike desas', () {
     expect(namaFolderDesa('Sido Mulyo'), namaFolderDesa('Sidomulyo'));
     expect(namaFolderDesa('Sido Mulyo', kodeWilayah: '33.27.07.2001'),
         'PantarlihSidomulyo_3327072001');

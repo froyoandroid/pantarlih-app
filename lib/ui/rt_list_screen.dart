@@ -246,8 +246,8 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final tgl = tanggalTampil(row['tgl_lahir']);
                                   final catatan =
                                       keteranganTampil(row['keterangan']);
-                                  final kodeKet = kodeKeterangan(
-                                      teks(row['keterangan']));
+                                  final kodeKet =
+                                      kodeKeterangan(teks(row['keterangan']));
                                   final warnaKode = teks(row['warna']);
                                   // Unknown color codes (legacy rows) get
                                   // a distinct shade instead of masquerading
