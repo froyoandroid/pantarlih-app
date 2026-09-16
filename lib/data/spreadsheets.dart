@@ -34,6 +34,15 @@ const dpsHeaders = [
   'KETERANGAN'
 ];
 
+/// Column widths keyed by header name, not index: reordering or adding a
+/// header can no longer silently shift widths to the wrong column.
+const _lebarKolom = <String, double>{
+  'NAMA': 30,
+  'KETERANGAN': 30,
+  'NIK': 24,
+  'NILAI': 30,
+};
+
 String slugWilayah(String nama) {
   final slug = nama
       .toUpperCase()
@@ -465,13 +474,7 @@ class ExportService {
               bold: true,
               backgroundColorHex: ExcelColor.fromHexString('#173F35'),
               fontColorHex: ExcelColor.white);
-      sheet.setColumnWidth(
-          i,
-          i == 1 || i == 9
-              ? 30
-              : i == 2
-                  ? 24
-                  : 18);
+      sheet.setColumnWidth(i, _lebarKolom[headers[i]] ?? 18);
     }
   }
 
