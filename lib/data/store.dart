@@ -653,8 +653,13 @@ class AppStore extends ChangeNotifier {
             afterId: afterId, beforeId: beforeId, extras: extras, ts: ts);
         return _wargaRecord(fields, next, urut, ts, ts);
       }
-      final before =
-          (await txn.query('warga', where: 'id = ?', whereArgs: [id])).first;
+      final sebelum = await txn.query('warga', where: 'id = ?', whereArgs: [id]);
+      if (sebelum.isEmpty) {
+        // Typical cause: the row was deleted elsewhere (e.g. swiped away in
+        // the RT list) while this edit form was still open.
+        throw AppException('Warga $id sudah dihapus. Muat ulang daftar.');
+      }
+      final before = sebelum.first;
       var urut = before['urut_sort'] as int;
       if (intValue(fields['rt']) != intValue(before['rt']) ||
           intValue(fields['rw']) != intValue(before['rw'])) {
@@ -677,13 +682,15 @@ class AppStore extends ChangeNotifier {
   }
 
   int? _urutTetangga(List<RecordMap> others, int? beforeId, int? afterId) {
-    final sebelum = beforeId == null
-        ? null
-        : others.firstWhere((r) => r['id'] == beforeId)['urut_sort'] as int;
-    final sesudah = afterId == null
-        ? null
-        : others.firstWhere((r) => r['id'] == afterId)['urut_sort'] as int;
-    return urutAntara(sebelum, sesudah);
+    int? urut(int? id) {
+      if (id == null) return null;
+      for (final r in others) {
+        if (r['id'] == id) return r['urut_sort'] as int;
+      }
+      throw AppException('Warga $id sudah dihapus. Muat ulang daftar.');
+    }
+
+    return urutAntara(urut(beforeId), urut(afterId));
   }
 
   Future<void> reorderWarga(int id, int? beforeId, int? afterId) async {
