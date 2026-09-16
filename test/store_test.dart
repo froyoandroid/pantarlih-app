@@ -558,7 +558,7 @@ void main() {
     final session = Session(store);
     await session.load();
     for (var i = 0; i < 12; i++) {
-      await session.change(session.rt == 3 ? 4 : 3, 3);
+      await session.focusRt(session.rt == 3 ? const RtRw(3, 4) : const RtRw(3, 3));
     }
     final folders = Directory('${root.path}/export/auto')
         .listSync()
@@ -582,7 +582,7 @@ void main() {
     final session = Session(store);
     await session.load();
     expect(session.rt, 3);
-    await session.change(4, 3);
+    await session.focusRt(const RtRw(3, 4));
     expect(await store.snapshots(), hasLength(1));
     expect(await Directory('${root.path}/export/auto').list().toList(),
         isNotEmpty);
