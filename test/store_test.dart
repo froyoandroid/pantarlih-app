@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/data/migrate.dart';
+import 'package:pantarlih_kalitorong/data/schema.dart';
 import 'package:pantarlih_kalitorong/data/spreadsheets.dart';
 import 'package:pantarlih_kalitorong/data/store.dart';
 import 'package:pantarlih_kalitorong/ui/common.dart';
@@ -1297,6 +1298,79 @@ void main() {
     // reference-import wording); the date column is the one that matters.
     expect(dpsHeaders[5], 'TANGGAL LAHIR');
     expect(header[5], 'TANGGAL LAHIR');
+  });
+
+  test('every journal version migrates to current schema for every op',
+      () async {
+    // Bumping schemaVersion without adding a _migrateStep case only fails
+    // on a field device replaying old journals; this loop fails here first.
+    final events = [
+      {
+        'op': 'INSERT',
+        'tabel': 'warga',
+        'data': {'id': 1, 'nama': 'A', 'nama_norm': 'a', 'rt': 3, 'rw': 3}
+      },
+      {
+        'op': 'UPDATE',
+        'tabel': 'warga',
+        'data': {'id': 1, 'nama': 'B'}
+      },
+      {'op': 'DELETE', 'tabel': 'warga', 'data': {'id': 1}},
+      {
+        'op': 'REORDER',
+        'tabel': 'warga',
+        'data': {
+          'peta': {
+            '1': {'lama': 1000, 'baru': 2000}
+          },
+          'rw': 3,
+          'rt': 3
+        }
+      },
+      {
+        'op': 'IMPORT',
+        'tabel': 'referensi',
+        'data': {
+          'records': [
+            {'nama': 'R', 'nama_norm': 'r'}
+          ]
+        }
+      },
+      {'op': 'DELETE', 'tabel': 'referensi', 'data': {}},
+      {
+        'op': 'UPDATE',
+        'tabel': 'setelan',
+        'data': {
+          'records': [
+            {'kunci': 'x', 'nilai': 'y'}
+          ]
+        }
+      },
+      {
+        'op': 'INSERT',
+        'tabel': 'lokasi',
+        'data': {'kode': '33.27.07.2016', 'nama_desa': 'Kalitorong'}
+      },
+      {'op': 'EXPORT', 'tabel': 'export', 'data': {'files': [], 'jumlah': 0}},
+      {'op': 'RELOCATE', 'tabel': 'storage', 'data': {'dari': '/a', 'ke': '/b'}},
+    ];
+    for (var from = 2; from < schemaVersion; from++) {
+      for (final event in events) {
+        final raised = migrateEvent({
+          'schema_v': from,
+          'ts': timestamp(),
+          'row_id': null,
+          ...event,
+        }, target: schemaVersion);
+        expect(raised['schema_v'], schemaVersion,
+            reason: '$from ${event['tabel']}/${event['op']}');
+      }
+    }
+    // Newer journals are rejected, never silently skipped.
+    expect(
+        () => migrateEvent({'schema_v': schemaVersion + 1},
+            target: schemaVersion),
+        throwsA(isA<JournalVersionException>()));
   });
 
   test('empty database without lokasi still saves one person', () async {
