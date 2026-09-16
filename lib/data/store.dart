@@ -331,6 +331,8 @@ class AppStore extends ChangeNotifier {
         await txn.insert('setelan', Map<String, Object?>.from(raw as Map),
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
+    } else if (table == 'storage' && op == 'RELOCATE') {
+      // Folder move is applied on disk, not inside SQLite.
     } else if (!(table == 'export' && op == 'EXPORT')) {
       throw AppException('Operasi jurnal tidak dikenal: $table/$op');
     }
@@ -596,6 +598,16 @@ class AppStore extends ChangeNotifier {
         'records': rows.map((r) => _full(referensiColumns, r)).toList(),
       };
     });
+  }
+
+  Future<void> recordStorageMove(String from, String to) async {
+    await _commit(
+        'RELOCATE',
+        'storage',
+        (txn, ts) async => {
+              'dari': from,
+              'ke': to,
+            });
   }
 
   Future<void> recordExport(
