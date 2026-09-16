@@ -149,10 +149,9 @@ class Session extends ChangeNotifier {
     await _remember(newRt, newRw);
   }
 
+  /// Releasing the last RT is allowed: a fresh install also starts with an
+  /// empty workspace, and Beranda already explains how to add one.
   Future<void> removeRtRw(RtRw pair) async {
-    if (workspace.length <= 1) {
-      throw AppException('Wilayah kerja perlu minimal satu RT.');
-    }
     workspace = [
       for (final item in workspace)
         if (item != pair) item
@@ -160,8 +159,8 @@ class Session extends ChangeNotifier {
     var nextRt = rt;
     var nextRw = rw;
     if (rt == pair.rt && rw == pair.rw) {
-      nextRt = workspace.first.rt;
-      nextRw = workspace.first.rw;
+      nextRt = workspace.isEmpty ? 0 : workspace.first.rt;
+      nextRw = workspace.isEmpty ? 0 : workspace.first.rw;
     }
     await _remember(nextRt, nextRw);
   }
