@@ -279,6 +279,14 @@ void main() {
     expect(payload.containsKey('id_lama'), isFalse);
   });
 
+  test('changing RT keeps a custom village name', () async {
+    await store.setDesa('KALITORONG DUSUN 2');
+    await store.setSession(4, 3);
+    final values = await store.settings();
+    expect(values['desa_default'], 'KALITORONG DUSUN 2');
+    expect(values['rt_aktif'], '4');
+  });
+
   test('same-RT name duplicates without NIK appear in duplicateNameRows',
       () async {
     await store.saveWarga(fields(name: 'MUHAMMAD HASSAN', nik: null));

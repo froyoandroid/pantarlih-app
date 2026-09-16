@@ -148,8 +148,20 @@ class AppStore extends ChangeNotifier {
               'records': [
                 {'kunci': 'rt_aktif', 'nilai': '$rt'},
                 {'kunci': 'rw_aktif', 'nilai': '$rw'},
-                {'kunci': 'desa_default', 'nilai': 'KALITORONG'},
-                {'kunci': 'schema_v', 'nilai': '$schemaV'},
+              ]
+            });
+  }
+
+  Future<void> setDesa(String value) async {
+    await _commit(
+        'UPDATE',
+        'setelan',
+        (txn, ts) async => {
+              'records': [
+                {
+                  'kunci': 'desa_default',
+                  'nilai': nullableText(value) ?? 'KALITORONG',
+                },
               ]
             });
   }

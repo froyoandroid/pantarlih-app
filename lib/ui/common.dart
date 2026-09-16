@@ -33,6 +33,12 @@ class Session extends ChangeNotifier {
     rw = newRw;
     notifyListeners();
   }
+
+  Future<void> setVillage(String value) async {
+    await store.setDesa(value);
+    village = (await store.settings())['desa_default']!;
+    notifyListeners();
+  }
 }
 
 class AppPage extends StatelessWidget {
