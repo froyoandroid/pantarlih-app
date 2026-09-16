@@ -133,7 +133,7 @@ class _SearchScreenState extends State<SearchScreen> {
           aktif: true,
           wargaDiperluas: wargaDiperluas,
           warga: existing,
-          referensi: _rank(referensi, q, 5, rtUtama: session.rt));
+          referensi: _rankReferensi(q));
     }
     final iso = parseTanggal(q);
     if (iso == null) return const HasilCari();
@@ -169,24 +169,24 @@ class _SearchScreenState extends State<SearchScreen> {
         referensi: refs);
   }
 
-  /// Ranks by name score. When rtUtama is given, rows from that RT sort
-  /// above every other RT first, score deciding order within each group -
-  /// so a neighboring RT's match is never hidden, only placed lower.
-  List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas,
-      {int? rtUtama}) {
+  List<(RecordMap, double)> _rank(List<RecordMap> pool, String q, int batas) {
     final ranked = pool.map((r) => (r, skorNama(q, '${r['nama']}'))).toList();
     ranked.sort((a, b) {
-      if (rtUtama != null) {
-        final grup = (a.$1['rt'] == rtUtama ? 0 : 1)
-            .compareTo(b.$1['rt'] == rtUtama ? 0 : 1);
-        if (grup != 0) return grup;
-      }
       final cmp = b.$2.compareTo(a.$2);
       return cmp != 0
           ? cmp
           : intValue(a.$1['id']).compareTo(intValue(b.$1['id']));
     });
     return ranked.where((e) => e.$2 >= 30).take(batas).toList();
+  }
+
+  /// Active RT and every other RT get their own top-5 budget instead of
+  /// sharing one - a name-rich active RT filling all five slots must never
+  /// crowd out an explicit match sitting in a neighboring RT.
+  List<(RecordMap, double)> _rankReferensi(String q) {
+    final aktif = referensi.where((r) => r['rt'] == session.rt).toList();
+    final lain = referensi.where((r) => r['rt'] != session.rt).toList();
+    return [..._rank(aktif, q, 5), ..._rank(lain, q, 5)];
   }
 
   Future<void> _openForm({RecordMap? wargaRow, RecordMap? seed}) async {

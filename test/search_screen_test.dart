@@ -57,6 +57,11 @@ void main() {
   // that zone so the store's own database calls (triggered from initState)
   // actually resolve, then pump() drains the resulting frames as usual.
   Future<void> pump(WidgetTester tester) async {
+    // Tall surface: ListView only builds children near the viewport, so a
+    // short default test window would hide later cards (a second RT's
+    // referensi, or a fifth same-RT match) from find() even though they
+    // render fine on a real, scrollable phone screen.
+    await tester.binding.setSurfaceSize(const Size(400, 3000));
     await tester.pumpWidget(MaterialApp(home: SearchScreen(session: session)));
     for (var i = 0; i < 10; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -85,6 +90,50 @@ void main() {
 
       final label = tester.widget<Text>(find.text('Referensi di RT 3'));
       expect(label.style?.color, amber);
+    });
+  });
+
+  testWidgets(
+      'a name-rich active RT never crowds out an explicit match in another RT',
+      (tester) async {
+    await tester.runAsync(() async {
+      // Clean slate: the setUp SUPARMAN rows are unrelated and would add
+      // noise to the exact-count assertions below.
+      await store.clearReferensi();
+      // Five same-scoring matches in the active RT (RT 4) fill the old
+      // single shared top-5 budget on their own, which used to bury the
+      // explicit RT 3 match entirely.
+      for (var i = 1; i <= 5; i++) {
+        await store.importRows([
+          {
+            'urut_asli': i,
+            'nama': 'BUDIMAN $i',
+            'nama_norm': normalisasiNama('BUDIMAN $i'),
+            'rt': 4,
+            'rw': 3,
+          }
+        ], 'gabungan.xlsx');
+      }
+      await store.importRows([
+        {
+          'urut_asli': 1,
+          'nama': 'BUDIMAN SANTOSO',
+          'nama_norm': normalisasiNama('BUDIMAN SANTOSO'),
+          'rt': 3,
+          'rw': 3,
+        }
+      ], 'gabungan.xlsx');
+      await session.load();
+
+      await pump(tester);
+      await tester.enterText(find.byType(TextField), 'BUDIMAN');
+      for (var i = 0; i < 6; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+      }
+
+      expect(find.text('BUDIMAN SANTOSO'), findsOneWidget);
+      expect(find.text('Referensi di RT 3'), findsOneWidget);
     });
   });
 
