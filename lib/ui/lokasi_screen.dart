@@ -270,8 +270,11 @@ class _LokasiScreenState extends State<LokasiScreen> {
       body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(20), children: [
         if (!repo.available)
-          const Notice(
-              'Berkas wilayah tidak dapat dibuka. Ketik lokasi secara manual. Data pengguna tidak terpengaruh.',
+          Notice(
+              // Semicolons are banned in UI copy, dynamic reasons included.
+              'Paket wilayah tidak terbaca'
+              '${repo.alasanGagal == null ? '' : ': ${repo.alasanGagal!.replaceAll(';', ',')}'}.'
+              ' Isi desa secara manual. Data pengguna tidak terpengaruh.',
               warning: true),
         const Text(
             'Pilih Provinsi, Kabupaten/Kota, Kecamatan, lalu Desa/Kelurahan. Kode ditampilkan agar desa bernama sama bisa dibedakan.'),

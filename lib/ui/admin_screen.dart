@@ -159,7 +159,9 @@ class _AdminScreenState extends State<AdminScreen> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         Notice(widget.session.wilayah.available
             ? '${pack['kepmendagri'] ?? '—'}\n${pack['jumlah_total'] ?? '—'} baris · SHA ${pack['sha_sumber'] ?? '—'}'
-            : 'Berkas wilayah tidak terbuka. Mode manual tetap berfungsi.'),
+            : 'Paket wilayah tidak terbaca'
+                '${widget.session.wilayah.alasanGagal == null ? '' : ': ${widget.session.wilayah.alasanGagal!.replaceAll(';', ',')}'}.'
+                ' Mode manual tetap berfungsi.'),
         if (missingKode > 0)
           OutlinedButton.icon(
               onPressed: busy

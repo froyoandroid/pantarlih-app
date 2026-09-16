@@ -95,12 +95,16 @@ String kodeLokasiManual(String namaDesa) {
 
 /// Read-only Kemendagri pack. Never journaled, never part of rebuild().
 class WilayahRepo {
-  WilayahRepo._(this._db, this.path);
+  WilayahRepo._(this._db, this.path, [this.alasanGagal]);
   final Database? _db;
   final String? path;
+
+  /// Why the pack failed to open, shown in the UI when unavailable.
+  final String? alasanGagal;
   bool get available => _db != null;
 
-  factory WilayahRepo.unavailable() => WilayahRepo._(null, null);
+  factory WilayahRepo.unavailable([String? alasan]) =>
+      WilayahRepo._(null, null, alasan);
 
   static Future<WilayahRepo> open({
     Directory? supportDir,
@@ -135,7 +139,7 @@ class WilayahRepo {
       return WilayahRepo._(db, dest.path);
     } catch (e, st) {
       debugPrint('WilayahRepo gagal dibuka: $e\n$st');
-      return WilayahRepo.unavailable();
+      return WilayahRepo.unavailable('$e');
     }
   }
 
