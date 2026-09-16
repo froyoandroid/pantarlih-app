@@ -249,8 +249,13 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final kodeKet = kodeKeterangan(
                                       teks(row['keterangan']));
                                   final warnaKode = teks(row['warna']);
-                                  final warnaKartu =
-                                      _warnaKartu[warnaKode] ?? Colors.white;
+                                  // Unknown color codes (legacy rows) get
+                                  // a distinct shade instead of masquerading
+                                  // as "tanpa warna" white.
+                                  final warnaKartu = _warnaKartu[warnaKode] ??
+                                      (warnaKode.isEmpty
+                                          ? Colors.white
+                                          : Colors.grey.shade300);
                                   return KeyedSubtree(
                                       key: ValueKey(id),
                                       child: Dismissible(
