@@ -848,7 +848,7 @@ class AppStore extends ChangeNotifier {
       whereArgs: [if (rw != null) rw, if (rt != null) rt],
       orderBy: 'rw, rt, urut_sort, id');
 
-  Future<RecordMap> counts(int rt, int rw) async {
+  Future<RecordMap> counts(int rw, int rt) async {
     final rows = await db.rawQuery('''
       SELECT COUNT(*) AS jumlah,
         COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
@@ -887,7 +887,7 @@ class AppStore extends ChangeNotifier {
     return rows.map((r) => r['rt'] as int).toList();
   }
 
-  Future<List<RecordMap>> exportWarga(int rt, int rw) => db.query('warga',
+  Future<List<RecordMap>> exportWarga(int rw, int rt) => db.query('warga',
       where: 'rw = ? AND rt = ?',
       whereArgs: [rw, rt],
       orderBy: 'urut_sort ASC, id ASC');

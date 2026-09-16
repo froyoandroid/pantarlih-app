@@ -568,7 +568,7 @@ class ExportService {
     var combinedRows = 0;
     var combinedMissing = 0;
     for (final selectedRt in rts) {
-      final warga = await store.exportWarga(selectedRt, rw);
+      final warga = await store.exportWarga(rw, selectedRt);
       final rows = [
         for (var i = 0; i < warga.length; i++) dpsRow(warga[i], i + 1)
       ];

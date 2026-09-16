@@ -636,6 +636,57 @@ void main() {
     expect(session.workspace, hasLength(4));
   });
 
+  test('rw and rt arguments never swap: RT 3 RW 1 vs RT 1 RW 3', () async {
+    // Three rows: (rw 3, rt 3) from fields(), plus the two confusable pairs.
+    await store.saveWarga(fields(nik: null));
+    await store.db.insert('warga', {
+      'urut_sort': 1000,
+      'nama': 'ORANG SATU-SATU',
+      'nama_norm': 'orang satu-satu',
+      'jenis_kelamin': 'L',
+      'rt': 1,
+      'rw': 3,
+      'dibuat_pada': timestamp(),
+      'diubah_pada': timestamp(),
+    });
+    await store.db.insert('warga', {
+      'urut_sort': 1000,
+      'nama': 'ORANG LAIN-RW',
+      'nama_norm': 'orang lain-rw',
+      'jenis_kelamin': 'L',
+      'rt': 3,
+      'rw': 1,
+      'dibuat_pada': timestamp(),
+      'diubah_pada': timestamp(),
+    });
+    Future<Set<String>> nama(Future<List<RecordMap>> f) async =>
+        (await f).map((r) => '${r['nama']}').toSet();
+    // wargaRt(rw, rt)
+    expect(await nama(store.wargaRt(3, 3)), {'MUHAMAD HASAN'});
+    expect(await nama(store.wargaRt(3, 1)), {'ORANG SATU-SATU'});
+    expect(await nama(store.wargaRt(1, 3)), {'ORANG LAIN-RW'});
+    // counts(rw, rt)
+    expect(intValue((await store.counts(3, 3))['jumlah']), 1);
+    expect(intValue((await store.counts(3, 1))['jumlah']), 1);
+    expect(intValue((await store.counts(1, 3))['jumlah']), 1);
+    // exportWarga(rw, rt)
+    expect(await nama(store.exportWarga(3, 3)), {'MUHAMAD HASAN'});
+    expect(await nama(store.exportWarga(3, 1)), {'ORANG SATU-SATU'});
+    expect(await nama(store.exportWarga(1, 3)), {'ORANG LAIN-RW'});
+    // tanpaNik(rw:, rt:)
+    expect(await nama(store.tanpaNik(rw: 3, rt: 3)), {'MUHAMAD HASAN'});
+    expect(await nama(store.tanpaNik(rw: 3, rt: 1)), {'ORANG SATU-SATU'});
+    expect(await nama(store.tanpaNik(rw: 1, rt: 3)), {'ORANG LAIN-RW'});
+    // countsByRt(rw) splits by RT inside one RW only.
+    final perRt1 = await store.countsByRt(1);
+    expect(perRt1.single['rt'], 3);
+    final perRt3 = {for (final r in await store.countsByRt(3)) r['rt']: r};
+    expect(perRt3.keys.toSet(), {1, 3});
+    // posisi(id, rw, rt)
+    final satu = (await store.wargaRt(3, 1)).single;
+    expect(await store.posisi(satu['id'] as int, 3, 1), 1);
+  });
+
   test('same-RT name duplicates without NIK appear in duplicateNameRows',
       () async {
     await store.saveWarga(fields(name: 'MUHAMMAD HASSAN', nik: null));
