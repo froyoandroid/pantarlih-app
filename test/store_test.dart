@@ -1373,6 +1373,42 @@ void main() {
         throwsA(isA<JournalVersionException>()));
   });
 
+  test('replay skips journal files older than the checkpoint', () async {
+    await store.saveWarga(fields());
+    await store.close();
+    await store.open();
+    final checkpoint = await store.db
+        .query('setelan', where: 'kunci = ?', whereArgs: ['jurnal_checkpoint']);
+    expect(checkpoint, hasLength(1));
+    expect(RegExp(r'^\d+\|\d{4}-\d{2}-\d{2}$')
+            .hasMatch('${checkpoint.single['nilai']}'),
+        isTrue);
+    // Move today's journal file to an old date and append garbage: the
+    // checkpoint must skip the whole file without reporting failures.
+    final files = Directory('${root.path}/journal')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.jsonl'))
+        .toList();
+    expect(files, isNotEmpty);
+    final lama = File('${files.first.parent.path}/2020-01-01.jsonl');
+    await files.first.rename(lama.path);
+    await lama.writeAsString('{truncated', mode: FileMode.append, flush: true);
+    await store.saveWarga(fields(name: 'BARU'));
+    final sebelum = await store.db.query('warga');
+    await store.close();
+    await store.open();
+    expect(store.startupRecovery?.failed ?? 0, 0,
+        reason: 'old file must be skipped by the checkpoint');
+    final setelah = await store.db.query('warga', orderBy: 'id');
+    expect(setelah.map((r) => r['nama']), contains('BARU'));
+    expect(setelah.length, sebelum.length);
+    // A rebuilt database has no checkpoint and replays everything,
+    // including the old file, so its damaged line surfaces again.
+    final report = await store.rebuild();
+    expect(report.failed, 1);
+  });
+
   test('empty database without lokasi still saves one person', () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-empty-lokasi-');

@@ -92,6 +92,11 @@ class AppStore extends ChangeNotifier {
     // Suggesting a rebuild here would mislead: the database is fine.
     try {
       startupRecovery = await _replay(db);
+      // Advance the checkpoint only after a clean replay, so damaged lines
+      // keep being retried on the next launch.
+      if (startupRecovery == null || startupRecovery!.failed == 0) {
+        await _perbaruiCheckpoint();
+      }
       // One-time cleanup: scan warga only until the marker is journaled.
       final trimMarker = await db
           .query('setelan', where: 'kunci = ?', whereArgs: ['trim_v1_selesai']);
@@ -952,11 +957,21 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<RecoveryReport> _replay(Database target,
-      {bool honorDismiss = true}) async {
+      {bool honorDismiss = true, bool useCheckpoint = true}) async {
     final report = RecoveryReport();
     final errors = <String>[];
     final knownRows = await target.query('log', columns: ['id']);
     final known = knownRows.map((r) => r['id']).toSet();
+    // Journal files older than the checkpoint date hold only already-applied
+    // events (event ids grow with their timestamps), so open() skips whole
+    // files instead of re-decoding tens of thousands of lines per launch.
+    // rebuild() always replays everything: the checkpoint lives in setelan,
+    // so a lost or damaged database automatically has none.
+    var checkpointId = 0;
+    var checkpointTanggal = '';
+    if (useCheckpoint) {
+      (checkpointId, checkpointTanggal) = await _checkpointBaca(target);
+    }
     final files = await Directory('${root.path}/journal')
         .list()
         .where((e) => e is File && e.path.endsWith('.jsonl'))
@@ -964,6 +979,12 @@ class AppStore extends ChangeNotifier {
         .toList();
     files.sort((a, b) => a.path.compareTo(b.path));
     for (final file in files) {
+      final tanggal = _tanggalBerkasJurnal(file);
+      if (checkpointId > 0 &&
+          tanggal.isNotEmpty &&
+          tanggal.compareTo(checkpointTanggal) < 0) {
+        continue;
+      }
       var number = 0;
       await for (final line in file
           .openRead()
@@ -971,6 +992,14 @@ class AppStore extends ChangeNotifier {
           .transform(const LineSplitter())) {
         number++;
         if (line.trim().isEmpty) continue;
+        if (checkpointId > 0) {
+          final posisi = line.indexOf('"event_id":');
+          if (posisi >= 0) {
+            final id = int.tryParse(
+                line.substring(posisi + 10).replaceAll(RegExp(r'[^0-9]'), ''));
+            if (id != null && id <= checkpointId) continue;
+          }
+        }
         report.processed++;
         try {
           var event = Map<String, Object?>.from(jsonDecode(line) as Map);
@@ -1006,6 +1035,46 @@ class AppStore extends ChangeNotifier {
     await File(report.failurePath!)
         .writeAsString('${errors.join('\n')}\n', flush: true);
     return report;
+  }
+
+  String _tanggalBerkasJurnal(File file) {
+    final name = file.uri.pathSegments.last;
+    return RegExp(r'^(\d{4}-\d{2}-\d{2})\.jsonl$').firstMatch(name)?.group(1) ??
+        '';
+  }
+
+  /// Highest applied event id plus the date it was reached, stored in
+  /// setelan as 'id|yyyy-MM-dd'. Absent or malformed means no checkpoint.
+  Future<(int, String)> _checkpointBaca(DatabaseExecutor target) async {
+    final rows = await target.query('setelan',
+        where: 'kunci = ?', whereArgs: ['jurnal_checkpoint']);
+    if (rows.isEmpty) return (0, '');
+    final parts = '${rows.first['nilai'] ?? ''}'.split('|');
+    final id = int.tryParse(parts.first);
+    if (id == null || id <= 0) return (0, '');
+    return (id, parts.length > 1 ? parts[1] : '');
+  }
+
+  /// Called once per successful open: advances the checkpoint so the next
+  /// launch skips journal files that are fully applied. Never advanced when
+  /// replay reported failures, so damaged lines keep being retried.
+  Future<void> _perbaruiCheckpoint() async {
+    final rows = await db.query('log', orderBy: 'id DESC', limit: 1);
+    if (rows.isEmpty) return;
+    final maxId = intValue(rows.first['id']);
+    if (maxId <= 0) return;
+    final (lama, _) = await _checkpointBaca(db);
+    if (maxId <= lama) return;
+    final tanggal = '${rows.first['ts'] ?? ''}';
+    await _commit('UPDATE', 'setelan', (txn, ts) async => {
+          'records': [
+            {
+              'kunci': 'jurnal_checkpoint',
+              'nilai':
+                  '$maxId|${tanggal.length >= 10 ? tanggal.substring(0, 10) : ''}'
+            }
+          ]
+        });
   }
 
   Future<RecoveryReport> rebuild() => exclusive(() async {
