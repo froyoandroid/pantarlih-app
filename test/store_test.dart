@@ -204,6 +204,21 @@ void main() {
     expect(note['keterangan'], isNull);
   });
 
+  test('saving or reordering a warga deleted elsewhere fails readably',
+      () async {
+    final pertama = await store.saveWarga(fields());
+    final kedua = await store.saveWarga(fields(name: 'KEDUA'));
+    final id = pertama['id'] as int;
+    await store.deleteWarga(id);
+    await expectLater(
+        store.saveWarga(fields(), id: id),
+        throwsA(isA<AppException>()
+            .having((e) => e.message, 'message', contains('sudah dihapus'))));
+    await expectLater(
+        store.reorderWarga(kedua['id'] as int, id, null),
+        throwsA(isA<AppException>()));
+  });
+
   test('padded NIK is stored trimmed and collides with the same digits',
       () async {
     final padded = await store.saveWarga(fields(nik: ' 3327071909680001 '));
