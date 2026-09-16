@@ -26,6 +26,13 @@ Build debug (`flutter run`) adalah default untuk pengembangan — ukuran besar (
 
 APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB, HP arm64 modern; `armeabi-v7a` untuk HP lama). Build release lokal menggunakan signing key debug Android; cocok untuk sideload/perangkat tunggal, bukan publikasi Play Store. Gunakan keystore produksi yang dipertahankan untuk distribusi dan pembaruan jangka panjang. Jangan uninstall untuk memperbarui; install APK dengan tanda tangan yang sama di atas versi lama.
 
+## Konvensi UI
+
+- Semua teks antarmuka berbahasa Indonesia dan tidak mengandung titik koma (`;`).
+- Kapitalisasi tombol: aksi utama dan destruktif HURUF BESAR (SIMPAN, HAPUS, BANGUN ULANG DATABASE), aksi sekunder atau pembatal kapital kalimat (Batal, Tutup, Coba minta izin lagi).
+- Judul AppBar selalu nama halaman (Beranda, Daftar RT, Ketik nama, Input survei, Riwayat, Impor referensi, Ekspor & pemulihan). Tanggal dan hitungan berada di badan halaman, bukan di judul.
+- Penggabung bagian teks memakai titik tengah dengan spasi (` · `), konsisten di seluruh layar.
+
 ## Penggunaan
 
 1. Instal APK (Android 7.0+), buka aplikasi, izinkan akses berkas. Pada Android 11+, aktifkan “Izinkan akses untuk mengelola semua file”, lalu kembali ke aplikasi. Android 7–10 menggunakan izin penyimpanan biasa.

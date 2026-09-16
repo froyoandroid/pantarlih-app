@@ -192,12 +192,17 @@ class AppPage extends StatelessWidget {
       required this.title,
       required this.child,
       this.bottom,
-      this.actions});
+      this.actions,
+      this.storageBanner = false});
   final Session session;
   final String title;
   final Widget child;
   final Widget? bottom;
   final List<Widget>? actions;
+
+  /// The red internal-storage banner eats vertical space on small screens,
+  /// so it renders only where storage decisions happen (Beranda and Admin).
+  final bool storageBanner;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
       listenable: session,
@@ -205,6 +210,7 @@ class AppPage extends StatelessWidget {
             appBar: AppBar(
                 title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(title,
                           style: const TextStyle(
@@ -215,14 +221,24 @@ class AppPage extends StatelessWidget {
                               MaterialPageRoute(
                                   builder: (_) =>
                                       LokasiScreen(session: session))),
-                          child: Text(session.lokasiLabel,
-                              style: const TextStyle(
-                                  fontSize: 11, letterSpacing: .6))),
+                          child: Container(
+                              constraints: const BoxConstraints(minHeight: 44),
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.place_outlined, size: 12),
+                                    const SizedBox(width: 3),
+                                    Text(session.lokasiLabel,
+                                        style: const TextStyle(
+                                            fontSize: 11, letterSpacing: .6)),
+                                  ]))),
                     ]),
                 actions: actions),
             body: SafeArea(
                 child: Column(children: [
-              if (!session.usingPublic) _PrivateStorageBanner(session: session),
+              if (storageBanner && !session.usingPublic)
+                _PrivateStorageBanner(session: session),
               Expanded(
                   child: Align(
                       alignment: Alignment.topCenter,

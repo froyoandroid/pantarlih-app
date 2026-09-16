@@ -75,6 +75,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
       title: 'Ekspor & pemulihan',
+      storageBanner: true,
       child: ListView(padding: const EdgeInsets.all(20), children: [
         const Text('Pemeriksaan data',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
