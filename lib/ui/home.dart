@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<RecordMap> counts = [];
+  List<RecordMap> sumberReferensi = [];
   bool busy = false;
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     counts = await widget.session.store.countsByRtRw();
+    sumberReferensi = await widget.session.store.sumberReferensi();
     if (mounted) setState(() {});
   }
 
@@ -144,6 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Detail line for the Impor referensi tile: the file actually feeding the
+  /// typing suggestions, not a generic description.
+  String get _detailReferensi {
+    if (sumberReferensi.isEmpty) return 'Belum ada file referensi';
+    final utama = teks(sumberReferensi.first['sumber_file']);
+    final nama = utama.isEmpty ? 'File tanpa nama' : utama;
+    final lain = sumberReferensi.length - 1;
+    return lain == 0 ? nama : '$nama +$lain file lain';
+  }
+
   String get _lokasiSub {
     final loc = widget.session.lokasi;
     if (loc == null) return 'Pilih desa, lalu nama pada formulir';
@@ -241,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     (
                       Icons.file_upload_outlined,
                       'Impor referensi',
-                      'Bantuan dari workbook lama',
+                      _detailReferensi,
                       () => _open(ImportScreen(session: widget.session))
                     ),
                     (
