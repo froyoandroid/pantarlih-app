@@ -2,21 +2,6 @@ const schemaVersion = 6;
 const schemaBaseVersion = 6;
 const appVersion = '1.0.0+1';
 
-const dropStatements = <String>[
-  'DROP VIEW IF EXISTS v_duplikat_nama',
-  'DROP VIEW IF EXISTS v_duplikat_nik',
-  'DROP VIEW IF EXISTS v_konflik_rt',
-  'DROP VIEW IF EXISTS v_sisa',
-  'DROP TABLE IF EXISTS tanda_lama',
-  'DROP TABLE IF EXISTS survei',
-  'DROP TABLE IF EXISTS warga_lama',
-  'DROP TABLE IF EXISTS warga',
-  'DROP TABLE IF EXISTS referensi',
-  'DROP TABLE IF EXISTS log',
-  'DROP TABLE IF EXISTS urutan_id',
-  'DROP TABLE IF EXISTS setelan',
-];
-
 /// The complete, current database shape. Fresh installs run only these
 /// statements; existing databases upgrade stepwise via builtinUpgrades in
 /// migrate.dart. This is the single place that shows what the schema is.
