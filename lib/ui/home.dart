@@ -156,17 +156,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
       title: 'Beranda',
+      subtitle: tanggalPanjang(),
       storageBanner: true,
       child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(padding: const EdgeInsets.all(20), children: [
-            Padding(
-                padding: const EdgeInsets.only(left: 10, bottom: 6),
-                child: Text(tanggalPanjang(),
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w600))),
             Card(
                 child: ListTile(
                     minVerticalPadding: 12,

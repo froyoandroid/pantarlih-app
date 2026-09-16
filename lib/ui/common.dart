@@ -192,12 +192,17 @@ class AppPage extends StatelessWidget {
       required this.child,
       this.bottom,
       this.actions,
+      this.subtitle,
       this.storageBanner = false});
   final Session session;
   final String title;
   final Widget child;
   final Widget? bottom;
   final List<Widget>? actions;
+
+  /// Small secondary line rendered directly under the title, e.g. the
+  /// long-form date on Beranda.
+  final String? subtitle;
 
   /// The red internal-storage banner eats vertical space on small screens,
   /// so it renders only where storage decisions happen (Beranda and Admin).
@@ -207,9 +212,20 @@ class AppPage extends StatelessWidget {
       listenable: session,
       builder: (context, _) => Scaffold(
             appBar: AppBar(
-                title: Text(title,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                      if (subtitle != null)
+                        Text(subtitle!,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600)),
+                    ]),
                 actions: actions),
             body: SafeArea(
                 child: Column(children: [
