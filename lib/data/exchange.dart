@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
@@ -99,5 +100,43 @@ Future<void> _rotasiCadangan(Directory dir, int keep) async {
   all.sort((a, b) => b.path.compareTo(a.path));
   for (final old in all.skip(keep)) {
     await old.delete();
+  }
+}
+
+/// Restores a `cadangan_<stamp>.zip` written by [tulisCadangan]. The bundle's
+/// database becomes the live one and its journal replaces the current
+/// journal, so replay brings the database up to the bundle's newest line.
+/// Current database and journal are kept under recovered/, nothing is lost.
+Future<RecoveryReport> pulihkanCadangan(AppStore store, Uint8List bytes) async {
+  final Archive arsip;
+  try {
+    arsip = ZipDecoder().decodeBytes(bytes, verify: true);
+  } catch (_) {
+    throw AppException('Berkas bukan cadangan Pantarlih yang utuh.');
+  }
+  final db = arsip.findFile('pantarlih.db');
+  if (db == null) {
+    throw AppException(
+        'Berkas cadangan tidak memuat pantarlih.db. Pilih cadangan_<waktu>.zip dari folder cadangan.');
+  }
+  final stamp = fileStamp();
+  final masuk = Directory('${store.root.path}/recovered/cadangan_masuk_$stamp');
+  await Directory('${masuk.path}/journal').create(recursive: true);
+  await File('${masuk.path}/pantarlih.db')
+      .writeAsBytes(db.content as List<int>, flush: true);
+  for (final f in arsip.files) {
+    if (!f.isFile || !f.name.startsWith('journal/')) continue;
+    final nama = f.name.substring('journal/'.length);
+    if (nama.isEmpty || nama.contains('/') || !nama.endsWith('.jsonl')) {
+      continue;
+    }
+    await File('${masuk.path}/journal/$nama')
+        .writeAsBytes(f.content as List<int>, flush: true);
+  }
+  try {
+    return await store.gantiDariCadangan(
+        File('${masuk.path}/pantarlih.db'), Directory('${masuk.path}/journal'));
+  } finally {
+    if (await masuk.exists()) await masuk.delete(recursive: true);
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../core/format.dart';
@@ -72,6 +73,25 @@ class _AdminScreenState extends State<AdminScreen> {
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     }
+  }
+
+  /// Picks a `cadangan_<stamp>.zip` (the picker needs no storage permission)
+  /// and replaces database plus journal with the bundle's contents.
+  Future<void> _pulihkanDariCadangan() async {
+    final file = await FilePicker.pickFile(
+        type: FileType.custom, allowedExtensions: ['zip']);
+    if (file == null || !mounted) return;
+    if (!await confirm(context, 'Pulihkan dari cadangan?',
+        'Database dan jurnal sekarang diganti dengan isi ${file.name}. Keduanya diamankan dulu ke folder recovered. Semua yang diketik setelah cadangan itu dibuat hilang dari daftar.',
+        action: 'PULIHKAN', dangerous: true)) {
+      return;
+    }
+    await run(() async {
+      final result = await pulihkanCadangan(
+          widget.session.store, await file.readAsBytes());
+      await widget.session.load();
+      return 'Cadangan ${file.name} dipulihkan. $result';
+    });
   }
 
   @override
@@ -239,6 +259,11 @@ class _AdminScreenState extends State<AdminScreen> {
                   },
             icon: const Icon(Icons.restore),
             label: const Text('BANGUN ULANG DATABASE')),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+            onPressed: busy ? null : _pulihkanDariCadangan,
+            icon: const Icon(Icons.unarchive_outlined),
+            label: const Text('PULIHKAN DARI CADANGAN')),
         if (busy)
           const Padding(
               padding: EdgeInsets.all(16), child: LinearProgressIndicator()),

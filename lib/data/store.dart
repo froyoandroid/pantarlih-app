@@ -1355,6 +1355,62 @@ class AppStore extends ChangeNotifier {
     });
   }
 
+  /// Swaps in a database and journal extracted from a cadangan bundle. The
+  /// current pair is moved to recovered/ first, then the new database is
+  /// validated, opened and brought up to date by replaying the new journal.
+  Future<RecoveryReport> gantiDariCadangan(
+          File dbBaru, Directory journalBaru) =>
+      exclusive(() async {
+        final uji = await _bukaBacaSaja(dbBaru);
+        try {
+          final check = await uji.rawQuery('PRAGMA quick_check');
+          if (check.any((row) => row.values.first != 'ok')) {
+            throw AppException('Database di dalam cadangan rusak.');
+          }
+          final versi = await uji.rawQuery('PRAGMA user_version');
+          if (intValue(versi.first.values.first) > schemaV) {
+            throw AppException(
+                'Cadangan berasal dari versi aplikasi yang lebih baru.');
+          }
+          await uji.rawQuery('SELECT COUNT(*) FROM warga');
+        } catch (e) {
+          if (e is AppException) rethrow;
+          throw AppException('Database di dalam cadangan tidak dapat dibaca.');
+        } finally {
+          await uji.close();
+        }
+        final stamp = fileStamp();
+        try {
+          await db.close();
+        } catch (_) {/* Startup may have failed to open the database. */}
+        final backup = '${root.path}/recovered/db_sebelum_cadangan_$stamp.db';
+        if (await File(dbPath).exists()) await File(dbPath).rename(backup);
+        for (final suffix in ['-wal', '-shm']) {
+          final sidecar = File('$dbPath$suffix');
+          if (await sidecar.exists()) await sidecar.rename('$backup$suffix');
+        }
+        final journal = Directory('${root.path}/journal');
+        final journalLama =
+            Directory('${root.path}/recovered/journal_sebelum_cadangan_$stamp');
+        if (await journal.exists()) await journal.rename(journalLama.path);
+        await journal.create(recursive: true);
+        await for (final entity in journalBaru.list()) {
+          if (entity is File) {
+            await entity
+                .copy('${journal.path}/${entity.uri.pathSegments.last}');
+          }
+        }
+        await dbBaru.copy(dbPath);
+        db = await _openDatabase(dbPath);
+        await _muatKolom();
+        final report = await _replay(db, honorDismiss: false);
+        if (report.failed == 0) await _perbaruiCheckpoint();
+        report.previousDatabase = backup;
+        _recoveryRequired = false;
+        notifyListeners();
+        return report;
+      });
+
   Future<void> close() async {
     await _tail;
     try {
