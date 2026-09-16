@@ -203,7 +203,10 @@ String ringkasanEvent(EventJurnal e) {
           for (final r in (records as List).whereType<Map>())
             '${r['kunci']}': '${r['nilai']}'
         };
-        return 'Pindah ke RT ${peta['rt_aktif'] ?? '?'} / RW ${peta['rw_aktif'] ?? '?'}';
+        final rt = intValue(peta['rt_aktif']);
+        final rw = intValue(peta['rw_aktif']);
+        if (rt <= 0 && rw <= 0) return 'Lepas semua RT dari wilayah kerja';
+        return 'Pindah ke ${RtRw(rw, rt).label}';
       }
       return 'Ubah setelan: ${kunci.join(', ')}';
     case ('export', _):
