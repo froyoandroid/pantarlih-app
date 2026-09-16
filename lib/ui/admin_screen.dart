@@ -168,7 +168,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       final kode = widget.session.kodeWilayah;
                       if (kode == null || kode.isEmpty) {
                         feedback(context,
-                            'Pilih lokasi kerja dulu sebelum menetapkan kode pada baris lama.',
+                            'Pilih lokasi kerja dulu sebelum menetapkan kode pada warga lama.',
                             error: true);
                         return;
                       }
@@ -176,24 +176,24 @@ class _AdminScreenState extends State<AdminScreen> {
                           await widget.session.store.missingKodeGroups();
                       final ringkas = groups
                           .map((g) =>
-                              '• ${g['desa'] == '' ? '(kosong)' : g['desa']} · ${g['jumlah']} baris')
+                              '• ${g['desa'] == '' ? '(kosong)' : g['desa']} · ${g['jumlah']} warga')
                           .join('\n');
                       if (!context.mounted) return;
                       if (!await confirm(
                           context,
-                          'Tetapkan kode wilayah untuk baris lama?',
-                          '$missingKode baris tanpa kode akan diisi $kode.\n\n$ringkas\n\nIni bukan tebakan otomatis. Anda harus yakin baris lama berasal dari desa yang sekarang dipilih.',
+                          'Tetapkan kode wilayah untuk warga lama?',
+                          '$missingKode warga tanpa kode akan diisi $kode.\n\n$ringkas\n\nIni bukan tebakan otomatis. Anda harus yakin warga lama berasal dari desa yang sekarang dipilih.',
                           action: 'TETAPKAN')) {
                         return;
                       }
                       await run(() async {
                         final n = await widget.session.store
                             .backfillKodeWilayah(kode);
-                        return '$n baris diperbarui.';
+                        return '$n warga diperbarui.';
                       });
                     },
               icon: const Icon(Icons.pin_drop_outlined),
-              label: const Text('TETAPKAN KODE WILAYAH UNTUK BARIS LAMA')),
+              label: const Text('TETAPKAN KODE WILAYAH UNTUK WARGA LAMA')),
         const SizedBox(height: 28),
         const Text('Ketahanan & pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),

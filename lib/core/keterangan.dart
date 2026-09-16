@@ -35,7 +35,5 @@ String? keteranganArti(String? chip) =>
 String keteranganTampil(Object? raw) {
   final trimmed = '${raw ?? ''}'.trim();
   if (trimmed.isEmpty) return '';
-  final code = kodeKeterangan(trimmed);
-  if (code == null) return trimmed;
-  return '$code · ${keteranganKode[code]}';
+  return kodeKeterangan(trimmed) ?? trimmed;
 }

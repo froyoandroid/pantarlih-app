@@ -255,7 +255,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           const Padding(
                               padding: EdgeInsets.all(12),
                               child: Text(
-                                  'Saran hanya mengisi field. Setelah dipilih, baris berdiri sendiri.',
+                                  'Saran hanya mengisi field. Setelah dipilih, warga berdiri sendiri.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54))),

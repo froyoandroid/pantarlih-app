@@ -51,14 +51,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: ListView(padding: const EdgeInsets.all(16), children: [
                 if (widget.kind == SurveyListKind.duplicates)
                   const Notice(
-                      'Semua baris dengan NIK berulang. Buka baris untuk memeriksa dan mengoreksi sesuai KK.',
+                      'Semua warga dengan NIK berulang. Buka warga untuk memeriksa dan mengoreksi sesuai KK.',
                       warning: true),
                 if (widget.kind == SurveyListKind.duplicateNames)
                   const Notice(
-                      'Nama yang dinormalisasi sama di RT yang sama, termasuk yang tanpa NIK. Buka baris untuk memeriksa dan mengoreksi sesuai KK.',
+                      'Nama yang dinormalisasi sama di RT yang sama, termasuk yang tanpa NIK. Buka warga untuk memeriksa dan mengoreksi sesuai KK.',
                       warning: true),
                 if (rows!.isEmpty)
-                  const EmptyState('Belum ada baris',
+                  const EmptyState('Belum ada warga',
                       'Data yang sesuai akan ditampilkan di sini.'),
                 for (final row in rows!)
                   ResidentCard(row,

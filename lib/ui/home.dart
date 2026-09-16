@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Jumlah baris per RT',
+                          const Text('Jumlah warga per RT',
                               style: TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 12),
                           if (widget.session.workspace.isEmpty)
@@ -273,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     padding:
                                         const EdgeInsets.symmetric(vertical: 4),
                                     child: Text(
-                                        'RT ${pair.rt.toString().padLeft(2, '0')} · ${_countFor(pair)?['jumlah'] ?? 0} baris · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK')),
+                                        'RT ${pair.rt.toString().padLeft(2, '0')} · ${_countFor(pair)?['jumlah'] ?? 0} warga · ${_countFor(pair)?['tanpa_nik'] ?? 0} tanpa NIK')),
                             ],
                         ]))),
             const SizedBox(height: 8),

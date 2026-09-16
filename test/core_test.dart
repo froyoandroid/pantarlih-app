@@ -152,7 +152,7 @@ void main() {
     expect(keteranganArti('PD'), 'pindah domisili');
     expect(keteranganArti(keteranganNormal), isNull);
     expect(nilaiKeterangan(keteranganLainnya, '  bebas  '), '  bebas  ');
-    expect(keteranganTampil('TMS'), 'TMS · tidak memenuhi syarat');
+    expect(keteranganTampil('TMS'), 'TMS');
     expect(keteranganTampil('catatan sendiri'), 'catatan sendiri');
     expect(keteranganTampil(''), '');
   });

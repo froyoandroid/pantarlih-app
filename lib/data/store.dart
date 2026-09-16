@@ -427,7 +427,7 @@ class AppStore extends ChangeNotifier {
         final count = await txn.update('warga', record,
             where: 'id = ?', whereArgs: [record['id']]);
         if (count != 1) {
-          throw AppException('Baris warga ${record['id']} tidak ditemukan');
+          throw AppException('Warga ${record['id']} tidak ditemukan');
         }
       } else if (op == 'DELETE') {
         await txn.delete('warga', where: 'id = ?', whereArgs: [data['id']]);
@@ -552,7 +552,7 @@ class AppStore extends ChangeNotifier {
     final rows = await _wargaRt(txn, rw, rt);
     final anchor = beforeId ?? afterId;
     if (anchor != null && rows.every((r) => r['id'] != anchor)) {
-      throw AppException('Baris sisip tidak ditemukan');
+      throw AppException('Warga sisip tidak ditemukan');
     }
     final value = _urutDari(rows, afterId: afterId, beforeId: beforeId);
     if (value != null) return value;
@@ -670,7 +670,7 @@ class AppStore extends ChangeNotifier {
     await _commit('DELETE', 'warga', (txn, ts) async {
       final rows = await txn.query('warga', where: 'id = ?', whereArgs: [id]);
       if (rows.isEmpty) {
-        throw AppException('Baris warga $id tidak ditemukan');
+        throw AppException('Warga $id tidak ditemukan');
       }
       return _full(_wargaCols, rows.first);
     });
