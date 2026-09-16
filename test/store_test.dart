@@ -352,6 +352,35 @@ void main() {
     expect(await store.sumberReferensi(), isEmpty);
   });
 
+  test('clearReferensiFile removes only that file\'s rows and rebuild matches',
+      () async {
+    final source = fixture();
+    final lain = [
+      for (final row in source
+          .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+          .records)
+        {...row, 'sumber_file': 'lain.xlsx'}
+    ];
+    await store.importRows(lain, 'lain.xlsx');
+    expect(await store.referensiCount(), 6);
+
+    final dihapus = await store.clearReferensiFile('fixture.xlsx');
+    expect(dihapus, 3);
+    expect(await store.referensiCount(), 3);
+    final sisa = await store.allReferensi(3);
+    expect(sisa, hasLength(3));
+    expect(sisa.every((r) => r['sumber_file'] == 'lain.xlsx'), isTrue);
+
+    // Deleting an already-gone file is a no-op, not an error.
+    expect(await store.clearReferensiFile('fixture.xlsx'), 0);
+
+    await store.rebuild();
+    final setelahRebuild = await store.allReferensi(3);
+    expect(setelahRebuild, hasLength(3));
+    expect(setelahRebuild.every((r) => r['sumber_file'] == 'lain.xlsx'),
+        isTrue);
+  });
+
   test('app works without reference rows', () async {
     await store.clearReferensi();
     final saved = await store.saveWarga(fields());
@@ -709,6 +738,24 @@ void main() {
     expect(session.workspace, isEmpty);
     expect(session.rt, 0);
     expect(session.rw, 0);
+  });
+
+  test('referensi delete summary names the file when scoped', () async {
+    final source = fixture();
+    await store.importRows([
+      for (final row in source
+          .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+          .records)
+        {...row, 'sumber_file': 'lain.xlsx'}
+    ], 'lain.xlsx');
+    await store.clearReferensiFile('fixture.xlsx');
+    await store.clearReferensi();
+    final reader = JournalReader(root);
+    final hari = await reader.hari();
+    final events = await reader.baca(hari.first.file);
+    final ringkas = events.map(ringkasanEvent).toList();
+    expect(ringkas, contains('Hapus referensi dari fixture.xlsx (3 baris)'));
+    expect(ringkas, contains('Hapus semua referensi (3 baris)'));
   });
 
   test('journal reader lists days and summarises events in Indonesian',

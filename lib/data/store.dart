@@ -483,7 +483,18 @@ class AppStore extends ChangeNotifier {
             _full(_refCols, Map<String, Object?>.from(raw as Map)));
       }
     } else if (table == 'referensi' && op == 'DELETE') {
-      await txn.delete('referensi');
+      // ids scopes the delete to one imported file; its absence means an
+      // event journaled before per-file delete existed, which always meant
+      // clear everything.
+      final ids = data['ids'];
+      if (ids is List && ids.isNotEmpty) {
+        final placeholders = List.filled(ids.length, '?').join(',');
+        await txn.delete('referensi',
+            where: 'id IN ($placeholders)',
+            whereArgs: [for (final id in ids) intValue(id)]);
+      } else {
+        await txn.delete('referensi');
+      }
     } else if (table == 'warga') {
       if (op == 'INSERT') {
         await txn.insert('warga', _full(_wargaCols, data));
@@ -817,9 +828,31 @@ class AppStore extends ChangeNotifier {
       final rows = await txn.query('referensi');
       return {
         'jumlah': rows.length,
+        'ids': [for (final r in rows) r['id']],
         'records': rows.map((r) => _full(_refCols, r)).toList(),
       };
     });
+  }
+
+  /// Deletes only the rows imported from one file, leaving every other
+  /// file's referensi untouched - a wrong or stale workbook no longer means
+  /// wiping every RT's suggestions to fix it. sumberFile null matches rows
+  /// imported before sumber_file was tracked.
+  Future<int> clearReferensiFile(String? sumberFile) async {
+    final clause = sumberFile == null ? 'sumber_file IS NULL' : 'sumber_file = ?';
+    final args = sumberFile == null ? const <Object?>[] : [sumberFile];
+    final ada = await db.query('referensi', where: clause, whereArgs: args);
+    if (ada.isEmpty) return 0;
+    final payload = await _commit('DELETE', 'referensi', (txn, ts) async {
+      final rows = await txn.query('referensi', where: clause, whereArgs: args);
+      return {
+        'jumlah': rows.length,
+        'sumber_file': sumberFile,
+        'ids': [for (final r in rows) r['id']],
+        'records': rows.map((r) => _full(_refCols, r)).toList(),
+      };
+    });
+    return intValue(payload['jumlah']);
   }
 
   Future<void> recordExport(

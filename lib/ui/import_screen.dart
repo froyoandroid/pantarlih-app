@@ -227,6 +227,32 @@ class _ImportScreenState extends State<ImportScreen> {
     }
   }
 
+  Future<void> _hapusFile(RecordMap row) async {
+    final nama = teks(row['sumber_file']);
+    final label = nama.isEmpty ? 'file tanpa nama' : nama;
+    if (!await confirm(
+        context,
+        'Hapus referensi dari $label?',
+        'Hanya ${intValue(row['jumlah'])} baris dari file ini yang terhapus. '
+            'File lain dan data hasil ketikan tidak ikut terhapus.',
+        action: 'HAPUS', dangerous: true)) {
+      return;
+    }
+    setState(() => busy = true);
+    try {
+      final jumlah =
+          await widget.session.store.clearReferensiFile(nullableText(nama));
+      await _count();
+      if (mounted) {
+        setState(() => report = '$jumlah baris referensi dari $label dihapus.');
+      }
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rows = source == null || sheet == null
@@ -274,6 +300,11 @@ class _ImportScreenState extends State<ImportScreen> {
                                       fontSize: 12,
                                       color: Colors.grey.shade700)),
                             ])),
+                        IconButton(
+                            tooltip: 'Hapus referensi dari file ini',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: busy ? null : () => _hapusFile(row),
+                            icon: const Icon(Icons.delete_outline, size: 20)),
                       ])),
           ],
           Notice(

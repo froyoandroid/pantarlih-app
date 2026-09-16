@@ -187,7 +187,10 @@ String ringkasanEvent(EventJurnal e) {
     case ('referensi', 'IMPORT'):
       return 'Impor referensi ${d['jumlah'] ?? ''} baris dari ${d['nama_file'] ?? ''}';
     case ('referensi', 'DELETE'):
-      return 'Hapus semua referensi (${d['jumlah'] ?? 0} baris)';
+      final sumberFile = d['sumber_file'];
+      return sumberFile == null
+          ? 'Hapus semua referensi (${d['jumlah'] ?? 0} baris)'
+          : 'Hapus referensi dari $sumberFile (${d['jumlah'] ?? 0} baris)';
     case ('lokasi', _):
       return 'Simpan lokasi ${d['nama_desa'] ?? ''}';
     case ('setelan', _):
