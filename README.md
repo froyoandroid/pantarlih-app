@@ -41,7 +41,7 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 4. Daftar RT adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
 5. Ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
 6. Isi nama dulu, lalu NIK, JK, tempat/tanggal lahir. NIK boleh kosong. NIK yang bukan 16 digit, tanggal/JK yang tidak cocok, dan NIK duplikat hanya peringatan dan tetap bisa disimpan. Keterangan teks bebas, tidak dikelompokkan atau dinilai.
-7. Riwayat menampilkan 20 input terakhir. Ekspor membuat DPS per RT atau gabungan, plus DUPLIKAT_NIK dan TANPA_NIK. Tidak ada file pending atau konflik RT. Berbagi selalu memerlukan aksi dan konfirmasi eksplisit.
+7. Riwayat menampilkan 20 input terakhir. Jurnal menampilkan semua catatan perubahan per hari dan bisa mengembalikan versi lama seorang warga. Ekspor membuat DPS per RT atau gabungan, plus DUPLIKAT_NIK dan TANPA_NIK. Tidak ada file pending atau konflik RT. Berbagi selalu memerlukan aksi dan konfirmasi eksplisit.
 
 ## Lokasi dan keamanan data
 
@@ -74,6 +74,9 @@ Workbook pribadi di `data-exel/` diabaikan Git dan tidak dibundel ke APK. Impor 
 
 - Satu penulis terserialisasi, satu transaksi SQLite per aksi. Event lengkap (termasuk null) di-flush ke JSONL sebelum SQLite.
 - Startup memutar ulang event jurnal yang belum ada di database. Jika database hilang, ia dibangun ulang. Pemulihan eksplisit membangun kandidat terlebih dulu dan memindahkan DB lama beserta sidecar WAL/SHM ke `recovered`.
+- Snapshot dan jurnal bisa dibuka di aplikasi. Layar Snapshot menampilkan isi tiap snapshot (jumlah warga, tanpa NIK, posisi jurnal), bisa dilihat, dibandingkan dengan data sekarang, dan dipulihkan. Layar Jurnal menelusuri catatan per hari, memutar ulang jurnal ke database uji (PERIKSA), mengembalikan versi lama seorang warga, dan membatalkan hapus.
+- Pulihkan snapshot menulis event `RESTORE` yang memuat id event terakhir di snapshot. Replay berjalan dua pas: pas pertama mengumpulkan rentang id yang dibatalkan oleh setiap `RESTORE`, pas kedua melewatinya. Startup dan `rebuild()` menghasilkan keadaan yang sama dengan hasil pemulihan, bukan mengulang diam-diam event yang sudah dibatalkan.
+- Pulihkan dari cadangan memakai berkas `cadangan_<stamp>.zip` dari folder publik. Database dan jurnal sekarang dipindahkan ke `recovered`, pasangan dari bundel dipasang, lalu jurnal bundel diputar ulang.
 - Baris JSONL rusak dilaporkan dan dilewati. Pemulihan tidak dapat mengembalikan informasi yang hilang dari jurnal rusak; periksa laporan sebelum melanjutkan pendataan.
 - NIK kosong dan NIK bukan 16 digit tetap dapat disimpan. Panjang, tanggal, JK, dan duplikat hanya peringatan.
 - `urut_sort` sparse kelipatan 1000. Sisip memakai titik tengah. Bila celah habis, renumber otomatis ke 1000, 2000, 3000. Nomor NO di ekspor adalah posisi, bukan nilai tersimpan.
