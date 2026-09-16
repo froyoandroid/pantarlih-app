@@ -153,87 +153,136 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => AppPage(
-      session: widget.session,
-      title: 'Beranda',
-      subtitle: tanggalPanjang(),
-      child: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(padding: const EdgeInsets.all(20), children: [
-            Card(
-                child: ListTile(
-                    minVerticalPadding: 12,
-                    onTap: busy
-                        ? null
-                        : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                    LokasiScreen(session: widget.session))),
-                    leading: CircleAvatar(
-                        backgroundColor: forest.withValues(alpha: .1),
-                        child: const Icon(Icons.place_outlined, color: forest)),
-                    title: Text(
-                        widget.session.village.isEmpty
-                            ? 'Lokasi kerja'
-                            : widget.session.village,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(_lokasiSub),
-                    trailing: const Icon(Icons.chevron_right))),
-            const SizedBox(height: 8),
-            _kartuRtRw(),
-            if (busy) const LinearProgressIndicator(),
-            if (widget.session.peringatanCadangan != null)
-              Notice(widget.session.peringatanCadangan!,
-                  warning: true, icon: Icons.folder_off_outlined),
-            if ((widget.session.store.startupRecovery?.showNotice ?? false))
-              Notice(
-                  'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Buka laporan di aplikasi, atau hapus pemberitahuan ini.',
-                  warning: true,
-                  actions: Wrap(spacing: 8, children: [
-                    TextButton(
-                        onPressed: busy ? null : _bukaLaporanJurnal,
-                        child: const Text('BUKA LAPORAN')),
-                    TextButton(
-                        onPressed: busy ? null : _hapusLaporanJurnal,
-                        child: const Text('HAPUS')),
-                  ])),
-            const SizedBox(height: 8),
-            _action(
-                Icons.list_alt,
-                'Daftar RT',
-                'Urutan, sisip, geser, dan hapus',
-                () => _open(RtListScreen(session: widget.session))),
-            _action(
-                Icons.person_search,
-                'Ketik data',
-                'Cari saran lalu isi satu orang',
-                () => _open(SearchScreen(session: widget.session))),
-            _action(
-                Icons.history,
-                'Riwayat',
-                '20 input terakhir dan koreksi cepat',
-                () => _open(HistoryScreen(session: widget.session))),
-            _action(
-                Icons.menu_book_outlined,
-                'Jurnal',
-                'Semua catatan perubahan, kembalikan versi lama',
-                () => _open(JournalScreen(session: widget.session))),
-            _action(
-                Icons.file_upload_outlined,
-                'Impor referensi',
-                'Bantuan pengetikan dari workbook lama',
-                () => _open(ImportScreen(session: widget.session))),
-            _action(
-                Icons.admin_panel_settings_outlined,
-                'Ekspor & pemulihan',
-                'Spreadsheet, jurnal, dan snapshot',
-                () => _open(AdminScreen(session: widget.session))),
-            const SizedBox(height: 20),
-            const Notice(
-                'Mode offline. Tidak ada jaringan keluar, foto KK, penilaian umur, atau keputusan kelayakan di aplikasi ini.',
-                icon: Icons.shield_outlined),
-          ])));
+  Widget build(BuildContext context) {
+    final adaRt = widget.session.rt > 0 && widget.session.rw > 0;
+    return AppPage(
+        session: widget.session,
+        title: 'Beranda',
+        subtitle: tanggalPanjang(),
+        // The two daily actions live in a sticky bar, so they are under the
+        // thumb no matter how long the workspace card grows.
+        bottom: Row(children: [
+          Expanded(
+              child: OutlinedButton.icon(
+                  onPressed: busy || !adaRt
+                      ? null
+                      : () => _open(RtListScreen(session: widget.session)),
+                  icon: const Icon(Icons.list_alt),
+                  label: const Text('DAFTAR RT'))),
+          const SizedBox(width: 12),
+          Expanded(
+              child: FilledButton.icon(
+                  onPressed: busy || !adaRt
+                      ? null
+                      : () => _open(SearchScreen(session: widget.session)),
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: const Text('KETIK DATA'))),
+        ]),
+        child: RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                children: [
+                  Card(
+                      child: ListTile(
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          onTap: busy
+                              ? null
+                              : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => LokasiScreen(
+                                          session: widget.session))),
+                          leading:
+                              const Icon(Icons.place_outlined, color: forest),
+                          title: Text(
+                              widget.session.village.isEmpty
+                                  ? 'Lokasi kerja'
+                                  : widget.session.village,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 15)),
+                          subtitle: Text(_lokasiSub,
+                              style: const TextStyle(fontSize: 12)),
+                          trailing: const Icon(Icons.chevron_right, size: 20))),
+                  const SizedBox(height: 4),
+                  _kartuRtRw(),
+                  if (busy) const LinearProgressIndicator(),
+                  if (widget.session.peringatanCadangan != null)
+                    Notice(widget.session.peringatanCadangan!,
+                        warning: true, icon: Icons.folder_off_outlined),
+                  if ((widget.session.store.startupRecovery?.showNotice ??
+                      false))
+                    Notice(
+                        'Ada ${widget.session.store.startupRecovery!.failed} baris jurnal yang gagal dibaca. Buka laporan di aplikasi, atau hapus pemberitahuan ini.',
+                        warning: true,
+                        actions: Wrap(spacing: 8, children: [
+                          TextButton(
+                              onPressed: busy ? null : _bukaLaporanJurnal,
+                              child: const Text('BUKA LAPORAN')),
+                          TextButton(
+                              onPressed: busy ? null : _hapusLaporanJurnal,
+                              child: const Text('HAPUS')),
+                        ])),
+                  const SizedBox(height: 10),
+                  _gridAksi([
+                    (
+                      Icons.history,
+                      'Riwayat',
+                      '20 input terakhir',
+                      () => _open(HistoryScreen(session: widget.session))
+                    ),
+                    (
+                      Icons.menu_book_outlined,
+                      'Jurnal',
+                      'Semua catatan, kembalikan versi',
+                      () => _open(JournalScreen(session: widget.session))
+                    ),
+                    (
+                      Icons.file_upload_outlined,
+                      'Impor referensi',
+                      'Bantuan dari workbook lama',
+                      () => _open(ImportScreen(session: widget.session))
+                    ),
+                    (
+                      Icons.admin_panel_settings_outlined,
+                      'Ekspor & pemulihan',
+                      'Excel, snapshot, cadangan',
+                      () => _open(AdminScreen(session: widget.session))
+                    ),
+                  ]),
+                ])));
+  }
+
+  /// Two tiles per row, both stretched to the taller one so the grid reads
+  /// as a grid and not as four cards of different heights.
+  Widget _gridAksi(List<(IconData, String, String, VoidCallback)> items) {
+    final rows = <Widget>[];
+    for (var i = 0; i < items.length; i += 2) {
+      final pasangan = items.sublist(i, (i + 2).clamp(0, items.length));
+      rows.add(Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 10),
+          child: IntrinsicHeight(
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                for (var j = 0; j < pasangan.length; j++) ...[
+                  if (j > 0) const SizedBox(width: 10),
+                  Expanded(
+                      child: _TileAksi(
+                          icon: pasangan[j].$1,
+                          title: pasangan[j].$2,
+                          detail: pasangan[j].$3,
+                          onTap: busy ? null : pasangan[j].$4)),
+                ],
+                if (pasangan.length == 1) ...[
+                  const SizedBox(width: 10),
+                  const Expanded(child: SizedBox.shrink()),
+                ],
+              ]))));
+    }
+    return Column(children: rows);
+  }
 
   /// One card for the whole workspace: every RT / RW is a tile that carries
   /// its own warga count, so picking the active RT and reading the numbers
@@ -331,25 +380,53 @@ class _HomeScreenState extends State<HomeScreen> {
             ])));
   }
 
-  Widget _action(
-          IconData icon, String title, String detail, VoidCallback onTap) =>
-      Card(
-          child: ListTile(
-              minVerticalPadding: 10,
-              leading: CircleAvatar(
-                  backgroundColor: forest.withValues(alpha: .1),
-                  child: Icon(icon, color: forest)),
-              title: Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(detail),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: onTap));
-
   void _open(Widget page) {
     if (busy) return;
     Navigator.push(context, MaterialPageRoute(builder: (_) => page))
         .then((_) => _load());
   }
+}
+
+/// Compact secondary action: icon, title, one short line. Four of these fit
+/// in a 2x2 grid under the workspace card without pushing anything off screen.
+class _TileAksi extends StatelessWidget {
+  const _TileAksi(
+      {required this.icon,
+      required this.title,
+      required this.detail,
+      this.onTap});
+  final IconData icon;
+  final String title, detail;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E5DD))),
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(icon, color: forest, size: 22),
+                    const SizedBox(height: 8),
+                    Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 14)),
+                    const SizedBox(height: 2),
+                    Text(detail,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11.5, color: Colors.grey.shade700)),
+                  ]))));
 }
 
 /// Workspace tile: full RT / RW label, warga count as the hero number, NIK gap
