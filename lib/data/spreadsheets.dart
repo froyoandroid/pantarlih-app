@@ -591,16 +591,16 @@ class ExportService {
       return files;
     }
     final duplicateRows = await store.duplicateRows();
+    final duplicateNames = await store.duplicateNameRows();
+    final missing = await store.tanpaNik(rw: rw, rt: rt);
+    // One wargaRt query per (rw, rt) group instead of one query per row.
+    final nomorDari = await _posisiPeta(
+        [...duplicateRows, ...duplicateNames, ...missing]);
+    int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
     await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
       'DUPLIKAT NIK': (
         dpsHeaders,
-        [
-          for (final row in duplicateRows)
-            dpsRow(
-                row,
-                await store.posisi(
-                    row['id'] as int, row['rw'] as int, row['rt'] as int))
-        ],
+        [for (final row in duplicateRows) dpsRow(row, nomor(row))],
       ),
       'INFO': _info(
           lokasi: lokasiRow,
@@ -609,17 +609,10 @@ class ExportService {
           jumlah: duplicateRows.length,
           tanpaNik: 0),
     });
-    final duplicateNames = await store.duplicateNameRows();
     await write('${namaBerkasBagian(['DUPLIKAT_NAMA', code, date])}.xlsx', {
       'DUPLIKAT NAMA': (
         dpsHeaders,
-        [
-          for (final row in duplicateNames)
-            dpsRow(
-                row,
-                await store.posisi(
-                    row['id'] as int, row['rw'] as int, row['rt'] as int))
-        ],
+        [for (final row in duplicateNames) dpsRow(row, nomor(row))],
       ),
       'INFO': _info(
           lokasi: lokasiRow,
@@ -628,17 +621,10 @@ class ExportService {
           jumlah: duplicateNames.length,
           tanpaNik: 0),
     });
-    final missing = await store.tanpaNik(rw: rw, rt: rt);
     await write('${namaBerkasBagian(['TANPA_NIK', code, date])}.xlsx', {
       'TANPA NIK': (
         dpsHeaders,
-        [
-          for (final row in missing)
-            dpsRow(
-                row,
-                await store.posisi(
-                    row['id'] as int, row['rw'] as int, row['rt'] as int))
-        ],
+        [for (final row in missing) dpsRow(row, nomor(row))],
       ),
       'INFO': _info(
           lokasi: lokasiRow,
@@ -649,6 +635,23 @@ class ExportService {
     });
     await store.recordExport(metadata, rw, rts);
     return files;
+  }
+
+  /// Position (1-based) of every given row in its RT list, computed with
+  /// one wargaRt query per (rw, rt) group instead of one query per row.
+  Future<Map<int, int>> _posisiPeta(List<RecordMap> rows) async {
+    final groups = <(int, int)>{};
+    for (final row in rows) {
+      groups.add((row['rw'] as int, row['rt'] as int));
+    }
+    final posisi = <int, int>{};
+    for (final (rw, rt) in groups) {
+      final list = await store.wargaRt(rw, rt);
+      for (var i = 0; i < list.length; i++) {
+        posisi[list[i]['id'] as int] = i + 1;
+      }
+    }
+    return posisi;
   }
 
   Future<void> _rotateAutoExports({int keep = 10}) async {
