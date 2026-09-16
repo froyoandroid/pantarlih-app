@@ -40,6 +40,8 @@ RecordMap _migrateStep(RecordMap event, int from) {
       return _migrate3to4(event);
     case 4:
       return _migrate4to5(event);
+    case 5:
+      return _migrate5to6(event);
     default:
       throw JournalVersionException(
           'Tidak ada jalur migrasi jurnal dari versi $from');
@@ -103,6 +105,20 @@ RecordMap _migrate4to5(RecordMap event) {
   return next;
 }
 
+/// 5→6: card colour is optional TEXT and never scored.
+RecordMap _migrate5to6(RecordMap event) {
+  final next = Map<String, Object?>.from(event);
+  next['schema_v'] = 6;
+  final data = event['data'];
+  if (data is! Map) return next;
+  final copy = Map<String, Object?>.from(data);
+  if (event['tabel'] == 'warga') {
+    copy.putIfAbsent('warna', () => null);
+  }
+  next['data'] = copy;
+  return next;
+}
+
 const builtinUpgrades = <int, List<String>>{
   2: [
     '''CREATE TABLE IF NOT EXISTS urutan_id (
@@ -134,6 +150,9 @@ const builtinUpgrades = <int, List<String>>{
     )''',
     '''INSERT OR IGNORE INTO urutan_id (tabel, terakhir)
       SELECT 'lokasi', 0''',
+  ],
+  5: [
+    'ALTER TABLE warga ADD COLUMN warna TEXT',
   ],
 };
 

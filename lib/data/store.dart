@@ -258,6 +258,7 @@ class AppStore extends ChangeNotifier {
         'rt': row['rt'],
         'rw': row['rw'],
         'keterangan': row['keterangan'],
+        'warna': row['warna'],
       }, id: row['id'] as int);
       n++;
     }
@@ -314,9 +315,11 @@ class AppStore extends ChangeNotifier {
         for (final column in columns) column: source[column],
       };
 
-  Iterable<String> get _wargaCols => schemaV >= 4
-      ? wargaColumns
-      : wargaColumns.where((c) => c != 'kode_wilayah');
+  Iterable<String> get _wargaCols => wargaColumns.where((c) {
+        if (c == 'kode_wilayah' && schemaV < 4) return false;
+        if (c == 'warna' && schemaV < 6) return false;
+        return true;
+      });
 
   Iterable<String> get _refCols => schemaV >= 4
       ? referensiColumns
@@ -522,7 +525,15 @@ class AppStore extends ChangeNotifier {
     });
   }
 
-  int? _urutDari(List<RecordMap> rows, int? afterId) {
+  int? _urutDari(List<RecordMap> rows, {int? afterId, int? beforeId}) {
+    if (beforeId != null) {
+      final index = rows.indexWhere((r) => r['id'] == beforeId);
+      if (index < 0) return null;
+      final sesudah = rows[index]['urut_sort'] as int;
+      final sebelum =
+          index > 0 ? rows[index - 1]['urut_sort'] as int : null;
+      return urutAntara(sebelum, sesudah);
+    }
     if (afterId == null) {
       return urutAntara(
           rows.isEmpty ? null : rows.last['urut_sort'] as int, null);
@@ -535,17 +546,29 @@ class AppStore extends ChangeNotifier {
     return urutAntara(sebelum, sesudah);
   }
 
-  Future<int> _urutSisip(Transaction txn, int rw, int rt, int? afterId,
-      List<RecordMap> extras, String ts) async {
+  Future<int> _urutSisip(Transaction txn, int rw, int rt,
+      {int? afterId, int? beforeId, required List<RecordMap> extras,
+      required String ts}) async {
     final rows = await _wargaRt(txn, rw, rt);
-    if (afterId != null && rows.every((r) => r['id'] != afterId)) {
+    final anchor = beforeId ?? afterId;
+    if (anchor != null && rows.every((r) => r['id'] != anchor)) {
       throw AppException('Baris sisip tidak ditemukan');
     }
-    final value = _urutDari(rows, afterId);
+    final value = _urutDari(rows, afterId: afterId, beforeId: beforeId);
     if (value != null) return value;
-    final peta = _petaRenumber(rows);
+    final start = beforeId != null &&
+            rows.isNotEmpty &&
+            rows.first['id'] == beforeId
+        ? 2000
+        : 1000;
+    final peta = _petaRenumber(rows, start: start);
     _queueRenumber(extras, rw, rt, ts, peta);
-    return _urutDari(_virtualRenumber(rows), afterId)!;
+    final next = _urutDari(_virtualRenumber(rows, start: start),
+        afterId: afterId, beforeId: beforeId);
+    if (next == null) {
+      throw AppException('Urutan tidak dapat dihitung ulang');
+    }
+    return next;
   }
 
   void _validateWarga(RecordMap fields) {
@@ -575,6 +598,7 @@ class AppStore extends ChangeNotifier {
       'rt': intValue(fields['rt']),
       'rw': intValue(fields['rw']),
       'keterangan': nullableText('${fields['keterangan'] ?? ''}'),
+      'warna': nullableText('${fields['warna'] ?? ''}'),
       'dibuat_pada': dibuat,
       'diubah_pada': ts,
     };
@@ -610,20 +634,23 @@ class AppStore extends ChangeNotifier {
         'rt': row['rt'],
         'rw': row['rw'],
         'keterangan': row['keterangan'],
+        'warna': row['warna'],
       }, id: row['id'] as int);
       cleaned++;
     }
     return cleaned;
   }
 
-  Future<RecordMap> saveWarga(RecordMap fields, {int? id, int? afterId}) async {
+  Future<RecordMap> saveWarga(RecordMap fields,
+      {int? id, int? afterId, int? beforeId}) async {
     _validateWarga(fields);
     final extras = <RecordMap>[];
     return _commit(id == null ? 'INSERT' : 'UPDATE', 'warga', (txn, ts) async {
       if (id == null) {
         final next = await _nextId(txn, 'warga');
         final urut = await _urutSisip(
-            txn, intValue(fields['rw']), intValue(fields['rt']), afterId, extras, ts);
+            txn, intValue(fields['rw']), intValue(fields['rt']),
+            afterId: afterId, beforeId: beforeId, extras: extras, ts: ts);
         return _wargaRecord(fields, next, urut, ts, ts);
       }
       final before =
