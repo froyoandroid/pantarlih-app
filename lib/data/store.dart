@@ -271,8 +271,8 @@ class AppStore extends ChangeNotifier {
     // One transaction, one journal event, one listener notification: per-row
     // commits froze the UI and inflated the journal for a thousand rows.
     final ids = [for (final row in rows) row['id'] as int];
-    await _commit('BACKFILL', 'warga',
-        (txn, ts) async => {'kode': kode, 'ids': ids});
+    await _commit(
+        'BACKFILL', 'warga', (txn, ts) async => {'kode': kode, 'ids': ids});
     return ids.length;
   }
 
@@ -929,11 +929,7 @@ class AppStore extends ChangeNotifier {
   Future<void> _rotateSnapshot(String prefix, int keep) async {
     final dir = Directory('${root.path}/snapshot');
     if (!await dir.exists()) return;
-    final all = await dir
-        .list()
-        .where((e) => e is File)
-        .cast<File>()
-        .toList();
+    final all = await dir.list().where((e) => e is File).cast<File>().toList();
     final utama = all
         .where((f) => RegExp('/${prefix}_.+\\.db\$').hasMatch(f.path))
         .toList()

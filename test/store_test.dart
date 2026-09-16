@@ -212,10 +212,10 @@ void main() {
     final b = await store.saveWarga(fields(name: 'KEDUA'));
     final n = await store.backfillKodeWilayah('33.27.07.2001');
     expect(n, 2);
-    expect((await store.warga(a['id'] as int))!['kode_wilayah'],
-        '33.27.07.2001');
-    expect((await store.warga(b['id'] as int))!['kode_wilayah'],
-        '33.27.07.2001');
+    expect(
+        (await store.warga(a['id'] as int))!['kode_wilayah'], '33.27.07.2001');
+    expect(
+        (await store.warga(b['id'] as int))!['kode_wilayah'], '33.27.07.2001');
     final events = await store.db.query('log', where: "op='BACKFILL'");
     expect(events, hasLength(1));
     final payload = jsonDecode(events.single['payload'] as String) as Map;
@@ -587,12 +587,10 @@ void main() {
 
   test('pre-migration snapshots rotate with their own cap plus sidecars',
       () async {
-    final isolated =
-        await Directory.systemTemp.createTemp('pantarlih-premig-');
+    final isolated = await Directory.systemTemp.createTemp('pantarlih-premig-');
     final dir = Directory('${isolated.path}/snapshot')..createSync();
     for (var i = 1; i <= 8; i++) {
-      final nama =
-          'pre_migrasi_20260901${i.toString().padLeft(6, '0')}.db';
+      final nama = 'pre_migrasi_20260901${i.toString().padLeft(6, '0')}.db';
       File('${dir.path}/$nama').writeAsStringSync('p$i');
       File('${dir.path}/$nama-wal').writeAsStringSync('w$i');
     }
@@ -614,22 +612,18 @@ void main() {
       final utama = sisa.where((n) => n.endsWith('.db')).toList();
       // The fresh copy counts inside the cap of 5.
       expect(utama, hasLength(5));
-      expect(
-          utama.any((n) => n.startsWith('pre_migrasi_20260901000001')), isFalse);
-      expect(
-          utama.any((n) => n.startsWith('pre_migrasi_20260901000004')), isFalse);
+      expect(utama.any((n) => n.startsWith('pre_migrasi_20260901000001')),
+          isFalse);
+      expect(utama.any((n) => n.startsWith('pre_migrasi_20260901000004')),
+          isFalse);
       expect(
           utama.any((n) => n.startsWith('pre_migrasi_20260901000005')), isTrue);
       // Sidecars of trimmed stamps are gone too.
       expect(
-          await File(
-                  '${dir.path}/pre_migrasi_20260901000001.db-wal')
-              .exists(),
+          await File('${dir.path}/pre_migrasi_20260901000001.db-wal').exists(),
           isFalse);
       expect(
-          await File(
-                  '${dir.path}/pre_migrasi_20260901000005.db-wal')
-              .exists(),
+          await File('${dir.path}/pre_migrasi_20260901000005.db-wal').exists(),
           isTrue);
     } finally {
       await newer.close();
