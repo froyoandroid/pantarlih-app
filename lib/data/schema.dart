@@ -1,4 +1,5 @@
-const schemaVersion = 2;
+const schemaVersion = 3;
+const schemaBaseVersion = 2;
 
 const dropStatements = <String>[
   'DROP VIEW IF EXISTS v_duplikat_nama',
@@ -11,6 +12,7 @@ const dropStatements = <String>[
   'DROP TABLE IF EXISTS warga',
   'DROP TABLE IF EXISTS referensi',
   'DROP TABLE IF EXISTS log',
+  'DROP TABLE IF EXISTS urutan_id',
   'DROP TABLE IF EXISTS setelan',
 ];
 

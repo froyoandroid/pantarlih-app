@@ -107,7 +107,8 @@ class AppStore extends ChangeNotifier {
     for (final sql in schemaStatements) {
       await db.execute(sql);
     }
-    for (final sql in upgradeStatements(schemaVersion, version, upgrades)) {
+    for (final sql
+        in upgradeStatements(schemaBaseVersion, version, upgrades)) {
       await db.execute(sql);
     }
   }
@@ -153,10 +154,50 @@ class AppStore extends ChangeNotifier {
             });
   }
 
+  Future<bool> _hasUrutanId(DatabaseExecutor txn) async {
+    final rows = await txn.rawQuery(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='urutan_id'");
+    return rows.isNotEmpty;
+  }
+
+  Future<int> _maxId(DatabaseExecutor txn, String table) async {
+    final rows = await txn
+        .rawQuery('SELECT COALESCE(MAX(id), 0) AS id FROM $table');
+    return intValue(rows.first['id']);
+  }
+
   Future<int> _nextId(DatabaseExecutor txn, String table) async {
-    final rows =
-        await txn.rawQuery('SELECT COALESCE(MAX(id), 0) + 1 AS id FROM $table');
-    return rows.first['id'] as int;
+    if (!await _hasUrutanId(txn)) {
+      return await _maxId(txn, table) + 1;
+    }
+    final rows = await txn
+        .query('urutan_id', where: 'tabel = ?', whereArgs: [table]);
+    final last = rows.isEmpty ? 0 : intValue(rows.first['terakhir']);
+    final seen = await _maxId(txn, table);
+    final next = (last > seen ? last : seen) + 1;
+    await txn.insert(
+        'urutan_id',
+        {'tabel': table, 'terakhir': next},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    return next;
+  }
+
+  Future<RecordMap> _idCounters(DatabaseExecutor txn) async {
+    if (!await _hasUrutanId(txn)) return {};
+    final rows = await txn.query('urutan_id');
+    return {
+      for (final row in rows) row['tabel'] as String: row['terakhir'],
+    };
+  }
+
+  Future<void> _applyCounters(DatabaseExecutor txn, Object? raw) async {
+    if (raw is! Map || !await _hasUrutanId(txn)) return;
+    for (final entry in raw.entries) {
+      await txn.insert(
+          'urutan_id',
+          {'tabel': '${entry.key}', 'terakhir': intValue(entry.value)},
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
   }
 
   RecordMap _full(Iterable<String> columns, RecordMap source) => {
@@ -191,6 +232,10 @@ class AppStore extends ChangeNotifier {
               event['schema_v'] = schemaV;
               event['ts'] = event['ts'] ?? ts;
               event['event_id'] = await _nextId(txn, 'log');
+            }
+            final counters = await _idCounters(txn);
+            for (final event in events) {
+              event['urutan_id'] = counters;
               await _appendJournal(event);
               journalWritten = true;
               await _applyEvent(txn, event);
@@ -277,6 +322,7 @@ class AppStore extends ChangeNotifier {
     } else if (!(table == 'export' && op == 'EXPORT')) {
       throw AppException('Operasi jurnal tidak dikenal: $table/$op');
     }
+    await _applyCounters(txn, event['urutan_id']);
     await txn.insert('log', {
       'id': event['event_id'],
       'ts': event['ts'],
@@ -514,11 +560,14 @@ class AppStore extends ChangeNotifier {
 
   Future<void> importRows(List<RecordMap> ready, String filename) async {
     await _commit('IMPORT', 'referensi', (txn, ts) async {
-      var id = await _nextId(txn, 'referensi');
-      final records = <RecordMap>[
-        for (final row in ready)
-          _full(referensiColumns, {...row, 'id': id++, 'diimpor_pada': ts})
-      ];
+      final records = <RecordMap>[];
+      for (final row in ready) {
+        records.add(_full(referensiColumns, {
+          ...row,
+          'id': await _nextId(txn, 'referensi'),
+          'diimpor_pada': ts,
+        }));
+      }
       return {
         'nama_file': filename,
         'jumlah': records.length,
