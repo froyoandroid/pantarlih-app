@@ -1,7 +1,10 @@
 List<String> periksaNik(
     String nik, DateTime? tgl, String? jk, String? prefixLama) {
   final warnings = <String>[];
-  if (!RegExp(r'^\d{16}$').hasMatch(nik)) return ['NIK harus 16 digit angka'];
+  if (!RegExp(r'^\d{16}$').hasMatch(nik)) {
+    warnings.add('NIK bukan 16 digit angka');
+    return warnings;
+  }
   if (prefixLama != null &&
       prefixLama.length == 6 &&
       !nik.startsWith(prefixLama)) {

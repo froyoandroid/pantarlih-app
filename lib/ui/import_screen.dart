@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/format.dart';
@@ -47,11 +46,10 @@ class _ImportScreenState extends State<ImportScreen> {
   Future<void> pick() async {
     setState(() => busy = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-          type: FileType.custom, allowedExtensions: ['xlsx'], withData: true);
-      if (result == null) return;
-      final file = result.files.single;
-      final bytes = file.bytes ?? await File(file.path!).readAsBytes();
+      final file = await FilePicker.pickFile(
+          type: FileType.custom, allowedExtensions: ['xlsx']);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
       final loaded = WorkbookSource(file.name, bytes);
       if (mounted) {
         setState(() {

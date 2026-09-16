@@ -284,8 +284,8 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<RecordMap> saveSurvey(RecordMap fields, {int? id, int? oldId}) async {
-    if (!RegExp(r'^\d{16}$').hasMatch('${fields['nik'] ?? ''}')) {
-      throw AppException('NIK harus 16 digit angka');
+    if ('${fields['nik'] ?? ''}'.trim().isEmpty) {
+      throw AppException('NIK wajib diisi');
     }
     if ('${fields['nama'] ?? ''}'.trim().isEmpty) {
       throw AppException('Nama wajib diisi');
