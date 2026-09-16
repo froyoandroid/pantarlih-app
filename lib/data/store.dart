@@ -97,11 +97,14 @@ class AppStore extends ChangeNotifier {
       if (trimMarker.isEmpty ||
           (trimMarker.first['nilai'] as String? ?? '').isEmpty) {
         await trimStoredText();
-        await _commit('UPDATE', 'setelan', (txn, ts) async => {
-              'records': [
-                {'kunci': 'trim_v1_selesai', 'nilai': '1'}
-              ]
-            });
+        await _commit(
+            'UPDATE',
+            'setelan',
+            (txn, ts) async => {
+                  'records': [
+                    {'kunci': 'trim_v1_selesai', 'nilai': '1'}
+                  ]
+                });
       }
     } catch (e) {
       throw AppException('Database sehat tetapi pembaruan isi belum selesai. '
@@ -903,7 +906,9 @@ class AppStore extends ChangeNotifier {
           throw AppException('Pulihkan database sebelum membuat snapshot.');
         }
         final result = await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
-        if (result.isNotEmpty && result.first['busy'] != 0) {
+        // Some SQLite builds return a null busy column; null != 0 is true
+        // and would reject every snapshot, so normalise first.
+        if (result.isNotEmpty && intValue(result.first['busy']) != 0) {
           throw AppException('Database masih sibuk. Coba snapshot lagi.');
         }
         final copy = await File(dbPath)
