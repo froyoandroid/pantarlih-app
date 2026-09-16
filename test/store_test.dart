@@ -67,6 +67,66 @@ WorkbookSource fixture() {
   return WorkbookSource('fixture.xlsx', Uint8List.fromList(book.encode()!));
 }
 
+WorkbookSource dirtyFixture() {
+  final book = Excel.createExcel();
+  final sheet = book['RT 03'];
+  sheet.appendRow([
+    'NO',
+    'NAMA PEMILIH',
+    'NIK',
+    'Jenis Kelamin',
+    'TEMPAT LAHIR',
+    'TANGGAL LAHIR',
+    'DUSUN',
+    'RT',
+    'RW',
+    'KET'
+  ].map(TextCellValue.new).toList());
+  for (final row in [
+    [
+      '70',
+      'MUHAMAD HASAN',
+      '332707**********',
+      'LAKI-LAKI',
+      'PEMALANG',
+      '19-09-1968',
+      'KALITORONG',
+      '3',
+      '3',
+      ''
+    ],
+    ['', '', 'sel rusak', '', '', '', '', '', '', ''],
+    [
+      '',
+      'SITI SALIMAH',
+      '332707**********',
+      'PEREMPUAN',
+      'PEMALANG',
+      '11/09/1973',
+      'KALITORONG',
+      '3',
+      '3',
+      ''
+    ],
+    ['bukan-angka', '', '', '', '', '', '', '3', '3', ''],
+    [
+      '72',
+      'MUHAMAD NAZWA BAIHAKY',
+      '332707**********',
+      'LAKI-LAKI',
+      'PEMALANG',
+      '19-09-2007',
+      'KALITORONG',
+      '3',
+      '3',
+      ''
+    ],
+  ]) {
+    sheet.appendRow(row.map(TextCellValue.new).toList());
+  }
+  return WorkbookSource('dirty.xlsx', Uint8List.fromList(book.encode()!));
+}
+
 RecordMap fields(
         {String name = 'MUHAMAD HASAN',
         String? nik = '3327071909680001',
@@ -96,7 +156,9 @@ void main() {
     await store.open();
     final source = fixture();
     await store.importRows(
-        source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3),
+        source
+            .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+            .records,
         source.name);
   });
   tearDown(() async {
@@ -112,7 +174,9 @@ void main() {
     expect(rows.first.containsKey('urut_sort'), isFalse);
     final source = fixture();
     await store.importRows(
-        source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3),
+        source
+            .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+            .records,
         source.name);
     expect(await store.allReferensi(3), hasLength(6));
     await store.clearReferensi();
@@ -365,6 +429,25 @@ void main() {
     }
   });
 
+  test('dirty workbook imports good rows and writes dilewati.jsonl', () async {
+    final source = dirtyFixture();
+    final prep =
+        source.prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3);
+    expect(prep.records, hasLength(3));
+    expect(prep.skipped, hasLength(2));
+    await source.archiveAndImport(store, 'RT 03', prep.records,
+        source.suggestedMapping('RT 03'), 2, 3,
+        skipped: prep.skipped);
+    expect(await store.allReferensi(3), hasLength(6));
+    final skippedFiles = Directory('${root.path}/import/ready')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('dilewati.jsonl'));
+    expect(skippedFiles, isNotEmpty);
+    final lines = await skippedFiles.first.readAsLines();
+    expect(lines.where((l) => l.trim().isNotEmpty), hasLength(2));
+  });
+
   test('actual provided workbook imports all 504 reference rows', () async {
     final input = File('data-exel/DPS_RW03_Kalitorong_Gabungan.xlsx');
     if (!await input.exists()) {
@@ -383,9 +466,10 @@ void main() {
         final rt = int.parse(entry.key.split(' ').last);
         final ready = source.prepare(
             entry.key, source.suggestedMapping(entry.key), 2, rt, 3);
-        expect(ready, hasLength(entry.value));
-        await source.archiveAndImport(actual, entry.key, ready,
-            source.suggestedMapping(entry.key), 2, rt);
+        expect(ready.records, hasLength(entry.value));
+        await source.archiveAndImport(actual, entry.key, ready.records,
+            source.suggestedMapping(entry.key), 2, rt,
+            skipped: ready.skipped);
       }
       expect(await actual.allReferensi(3), hasLength(504));
       final before = await actual.db.query('referensi');

@@ -33,6 +33,12 @@ const dpsHeaders = [
   'KETERANGAN'
 ];
 
+class ImportPrep {
+  ImportPrep(this.records, this.skipped);
+  final List<RecordMap> records;
+  final List<RecordMap> skipped;
+}
+
 String cellText(Data? cell) {
   final value = cell?.value;
   if (value == null) return '';
@@ -80,14 +86,14 @@ class WorkbookSource {
     };
   }
 
-  List<RecordMap> prepare(String sheet, Map<String, int> mapping, int startRow,
+  ImportPrep prepare(String sheet, Map<String, int> mapping, int startRow,
       int confirmedRt, int defaultRw,
       {bool useRowRt = false}) {
     if (confirmedRt <= 0 || defaultRw <= 0) {
       throw AppException('Konfirmasi RT dan RW wajib diisi.');
     }
-    if ((mapping['nama'] ?? -1) < 0 || (mapping['urut_asli'] ?? -1) < 0) {
-      throw AppException('Petakan kolom Nama dan Nomor urut terlebih dahulu.');
+    if ((mapping['nama'] ?? -1) < 0) {
+      throw AppException('Petakan kolom Nama terlebih dahulu.');
     }
     final selected = mapping.values.where((v) => v >= 0).toList();
     if (selected.toSet().length != selected.length) {
@@ -95,9 +101,18 @@ class WorkbookSource {
     }
     final source = rows(sheet);
     final records = <RecordMap>[];
+    final skipped = <RecordMap>[];
     if (startRow < 1 || startRow > source.length) {
       throw AppException('Baris awal tidak valid.');
     }
+    void skip(int line, List<String> cells, String reason) {
+      skipped.add({
+        'baris': line,
+        'cells': cells,
+        'alasan': reason,
+      });
+    }
+
     for (var i = startRow - 1; i < source.length; i++) {
       final row = source[i];
       if (row.every((c) => c.trim().isEmpty)) continue;
@@ -108,23 +123,25 @@ class WorkbookSource {
 
       final name = get('nama');
       final order = int.tryParse(get('urut_asli').trim());
-      if (name.trim().isEmpty || order == null || order <= 0) {
-        throw AppException(
-            'Sheet $sheet baris ${i + 1}: nama / nomor urut tidak valid. '
-            'Periksa baris awal dan pemetaan. Tidak ada baris yang diabaikan diam-diam.');
+      final line = i + 1;
+      if (name.trim().isEmpty) {
+        skip(line, row, 'Nama kosong');
+        continue;
       }
       final rowRt = int.tryParse(get('rt').trim());
       final rowRw = int.tryParse(get('rw').trim());
       if (!useRowRt && get('rt').trim().isNotEmpty && rowRt != confirmedRt) {
-        throw AppException(
-            'Baris ${i + 1}: RT pada file (${get('rt')}) berbeda dari konfirmasi '
-            'RT $confirmedRt. Koreksi konfirmasi atau aktifkan RT per baris.');
+        skip(line, row,
+            'RT pada file (${get('rt')}) berbeda dari konfirmasi RT $confirmedRt');
+        continue;
       }
       if (useRowRt && (rowRt == null || rowRt <= 0)) {
-        throw AppException('RT baris ${i + 1} tidak valid.');
+        skip(line, row, 'RT tidak valid');
+        continue;
       }
       if (get('rw').trim().isNotEmpty && (rowRw == null || rowRw <= 0)) {
-        throw AppException('RW baris ${i + 1} tidak valid.');
+        skip(line, row, 'RW tidak valid');
+        continue;
       }
       final rawDate = get('tgl_lahir_raw');
       final date = parseTanggal(rawDate);
@@ -135,7 +152,7 @@ class WorkbookSource {
               ? 'P'
               : null;
       records.add({
-        'urut_asli': order,
+        'urut_asli': order != null && order > 0 ? order : line,
         'nama': name,
         'nama_norm': normalisasiNama(name),
         'nik_lama': nullableText(get('nik_lama')),
@@ -147,13 +164,18 @@ class WorkbookSource {
         'rt': useRowRt ? rowRt : confirmedRt,
         'rw': rowRw ?? defaultRw,
         'sumber_file': nameForStorage,
-        'sumber_baris': i + 1,
+        'sumber_baris': line,
       });
     }
-    if (records.isEmpty) {
+    final attempted = records.length + skipped.length;
+    if (attempted == 0) {
       throw AppException('Tidak ada data pada sheet yang dipilih.');
     }
-    return records;
+    if (skipped.length * 2 > attempted) {
+      throw AppException(
+          'Lebih dari setengah baris ditolak (${skipped.length} dari $attempted). Periksa pemetaan kolom.');
+    }
+    return ImportPrep(records, skipped);
   }
 
   String get nameForStorage => name.split(RegExp(r'[/\\]')).last;
@@ -164,7 +186,8 @@ class WorkbookSource {
       List<RecordMap> records,
       Map<String, int> mapping,
       int startRow,
-      int rt) async {
+      int rt,
+      {List<RecordMap> skipped = const []}) async {
     // Unique archive directory keeps repeated attempts and original basename intact.
     final batch =
         '${fileStamp()}_${sheet.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_')}';
@@ -188,8 +211,20 @@ class WorkbookSource {
     await File('${store.root.path}/import/parsed/$batch/$nameForStorage.jsonl')
         .writeAsString('${parsed.map(jsonEncode).join('\n')}\n', flush: true);
     await File('${store.root.path}/import/ready/$batch/$nameForStorage.jsonl')
-        .writeAsString('${records.map(jsonEncode).join('\n')}\n', flush: true);
-    await store.importRows(records, nameForStorage);
+        .writeAsString(
+            records.isEmpty
+                ? ''
+                : '${records.map(jsonEncode).join('\n')}\n',
+            flush: true);
+    await File('${store.root.path}/import/ready/$batch/dilewati.jsonl')
+        .writeAsString(
+            skipped.isEmpty
+                ? ''
+                : '${skipped.map(jsonEncode).join('\n')}\n',
+            flush: true);
+    if (records.isNotEmpty) {
+      await store.importRows(records, nameForStorage);
+    }
   }
 }
 

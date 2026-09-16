@@ -76,27 +76,51 @@ class _ImportScreenState extends State<ImportScreen> {
   Future<void> import() async {
     setState(() => busy = true);
     try {
-      final records = source!.prepare(sheet!, mapping, intValue(start.text),
+      final prep = source!.prepare(sheet!, mapping, intValue(start.text),
           intValue(rt.text), intValue(rw.text),
           useRowRt: rowRt);
       if (!mounted) return;
       if (!await confirm(
           context,
-          'Impor ${records.length} referensi?',
-          'Sheet $sheet · RT ${rt.text} / RW ${rw.text}\n\n'
+          'Impor ${prep.records.length} referensi?',
+          'Sheet $sheet · RT ${rt.text} / RW ${rw.text}\n'
+              '${prep.skipped.length} baris akan dilewati.\n\n'
               'Referensi hanya bantuan pengetikan. Impor ulang file yang sama diperbolehkan.',
           action: 'IMPOR SEKARANG')) {
         return;
       }
-      await source!.archiveAndImport(widget.session.store, sheet!, records,
-          mapping, intValue(start.text), intValue(rt.text));
+      await source!.archiveAndImport(widget.session.store, sheet!, prep.records,
+          mapping, intValue(start.text), intValue(rt.text),
+          skipped: prep.skipped);
       await _count();
       if (mounted) {
         setState(() {
           report =
-              '${records.length} referensi masuk dari $sheet. Pilih sheet berikutnya bila perlu.';
+              '${prep.records.length} baris masuk, ${prep.skipped.length} dilewati dari $sheet.';
           confirmed = false;
         });
+        if (prep.skipped.isNotEmpty) {
+          await showDialog<void>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                  title: Text(
+                      '${prep.records.length} baris masuk, ${prep.skipped.length} dilewati'),
+                  content: SizedBox(
+                      width: 420,
+                      height: 320,
+                      child: ListView(children: [
+                        for (final row in prep.skipped)
+                          ListTile(
+                              dense: true,
+                              title: Text('Baris ${row['baris']}'),
+                              subtitle: Text('${row['alasan']}')),
+                      ])),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Tutup'))
+                  ]));
+        }
       }
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
