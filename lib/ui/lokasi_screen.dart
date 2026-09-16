@@ -292,7 +292,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                             style: const TextStyle(fontSize: 16)),
                         const SizedBox(height: 6),
                         const Text(
-                            'Dipakai sebagai default di setiap baris. Boleh nama dusun, tidak harus sama dengan desa resmi.',
+                            'Dipakai sebagai default di setiap warga. Boleh nama dusun, tidak harus sama dengan desa resmi.',
                             style: TextStyle(
                                 color: Colors.black54,
                                 fontSize: 12,
@@ -456,7 +456,7 @@ class _NamaFormulirDialogState extends State<_NamaFormulirDialog> {
               textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(
                   labelText: 'Desa atau dusun',
-                  hintText: 'nama yang tertulis di baris data')),
+                  hintText: 'nama yang tertulis di data warga')),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),

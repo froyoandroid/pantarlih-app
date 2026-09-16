@@ -165,7 +165,7 @@ class _SurveyFormState extends State<SurveyForm> {
                         TextButton(
                             onPressed: () =>
                                 Navigator.pop(ctx, 'open:${row['id']}'),
-                            child: Text('BUKA BARIS ITU · ${row['nama']}')),
+                            child: Text('BUKA WARGA ITU · ${row['nama']}')),
                     ])),
                     actions: [
                       TextButton(

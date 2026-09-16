@@ -484,7 +484,7 @@ class ExportService {
         ['Kode wilayah', kode],
         ['RT', rt == null ? '' : rt.toString().padLeft(2, '0')],
         ['RW', rw.toString().padLeft(2, '0')],
-        ['Jumlah baris', jumlah],
+        ['Jumlah warga', jumlah],
         ['Tanpa NIK', tanpaNik],
         ['Diekspor pada', waktuTampil(timestamp())],
         ['Sumber kode wilayah', lokasi?['sumber_versi'] ?? ''],

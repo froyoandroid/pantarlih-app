@@ -228,7 +228,7 @@ class _RtListScreenState extends State<RtListScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                             child: Align(
                                 alignment: Alignment.centerLeft,
-                                child: Text('$jumlah baris · $tanpa tanpa NIK',
+                                child: Text('$jumlah warga · $tanpa tanpa NIK',
                                     style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700)))),
@@ -244,8 +244,12 @@ class _RtListScreenState extends State<RtListScreen> {
                                   final row = rows[index];
                                   final id = row['id'] as int;
                                   final nik = '${row['nik'] ?? ''}'.trim();
+                                  final tgl =
+                                      tanggalTampil(row['tgl_lahir']);
                                   final catatan =
                                       keteranganTampil(row['keterangan']);
+                                  final kodeKet = kodeKeterangan(
+                                      '${row['keterangan'] ?? ''}');
                                   final warnaKode = '${row['warna'] ?? ''}';
                                   final warnaKartu =
                                       _warnaKartu[warnaKode] ?? Colors.white;
@@ -264,7 +268,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                       confirmDismiss: (_) => confirm(
                                           context,
                                           'Hapus ${row['nama']}?',
-                                          'Baris ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
+                                          'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
                                           action: 'HAPUS',
                                           dangerous: true),
                                       onDismissed: (_) async {
@@ -281,7 +285,7 @@ class _RtListScreenState extends State<RtListScreen> {
                                       child: Card(
                                           color: warnaKartu,
                                           child: ListTile(
-                                              isThreeLine:
+                                              isThreeLine: kodeKet == null &&
                                                   catatan.isNotEmpty,
                                               leading: ReorderableDragStartListener(
                                                   index: index,
@@ -305,20 +309,35 @@ class _RtListScreenState extends State<RtListScreen> {
                                                   style: const TextStyle(
                                                       fontWeight:
                                                           FontWeight.w700)),
-                                              subtitle: Text([
-                                                [
-                                                  nik.isEmpty
-                                                      ? '— belum ada NIK —'
-                                                      : nik,
-                                                  tanggalTampil(
-                                                      row['tgl_lahir']),
-                                                ]
-                                                    .where((s) =>
-                                                        s.isNotEmpty)
-                                                    .join(' · '),
-                                                if (catatan.isNotEmpty)
-                                                  catatan,
-                                              ].join('\n')),
+                                              subtitle: Text.rich(TextSpan(
+                                                  children: [
+                                                    TextSpan(
+                                                        text: nik.isEmpty
+                                                            ? 'Belum ada NIK'
+                                                            : nik,
+                                                        style: nik.isEmpty
+                                                            ? const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700)
+                                                            : null),
+                                                    if (tgl.isNotEmpty)
+                                                      TextSpan(
+                                                          text: ' · $tgl'),
+                                                    if (kodeKet != null)
+                                                      TextSpan(
+                                                          text:
+                                                              ' · $kodeKet',
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700)),
+                                                    if (kodeKet == null &&
+                                                        catatan.isNotEmpty)
+                                                      TextSpan(
+                                                          text:
+                                                              '\n$catatan'),
+                                                  ])),
                                               onTap: () => _edit(row),
                                               onLongPress: () =>
                                                   _opsiKartu(row)))));
