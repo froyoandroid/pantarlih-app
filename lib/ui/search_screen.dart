@@ -93,8 +93,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _perbaruiSkor(String value) {
     final q = value.trim();
     final kunci = '$byDate|$q';
-    final hasilBaru =
-        cacheSkor.putIfAbsent(kunci, () => _hitung(q, byDate));
+    final hasilBaru = cacheSkor.putIfAbsent(kunci, () => _hitung(q, byDate));
     cacheSkor
       ..remove(kunci)
       ..[kunci] = hasilBaru;

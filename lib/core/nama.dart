@@ -68,7 +68,8 @@ int levenshtein(String a, String b, {int? maxDistance}) {
     }
     // Bail out once the distance provably exceeds the budget; callers only
     // care whether the pair is close, and full rows are wasted work then.
-    if (maxDistance != null && current.reduce((x, y) => x < y ? x : y) > maxDistance) {
+    if (maxDistance != null &&
+        current.reduce((x, y) => x < y ? x : y) > maxDistance) {
       return maxDistance + 1;
     }
     previous = current;
