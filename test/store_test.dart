@@ -327,6 +327,31 @@ void main() {
     expect(await store.referensiCount(), 0);
   });
 
+  test('reference sources list one row per file with its count', () async {
+    var sumber = await store.sumberReferensi();
+    expect(sumber, hasLength(1));
+    expect(sumber.first['sumber_file'], 'fixture.xlsx');
+    expect(sumber.first['jumlah'], 3);
+    expect(sumber.first['terakhir'], isNotNull);
+
+    // A second workbook must not collapse into the first one's row.
+    final source = fixture();
+    final lain = [
+      for (final row in source
+          .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+          .records)
+        {...row, 'sumber_file': 'lain.xlsx'}
+    ];
+    await store.importRows(lain, 'lain.xlsx');
+    sumber = await store.sumberReferensi();
+    expect(sumber.map((r) => r['sumber_file']),
+        unorderedEquals(['fixture.xlsx', 'lain.xlsx']));
+    expect(sumber.every((r) => r['jumlah'] == 3), isTrue);
+
+    await store.clearReferensi();
+    expect(await store.sumberReferensi(), isEmpty);
+  });
+
   test('app works without reference rows', () async {
     await store.clearReferensi();
     final saved = await store.saveWarga(fields());

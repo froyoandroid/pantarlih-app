@@ -865,6 +865,13 @@ class AppStore extends ChangeNotifier {
     return rows.first['n'] as int;
   }
 
+  /// Source files behind the stored reference rows, newest import first.
+  /// One row per file with its row count and last import time, so the UI can
+  /// answer "referensi dari file mana yang sedang dipakai".
+  Future<List<RecordMap>> sumberReferensi() => db.rawQuery(
+      'SELECT sumber_file, COUNT(*) AS jumlah, MAX(diimpor_pada) AS terakhir '
+      'FROM referensi GROUP BY sumber_file ORDER BY terakhir DESC');
+
   Future<List<RecordMap>> history() =>
       db.query('warga', orderBy: 'dibuat_pada DESC, id DESC', limit: 20);
 

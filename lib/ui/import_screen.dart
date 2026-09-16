@@ -22,6 +22,7 @@ class _ImportScreenState extends State<ImportScreen> {
   late final TextEditingController rt, rw;
   bool rowRt = false, confirmed = false, busy = false;
   int referensiCount = 0;
+  List<RecordMap> sumber = [];
   @override
   void initState() {
     super.initState();
@@ -32,6 +33,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
   Future<void> _count() async {
     referensiCount = await widget.session.store.referensiCount();
+    sumber = await widget.session.store.sumberReferensi();
     if (mounted) setState(() {});
   }
 
@@ -242,6 +244,38 @@ class _ImportScreenState extends State<ImportScreen> {
           const SizedBox(height: 8),
           const Text(
               'Aplikasi tetap berfungsi tanpa impor. Referensi hanya mengisi saran ketik.'),
+          if (sumber.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text('File yang sedang dipakai',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            for (final row in sumber)
+              Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                            padding: EdgeInsets.only(top: 2, right: 8),
+                            child: Icon(Icons.description_outlined,
+                                size: 16, color: forest)),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(
+                                  teks(row['sumber_file']).isEmpty
+                                      ? 'File tanpa nama'
+                                      : teks(row['sumber_file']),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600)),
+                              Text(
+                                  '${intValue(row['jumlah'])} baris · diimpor ${waktuTampil(row['terakhir'])}',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade700)),
+                            ])),
+                      ])),
+          ],
           Notice(
               'Lokasi berkas ini: ${widget.session.village.isEmpty ? 'belum diatur' : widget.session.village}. Kode wilayah aktif dipakai untuk seluruh baris impor.'),
           const SizedBox(height: 12),
