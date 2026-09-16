@@ -456,11 +456,10 @@ class AppStore extends ChangeNotifier {
       await txn.insert('setelan',
           {'kunci': 'kode_wilayah_aktif', 'nilai': '${data['kode'] ?? ''}'},
           conflictAlgorithm: ConflictAlgorithm.replace);
-      if (data['nama_desa'] != null) {
-        await txn.insert('setelan',
-            {'kunci': 'desa_default', 'nilai': '${data['nama_desa']}'},
-            conflictAlgorithm: ConflictAlgorithm.replace);
-      }
+      // desa_default is deliberately NOT written here: choosing an official
+      // desa used to silently overwrite a manually typed form name. The
+      // typed name (setelan) is written only by setDesa, and the label
+      // falls back to lokasi.nama_desa when no typed name exists.
     } else if (table == 'setelan' && op == 'UPDATE') {
       for (final raw in data['records'] as List) {
         await txn.insert('setelan', Map<String, Object?>.from(raw as Map),

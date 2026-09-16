@@ -51,6 +51,10 @@ class Session extends ChangeNotifier {
     kodeWilayah = nullableText(values['kode_wilayah_aktif'] ?? '');
     lokasi = await store.activeLokasi();
     village = values['desa_default'] ?? '';
+    // lokasi.nama_desa is the fallback label source: a rebuilt database no
+    // longer seeds desa_default from a lokasi event, and no typed name may
+    // exist yet.
+    if (village.isEmpty && lokasi != null) village = lokasi!.namaDesa;
     workspace = RtRw.decode(values['ruang_kerja'] ?? '');
     notifyListeners();
   }
@@ -146,6 +150,16 @@ class Session extends ChangeNotifier {
 
   Future<void> setVillage(String value) async {
     await store.setDesa(value);
+    final bersih = value.trim();
+    // For a manual lokasi the typed name IS the desa record: keep the row in
+    // sync. The kode stays stable - warga rows reference it, and renaming
+    // must not orphan kode_wilayah values already on disk.
+    final loc = lokasi;
+    if (loc != null && loc.manual && loc.namaDesa.trim() != bersih) {
+      await store.setLokasi({...loc.toRow(), 'nama_desa': bersih});
+      await load();
+      return;
+    }
     village = (await store.settings())['desa_default'] ?? '';
     notifyListeners();
   }
