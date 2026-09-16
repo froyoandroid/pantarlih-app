@@ -1275,6 +1275,30 @@ void main() {
     expect(kodeBerkasEkspor({'manual': 1}), 'TANPALOKASI');
   });
 
+  test('dpsHeaders match the official kecamatan workbook header', () async {
+    // The ten-column DPS layout must mirror the template the kecamatan
+    // issues. The real field workbook is the reference; TANGGAL LAHIR (not
+    // TGL LAHIR) is what it uses.
+    expect(dpsHeaders, contains('TANGGAL LAHIR'));
+    expect(dpsHeaders, isNot(contains('TGL LAHIR')));
+    final input = File('data-exel/DPS_RW03_Kalitorong_Gabungan.xlsx');
+    if (!await input.exists()) {
+      markTestSkipped('Private workbook is not distributed with the source.');
+      return;
+    }
+    final source =
+        WorkbookSource(input.uri.pathSegments.last, await input.readAsBytes());
+    final header = source
+        .rows('RT 03')
+        .first
+        .map((c) => c.trim().toUpperCase())
+        .toList();
+    // The other columns differ on purpose (NAMA PEMILIH, DUSUN, KET are the
+    // reference-import wording); the date column is the one that matters.
+    expect(dpsHeaders[5], 'TANGGAL LAHIR');
+    expect(header[5], 'TANGGAL LAHIR');
+  });
+
   test('empty database without lokasi still saves one person', () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-empty-lokasi-');
