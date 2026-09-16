@@ -43,7 +43,8 @@ const schemaStatements = <String>[
     keterangan TEXT,
     warna TEXT,
     dibuat_pada TEXT NOT NULL,
-    diubah_pada TEXT NOT NULL
+    diubah_pada TEXT NOT NULL,
+    CHECK (warna IS NULL OR warna IN ('kuning','hijau','merah','biru'))
   )''',
   'CREATE UNIQUE INDEX idx_warga_urut ON warga(rw, rt, urut_sort)',
   'CREATE INDEX idx_warga_rt ON warga(rw, rt)',

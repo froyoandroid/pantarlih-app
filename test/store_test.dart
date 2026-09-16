@@ -1234,6 +1234,32 @@ void main() {
     expect(cellText(kodeRow[1]), '(manual)');
   });
 
+  test('fresh database rejects warna outside the known set', () async {
+    await expectLater(
+        store.db.insert('warga', {
+          'urut_sort': 1000,
+          'nama': 'WARNA AJAIB',
+          'nama_norm': 'warna ajaib',
+          'rt': 3,
+          'rw': 3,
+          'warna': 'ungu',
+          'dibuat_pada': timestamp(),
+          'diubah_pada': timestamp(),
+        }),
+        throwsA(anything));
+    // The four known colors and empty still pass.
+    await store.db.insert('warga', {
+      'urut_sort': 1000,
+      'nama': 'WARNA KUNING',
+      'nama_norm': 'warna kuning',
+      'rt': 3,
+      'rw': 3,
+      'warna': 'kuning',
+      'dibuat_pada': timestamp(),
+      'diubah_pada': timestamp(),
+    });
+  });
+
   test('empty database without lokasi still saves one person', () async {
     final isolated =
         await Directory.systemTemp.createTemp('pantarlih-empty-lokasi-');
