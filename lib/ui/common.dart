@@ -400,9 +400,12 @@ class ResidentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nik = teks(row['nik']);
-    final tgl = teks(row['tgl_lahir_raw']).isEmpty
-        ? tanggalTampil(row['tgl_lahir'])
-        : teks(row['tgl_lahir_raw']);
+    // Always render the parsed date so referensi and warga rows look the
+    // same side by side; the raw spreadsheet value stays a tooltip.
+    final tgl = tanggalTampil(row['tgl_lahir']);
+    final tglRaw = teks(row['tgl_lahir_raw']);
+    final barisTgl = Text('$tgl · ${jkTampil(row['jenis_kelamin'])}',
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade700));
     return Card(
         color: highlight ? const Color(0xFFFFF4D6) : null,
         child: InkWell(
@@ -419,17 +422,17 @@ class ResidentCard extends StatelessWidget {
                           Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: Text(label!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: amber))),
+                                      color: Colors.blueGrey.shade700))),
                         Text('${row['nama']}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 16)),
                         const SizedBox(height: 6),
-                        Text('$tgl · ${jkTampil(row['jenis_kelamin'])}',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade700)),
+                        (tglRaw.isEmpty || tglRaw == tgl)
+                            ? barisTgl
+                            : Tooltip(message: tglRaw, child: barisTgl),
                         const SizedBox(height: 4),
                         Text(
                             'RT ${row['rt']} / RW ${row['rw']}'
@@ -445,13 +448,14 @@ class ResidentCard extends StatelessWidget {
                     Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                            color: (score! < 60 ? amber : forest)
+                            color: (score! < 60 ? Colors.deepOrange : forest)
                                 .withValues(alpha: .1),
                             borderRadius: BorderRadius.circular(10)),
                         child: Text('${score!.round()}%',
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
-                                color: score! < 60 ? amber : forest))),
+                                color:
+                                    score! < 60 ? Colors.deepOrange : forest))),
                   if (trailing != null) trailing!,
                 ]))));
   }
