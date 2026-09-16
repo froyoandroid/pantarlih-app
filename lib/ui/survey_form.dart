@@ -11,12 +11,14 @@ class SurveyForm extends StatefulWidget {
       this.warga,
       this.seed,
       this.initialName,
-      this.afterId});
+      this.afterId,
+      this.chainCount = 1});
   final Session session;
   final RecordMap? warga;
   final RecordMap? seed;
   final String? initialName;
   final int? afterId;
+  final int chainCount;
   @override
   State<SurveyForm> createState() => _SurveyFormState();
 }
@@ -58,8 +60,10 @@ class _SurveyFormState extends State<SurveyForm> {
                 'null'
             ? widget.session.village
             : '${edit?['desa'] ?? seed?['desa'] ?? widget.session.village}');
-    rt = TextEditingController(text: '${edit?['rt'] ?? widget.session.rt}');
-    rw = TextEditingController(text: '${edit?['rw'] ?? widget.session.rw}');
+    rt = TextEditingController(
+        text: '${edit?['rt'] ?? seed?['rt'] ?? widget.session.rt}');
+    rw = TextEditingController(
+        text: '${edit?['rw'] ?? seed?['rw'] ?? widget.session.rw}');
     note = TextEditingController(
         text: '${edit?['keterangan'] ?? ''}' == 'null'
             ? ''
@@ -76,7 +80,7 @@ class _SurveyFormState extends State<SurveyForm> {
     super.dispose();
   }
 
-  Future<void> save() async {
+  Future<void> save({bool lanjut = false}) async {
     setState(() => saving = true);
     try {
       if (name.text.trim().isEmpty) throw Exception('Nama wajib diisi');
@@ -166,6 +170,22 @@ class _SurveyFormState extends State<SurveyForm> {
       if (!mounted) return;
       feedback(context,
           wargaId == null ? 'Data tersimpan.' : 'Perubahan tersimpan.');
+      if (lanjut) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => SurveyForm(
+                    session: widget.session,
+                    afterId: saved['id'] as int,
+                    chainCount: widget.chainCount + 1,
+                    seed: {
+                      'desa': nullableText(village.text) ??
+                          widget.session.village,
+                      'rt': int.tryParse(rt.text),
+                      'rw': int.tryParse(rw.text),
+                    })));
+        return;
+      }
       Navigator.pop(context, saved['id'] as int);
     } catch (e) {
       if (mounted) {
@@ -181,17 +201,27 @@ class _SurveyFormState extends State<SurveyForm> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: wargaId == null ? 'Input satu orang' : 'Edit data',
-      bottom: FilledButton.icon(
-          onPressed: saving ? null : save,
-          icon: saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.save_outlined),
-          label: const Text('SIMPAN')),
+      title: wargaId == null
+          ? 'orang ke-${widget.chainCount} sejak masuk form'
+          : 'Edit data',
+      bottom: Row(children: [
+        Expanded(
+            child: FilledButton.icon(
+                onPressed: saving ? null : save,
+                icon: saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.save_outlined),
+                label: const Text('SIMPAN'))),
+        const SizedBox(width: 10),
+        Expanded(
+            child: OutlinedButton(
+                onPressed: saving ? null : () => save(lanjut: true),
+                child: const Text('SIMPAN & LANJUT'))),
+      ]),
       child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           children: [
