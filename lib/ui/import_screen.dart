@@ -89,7 +89,11 @@ class _ImportScreenState extends State<ImportScreen> {
           action: 'IMPOR SEKARANG')) {
         return;
       }
-      await source!.archiveAndImport(widget.session.store, sheet!, prep.records,
+      final stamped = [
+        for (final row in prep.records)
+          {...row, 'kode_wilayah': widget.session.kodeWilayah}
+      ];
+      await source!.archiveAndImport(widget.session.store, sheet!, stamped,
           mapping, intValue(start.text), intValue(rt.text),
           skipped: prep.skipped);
       await _count();
@@ -169,6 +173,8 @@ class _ImportScreenState extends State<ImportScreen> {
           const SizedBox(height: 8),
           const Text(
               'Aplikasi tetap berfungsi tanpa impor. Referensi hanya mengisi saran ketik.'),
+          Notice(
+              'Lokasi berkas ini: ${widget.session.village.isEmpty ? 'belum diatur' : widget.session.village}. Kode wilayah aktif dipakai untuk seluruh baris impor.'),
           const SizedBox(height: 12),
           if (referensiCount > 0)
             OutlinedButton.icon(

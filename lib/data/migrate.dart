@@ -36,6 +36,8 @@ RecordMap _migrateStep(RecordMap event, int from) {
   switch (from) {
     case 2:
       return _migrate2to3(event);
+    case 3:
+      return _migrate3to4(event);
     default:
       throw JournalVersionException(
           'Tidak ada jalur migrasi jurnal dari versi $from');
@@ -55,6 +57,35 @@ RecordMap _migrate2to3(RecordMap event) {
   return next;
 }
 
+/// 3→4: keep the record, attach kode_wilayah=null. Never guess from desa.
+RecordMap _migrate3to4(RecordMap event) {
+  final next = Map<String, Object?>.from(event);
+  next['schema_v'] = 4;
+  final data = event['data'];
+  if (data is! Map) return next;
+  final copy = Map<String, Object?>.from(data);
+  final table = event['tabel'];
+  if (table == 'warga') {
+    copy.putIfAbsent('kode_wilayah', () => null);
+  } else if (table == 'referensi') {
+    if (copy['records'] is List) {
+      copy['records'] = [
+        for (final raw in copy['records'] as List)
+          raw is Map
+              ? {
+                  ...Map<String, Object?>.from(raw),
+                  if (!raw.containsKey('kode_wilayah')) 'kode_wilayah': null,
+                }
+              : raw
+      ];
+    } else {
+      copy.putIfAbsent('kode_wilayah', () => null);
+    }
+  }
+  next['data'] = copy;
+  return next;
+}
+
 const builtinUpgrades = <int, List<String>>{
   2: [
     '''CREATE TABLE IF NOT EXISTS urutan_id (
@@ -67,6 +98,25 @@ const builtinUpgrades = <int, List<String>>{
       SELECT 'referensi', COALESCE(MAX(id), 0) FROM referensi''',
     '''INSERT OR IGNORE INTO urutan_id (tabel, terakhir)
       SELECT 'log', COALESCE(MAX(id), 0) FROM log''',
+  ],
+  3: [
+    'ALTER TABLE warga ADD COLUMN kode_wilayah TEXT',
+    'ALTER TABLE referensi ADD COLUMN kode_wilayah TEXT',
+    'CREATE INDEX IF NOT EXISTS idx_warga_kode ON warga(kode_wilayah)',
+    '''CREATE TABLE IF NOT EXISTS lokasi (
+      kode          TEXT PRIMARY KEY,
+      nama_desa     TEXT NOT NULL,
+      nama_kec      TEXT,
+      nama_kab      TEXT,
+      nama_prov     TEXT,
+      kode_kec      TEXT,
+      nik_prefix    TEXT,
+      sumber_versi  TEXT,
+      manual        INTEGER NOT NULL DEFAULT 0,
+      dicatat_pada  TEXT NOT NULL
+    )''',
+    '''INSERT OR IGNORE INTO urutan_id (tabel, terakhir)
+      SELECT 'lokasi', 0''',
   ],
 };
 

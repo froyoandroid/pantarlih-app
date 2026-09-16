@@ -30,7 +30,7 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 
 1. Instal APK (Android 7.0+), buka aplikasi, izinkan akses berkas. Pada Android 11+, aktifkan “Izinkan akses untuk mengelola semua file”, lalu kembali ke aplikasi. Android 7–10 menggunakan izin penyimpanan biasa.
 2. Impor referensi bersifat opsional. Bila ada workbook lama, pilih sheet `RT 03`, `RT 04`, dan `RT 05` satu per satu. Jangan impor `REKAP`. Kolom dipetakan di layar. Impor ulang diperbolehkan. Ada menu hapus semua referensi.
-3. Beranda → pilih RT/RW aktif (bawaan 3 / 3). Pergantian wilayah membuat snapshot dan Excel otomatis lokal. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
+3. Saat pertama dibuka, pilih Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan, atau ketik manual, atau lewati. RT/RW tetap diketik petugas (data Kemendagri berhenti di desa). Pergantian RT/RW membuat snapshot dan Excel otomatis lokal. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
 4. Daftar RT adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
 5. Ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
 6. Isi nama dulu, lalu NIK, JK, tempat/tanggal lahir. NIK boleh kosong. NIK yang bukan 16 digit, tanggal/JK yang tidak cocok, dan NIK duplikat hanya peringatan dan tetap bisa disimpan. Keterangan teks bebas, tidak dikelompokkan atau dinilai.
@@ -66,6 +66,29 @@ Workbook pribadi di `data-exel/` diabaikan Git dan tidak dibundel ke APK. Impor 
 - Referensi read-only di aplikasi, tanpa relasi ke `warga`, tanpa unique constraint. Boleh kotor dan diimpor berulang.
 - Normalisasi `ABDURROHMAN` mengikuti algoritme: `abdurohman`. Penggabungan huruf menggunakan `replaceAllMapped`, karena Dart tidak mengekspansi `$1` pada `replaceAll`.
 - `excel` 4.x tidak menangani worksheet relationship absolut dan inline-string kosong dari openpyxl. Salinan parsing di memori dinormalkan; byte sumber tetap utuh di arsip.
+- Pack wilayah Kemendagri dibundel sebagai `assets/wilayah.db` (baca-saja, bukan data pengguna). Tidak masuk jurnal JSONL dan tidak ikut `rebuild()`. Pilihan desa pengguna tersimpan sebagai snapshot di tabel `lokasi`.
+
+## Data wilayah (Kemendagri)
+
+Sumber: [cahyadsn/wilayah](https://github.com/cahyadsn/wilayah) oleh Cahya DSN, lisensi MIT. Dump yang dibundel mengikuti Kepmendagri No. 300.2.2-2430 Tahun 2025. LICENSE sumber ada di `third_party/wilayah/LICENSE`, SHA dan tanggal unduh di `third_party/wilayah/SOURCE.txt`.
+
+Membangun ulang aset (di desktop, bukan di HP):
+
+```sh
+# unduh db/wilayah.sql terbaru ke third_party/wilayah/wilayah.sql
+# perbarui SHA di third_party/wilayah/SOURCE.txt dan tool/build_wilayah.dart
+dart run tool/build_wilayah.dart
+```
+
+Lalu build APK. Nama salinan runtime memuat SHA pendek, jadi pack baru tersalin otomatis tanpa logika versi tambahan.
+
+**Memperbarui pack tidak pernah mengubah data yang sudah tersimpan.** Nama wilayah pada setiap baris warga dan pada tabel `lokasi` adalah snapshot. Sheet INFO pada ekspor membaca snapshot itu, bukan `wilayah.db`.
+
+Opsional: `dart run tool/build_wilayah.dart --prov=33` hanya memasukkan Jawa Tengah. Build penuh adalah bawaan.
+
+## Atribusi
+
+Aplikasi ini memakai kode dan nama wilayah administrasi pemerintahan Indonesia dari proyek WILAYAH (https://github.com/cahyadsn/wilayah), Copyright (c) 2017-2025 Cahya DSN, lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025.
 
 ## Pengujian
 

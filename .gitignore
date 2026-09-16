@@ -11,6 +11,7 @@ android/key.properties
 # Source workbooks and runtime resident records are private, never app assets.
 data-exel/
 *.db
+!assets/wilayah.db
 *.db-shm
 *.db-wal
 *.jsonl
