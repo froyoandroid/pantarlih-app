@@ -15,8 +15,7 @@ RecordMap migrateEvent(RecordMap event, {required int target}) {
     throw JournalVersionException('Versi jurnal tidak valid');
   }
   if (raw > target) {
-    throw JournalVersionException(
-        'Jurnal dari versi aplikasi yang lebih baru');
+    throw JournalVersionException('Jurnal dari versi aplikasi yang lebih baru');
   }
   var current = Map<String, Object?>.from(event);
   var version = raw;

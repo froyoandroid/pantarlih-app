@@ -53,7 +53,9 @@ class Session extends ChangeNotifier {
     var persist = false;
     if (workspace.isEmpty && rt > 0 && rw > 0) {
       final known = await store.rtList(rw);
-      workspace = [for (final n in {...known, rt}) RtRw(rw, n)]..sort();
+      workspace = [
+        for (final n in {...known, rt}) RtRw(rw, n)
+      ]..sort();
       persist = true;
     } else if (rt > 0 && rw > 0 && !workspace.contains(RtRw(rw, rt))) {
       workspace = [...workspace, RtRw(rw, rt)]..sort();
@@ -129,7 +131,10 @@ class Session extends ChangeNotifier {
     if (workspace.length <= 1) {
       throw AppException('Wilayah kerja perlu minimal satu RT.');
     }
-    workspace = [for (final item in workspace) if (item != pair) item];
+    workspace = [
+      for (final item in workspace)
+        if (item != pair) item
+    ];
     var nextRt = rt;
     var nextRw = rw;
     if (rt == pair.rt && rw == pair.rw) {
@@ -201,8 +206,7 @@ class AppPage extends StatelessWidget {
                 actions: actions),
             body: SafeArea(
                 child: Column(children: [
-              if (!session.usingPublic)
-                _PrivateStorageBanner(session: session),
+              if (!session.usingPublic) _PrivateStorageBanner(session: session),
               Expanded(
                   child: Align(
                       alignment: Alignment.topCenter,

@@ -206,15 +206,16 @@ class _LokasiScreenState extends State<LokasiScreen> {
     }
   }
 
-  Widget _picker(
-      String title, List<Wilayah> items, Wilayah? selected, ValueChanged<Wilayah> onPick,
+  Widget _picker(String title, List<Wilayah> items, Wilayah? selected,
+      ValueChanged<Wilayah> onPick,
       {String? emptyHint}) {
     if (items.isEmpty) {
       return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: InputDecorator(
               decoration: InputDecoration(labelText: title),
-              child: Text(emptyHint ?? 'Pilih tingkat di atasnya terlebih dahulu.',
+              child: Text(
+                  emptyHint ?? 'Pilih tingkat di atasnya terlebih dahulu.',
                   style: const TextStyle(color: Colors.black54))));
     }
     return Padding(
@@ -224,8 +225,8 @@ class _LokasiScreenState extends State<LokasiScreen> {
             value: selected?.kode, // ignore: deprecated_member_use
             isExpanded: true,
             itemHeight: null,
-            decoration: InputDecoration(
-                labelText: title, helperText: selected?.kode),
+            decoration:
+                InputDecoration(labelText: title, helperText: selected?.kode),
             hint: const Text('Pilih'),
             selectedItemBuilder: (ctx) => [
                   for (final w in items)
@@ -338,8 +339,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                 ]))),
         if (desa != null) ...[
           const SizedBox(height: 8),
-          Notice(
-              'Provinsi ${prov?.nama ?? '—'}\n'
+          Notice('Provinsi ${prov?.nama ?? '—'}\n'
               'Kabupaten/Kota ${kab?.nama ?? '—'}\n'
               'Kecamatan ${kec?.nama ?? '—'}\n'
               'Desa/Kelurahan ${desa!.nama}\n'
@@ -422,8 +422,8 @@ class _LokasiManualDialogState extends State<_LokasiManualDialog> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Batal')),
             FilledButton(
-                onPressed: () => Navigator.pop(context,
-                    (desaC.text, kecC.text, kabC.text, provC.text)),
+                onPressed: () => Navigator.pop(
+                    context, (desaC.text, kecC.text, kabC.text, provC.text)),
                 child: const Text('SIMPAN')),
           ]);
 }

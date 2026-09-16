@@ -61,7 +61,8 @@ class _RtListScreenState extends State<RtListScreen> {
       if (index >= 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!scroll.hasClients) return;
-          scroll.animateTo((index * 108.0).clamp(0, scroll.position.maxScrollExtent),
+          scroll.animateTo(
+              (index * 108.0).clamp(0, scroll.position.maxScrollExtent),
               duration: const Duration(milliseconds: 280),
               curve: Curves.easeOut);
         });
@@ -88,8 +89,7 @@ class _RtListScreenState extends State<RtListScreen> {
     final saved = await Navigator.push<int>(
         context,
         MaterialPageRoute(
-            builder: (_) =>
-                SurveyForm(session: widget.session, warga: row)));
+            builder: (_) => SurveyForm(session: widget.session, warga: row)));
     if (!mounted || saved == null) return;
     await _load();
   }
@@ -99,7 +99,7 @@ class _RtListScreenState extends State<RtListScreen> {
     final pilih = await showModalBottomSheet<String>(
         context: context,
         builder: (ctx) => SafeArea(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
               ListTile(
                   leading: const Icon(Icons.subdirectory_arrow_left),
                   title: const Text('TAMBAHKAN SEBELUMNYA'),
@@ -136,7 +136,7 @@ class _RtListScreenState extends State<RtListScreen> {
     final pilih = await showModalBottomSheet<String>(
         context: context,
         builder: (ctx) => SafeArea(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Padding(
                   padding: EdgeInsets.fromLTRB(24, 16, 24, 4),
                   child: Align(
@@ -178,9 +178,11 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
+    // onReorderItem delivers newIndex already adjusted for the removed row,
+    // so convert back to the raw onReorder-style index for the helper.
     final ids = [for (final row in rows) row['id'] as int];
-    final neighbors = reorderNeighbors(ids, oldIndex, newIndex);
-    if (newIndex > oldIndex) newIndex -= 1;
+    final neighbors = reorderNeighbors(
+        ids, oldIndex, newIndex > oldIndex ? newIndex + 1 : newIndex);
     if (oldIndex == newIndex) return;
     final moved = rows[oldIndex];
     final next = [...rows]..removeAt(oldIndex);
@@ -208,9 +210,7 @@ class _RtListScreenState extends State<RtListScreen> {
         session: widget.session,
         title: 'Daftar RT',
         actions: [
-          TextButton(
-              onPressed: () => _openKetik(),
-              child: const Text('TAMBAH'))
+          TextButton(onPressed: () => _openKetik(), child: const Text('TAMBAH'))
         ],
         child: loading
             ? const Center(child: CircularProgressIndicator())
@@ -218,8 +218,7 @@ class _RtListScreenState extends State<RtListScreen> {
                 onRefresh: _load,
                 child: rows.isEmpty
                     ? ListView(children: const [
-                        EmptyState(
-                            'Belum ada data di RT ini',
+                        EmptyState('Belum ada data di RT ini',
                             'Tekan TAMBAH untuk mengetik orang pertama. Aplikasi tetap berjalan tanpa impor referensi.',
                             icon: Icons.person_add_alt_1)
                       ])
@@ -239,13 +238,12 @@ class _RtListScreenState extends State<RtListScreen> {
                                     const EdgeInsets.fromLTRB(12, 0, 12, 24),
                                 buildDefaultDragHandles: false,
                                 itemCount: rows.length,
-                                onReorder: _reorder, // ignore: deprecated_member_use
+                                onReorderItem: _reorder,
                                 itemBuilder: (context, index) {
                                   final row = rows[index];
                                   final id = row['id'] as int;
                                   final nik = '${row['nik'] ?? ''}'.trim();
-                                  final tgl =
-                                      tanggalTampil(row['tgl_lahir']);
+                                  final tgl = tanggalTampil(row['tgl_lahir']);
                                   final catatan =
                                       keteranganTampil(row['keterangan']);
                                   final kodeKet = kodeKeterangan(
@@ -257,60 +255,63 @@ class _RtListScreenState extends State<RtListScreen> {
                                       key: ValueKey(id),
                                       child: Dismissible(
                                           key: ValueKey('hapus-$id'),
-                                      direction: DismissDirection.endToStart,
-                                      background: Container(
-                                          alignment: Alignment.centerRight,
-                                          padding: const EdgeInsets.only(
-                                              right: 20),
-                                          color: Colors.red.shade800,
-                                          child: const Icon(Icons.delete,
-                                              color: Colors.white)),
-                                      confirmDismiss: (_) => confirm(
-                                          context,
-                                          'Hapus ${row['nama']}?',
-                                          'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
-                                          action: 'HAPUS',
-                                          dangerous: true),
-                                      onDismissed: (_) async {
-                                        try {
-                                          await widget.session.store
-                                              .deleteWarga(id);
-                                          await _load();
-                                        } catch (e) {
-                                          if (context.mounted) {
-                                            feedback(context, e, error: true);
-                                          }
-                                        }
-                                      },
-                                      child: Card(
-                                          color: warnaKartu,
-                                          child: ListTile(
-                                              isThreeLine: kodeKet == null &&
-                                                  catatan.isNotEmpty,
-                                              leading: ReorderableDragStartListener(
-                                                  index: index,
-                                                  child: Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Text('${index + 1}',
-                                                            style: const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w800,
-                                                                color:
-                                                                    forest)),
-                                                        const Icon(
-                                                            Icons.drag_handle,
-                                                            size: 18)
-                                                      ])),
-                                              title: Text('${row['nama']}',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700)),
-                                              subtitle: Text.rich(TextSpan(
-                                                  children: [
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          background: Container(
+                                              alignment: Alignment.centerRight,
+                                              padding: const EdgeInsets.only(
+                                                  right: 20),
+                                              color: Colors.red.shade800,
+                                              child: const Icon(Icons.delete,
+                                                  color: Colors.white)),
+                                          confirmDismiss: (_) => confirm(
+                                              context,
+                                              'Hapus ${row['nama']}?',
+                                              'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
+                                              action: 'HAPUS',
+                                              dangerous: true),
+                                          onDismissed: (_) async {
+                                            try {
+                                              await widget.session.store
+                                                  .deleteWarga(id);
+                                              await _load();
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                feedback(context, e,
+                                                    error: true);
+                                              }
+                                            }
+                                          },
+                                          child: Card(
+                                              color: warnaKartu,
+                                              child: ListTile(
+                                                  isThreeLine: kodeKet == null &&
+                                                      catatan.isNotEmpty,
+                                                  leading:
+                                                      ReorderableDragStartListener(
+                                                          index: index,
+                                                          child: Column(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Text(
+                                                                    '${index + 1}',
+                                                                    style: const TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w800,
+                                                                        color:
+                                                                            forest)),
+                                                                const Icon(
+                                                                    Icons
+                                                                        .drag_handle,
+                                                                    size: 18)
+                                                              ])),
+                                                  title: Text('${row['nama']}',
+                                                      style:
+                                                          const TextStyle(fontWeight: FontWeight.w700)),
+                                                  subtitle: Text.rich(TextSpan(children: [
                                                     TextSpan(
                                                         text: nik.isEmpty
                                                             ? 'Belum ada NIK'
@@ -322,12 +323,10 @@ class _RtListScreenState extends State<RtListScreen> {
                                                                         .w700)
                                                             : null),
                                                     if (tgl.isNotEmpty)
-                                                      TextSpan(
-                                                          text: ' · $tgl'),
+                                                      TextSpan(text: ' · $tgl'),
                                                     if (kodeKet != null)
                                                       TextSpan(
-                                                          text:
-                                                              ' · $kodeKet',
+                                                          text: ' · $kodeKet',
                                                           style: const TextStyle(
                                                               fontWeight:
                                                                   FontWeight
@@ -335,12 +334,10 @@ class _RtListScreenState extends State<RtListScreen> {
                                                     if (kodeKet == null &&
                                                         catatan.isNotEmpty)
                                                       TextSpan(
-                                                          text:
-                                                              '\n$catatan'),
+                                                          text: '\n$catatan'),
                                                   ])),
-                                              onTap: () => _edit(row),
-                                              onLongPress: () =>
-                                                  _opsiKartu(row)))));
+                                                  onTap: () => _edit(row),
+                                                  onLongPress: () => _opsiKartu(row)))));
                                 })),
                       ])));
   }

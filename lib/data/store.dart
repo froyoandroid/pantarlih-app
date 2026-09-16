@@ -111,8 +111,7 @@ class AppStore extends ChangeNotifier {
     for (final sql in schemaStatements) {
       await db.execute(sql);
     }
-    for (final sql
-        in upgradeStatements(schemaBaseVersion, version, upgrades)) {
+    for (final sql in upgradeStatements(schemaBaseVersion, version, upgrades)) {
       await db.execute(sql);
     }
   }
@@ -230,8 +229,7 @@ class AppStore extends ChangeNotifier {
   Future<Lokasi?> activeLokasi() async {
     final kode = (await settings())['kode_wilayah_aktif'];
     if (kode == null || kode.isEmpty) return null;
-    final rows =
-        await db.query('lokasi', where: 'kode = ?', whereArgs: [kode]);
+    final rows = await db.query('lokasi', where: 'kode = ?', whereArgs: [kode]);
     return rows.isEmpty ? null : Lokasi.fromRow(rows.first);
   }
 
@@ -272,8 +270,8 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<int> _maxId(DatabaseExecutor txn, String table) async {
-    final rows = await txn
-        .rawQuery('SELECT COALESCE(MAX(id), 0) AS id FROM $table');
+    final rows =
+        await txn.rawQuery('SELECT COALESCE(MAX(id), 0) AS id FROM $table');
     return intValue(rows.first['id']);
   }
 
@@ -281,14 +279,12 @@ class AppStore extends ChangeNotifier {
     if (!await _hasUrutanId(txn)) {
       return await _maxId(txn, table) + 1;
     }
-    final rows = await txn
-        .query('urutan_id', where: 'tabel = ?', whereArgs: [table]);
+    final rows =
+        await txn.query('urutan_id', where: 'tabel = ?', whereArgs: [table]);
     final last = rows.isEmpty ? 0 : intValue(rows.first['terakhir']);
     final seen = await _maxId(txn, table);
     final next = (last > seen ? last : seen) + 1;
-    await txn.insert(
-        'urutan_id',
-        {'tabel': table, 'terakhir': next},
+    await txn.insert('urutan_id', {'tabel': table, 'terakhir': next},
         conflictAlgorithm: ConflictAlgorithm.replace);
     return next;
   }
@@ -304,8 +300,7 @@ class AppStore extends ChangeNotifier {
   Future<void> _applyCounters(DatabaseExecutor txn, Object? raw) async {
     if (raw is! Map || !await _hasUrutanId(txn)) return;
     for (final entry in raw.entries) {
-      await txn.insert(
-          'urutan_id',
+      await txn.insert('urutan_id',
           {'tabel': '${entry.key}', 'terakhir': intValue(entry.value)},
           conflictAlgorithm: ConflictAlgorithm.replace);
     }
@@ -414,8 +409,8 @@ class AppStore extends ChangeNotifier {
     final op = event['op'];
     if (table == 'referensi' && op == 'IMPORT') {
       for (final raw in data['records'] as List) {
-        await txn.insert(
-            'referensi', _full(_refCols, Map<String, Object?>.from(raw as Map)));
+        await txn.insert('referensi',
+            _full(_refCols, Map<String, Object?>.from(raw as Map)));
       }
     } else if (table == 'referensi' && op == 'DELETE') {
       await txn.delete('referensi');
@@ -439,13 +434,11 @@ class AppStore extends ChangeNotifier {
     } else if (table == 'lokasi' && (op == 'INSERT' || op == 'UPDATE')) {
       await txn.insert('lokasi', _full(lokasiColumns, data),
           conflictAlgorithm: ConflictAlgorithm.replace);
-      await txn.insert(
-          'setelan',
+      await txn.insert('setelan',
           {'kunci': 'kode_wilayah_aktif', 'nilai': '${data['kode'] ?? ''}'},
           conflictAlgorithm: ConflictAlgorithm.replace);
       if (data['nama_desa'] != null) {
-        await txn.insert(
-            'setelan',
+        await txn.insert('setelan',
             {'kunci': 'desa_default', 'nilai': '${data['nama_desa']}'},
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
@@ -474,11 +467,8 @@ class AppStore extends ChangeNotifier {
   Future<void> _applyUrutMap(DatabaseExecutor txn, Map peta) async {
     final entries = peta.entries.toList();
     for (final entry in entries) {
-      await txn.update(
-          'warga',
-          {'urut_sort': -1000000 - intValue(entry.key)},
-          where: 'id = ?',
-          whereArgs: [intValue(entry.key)]);
+      await txn.update('warga', {'urut_sort': -1000000 - intValue(entry.key)},
+          where: 'id = ?', whereArgs: [intValue(entry.key)]);
     }
     for (final entry in entries) {
       final next = Map<String, Object?>.from(entry.value as Map);
@@ -487,8 +477,7 @@ class AppStore extends ChangeNotifier {
     }
   }
 
-  Future<List<RecordMap>> _wargaRt(
-      DatabaseExecutor txn, int rw, int rt) async {
+  Future<List<RecordMap>> _wargaRt(DatabaseExecutor txn, int rw, int rt) async {
     final rows = await txn.query('warga',
         where: 'rw = ? AND rt = ?',
         whereArgs: [rw, rt],
@@ -515,8 +504,8 @@ class AppStore extends ChangeNotifier {
           {...rows[i], 'urut_sort': start + i * 1000}
       ];
 
-  void _queueRenumber(List<RecordMap> extras, int rw, int rt, String ts,
-      Map peta) {
+  void _queueRenumber(
+      List<RecordMap> extras, int rw, int rt, String ts, Map peta) {
     extras.add({
       'op': 'RENUMBER',
       'tabel': 'warga',
@@ -530,8 +519,7 @@ class AppStore extends ChangeNotifier {
       final index = rows.indexWhere((r) => r['id'] == beforeId);
       if (index < 0) return null;
       final sesudah = rows[index]['urut_sort'] as int;
-      final sebelum =
-          index > 0 ? rows[index - 1]['urut_sort'] as int : null;
+      final sebelum = index > 0 ? rows[index - 1]['urut_sort'] as int : null;
       return urutAntara(sebelum, sesudah);
     }
     if (afterId == null) {
@@ -547,7 +535,9 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<int> _urutSisip(Transaction txn, int rw, int rt,
-      {int? afterId, int? beforeId, required List<RecordMap> extras,
+      {int? afterId,
+      int? beforeId,
+      required List<RecordMap> extras,
       required String ts}) async {
     final rows = await _wargaRt(txn, rw, rt);
     final anchor = beforeId ?? afterId;
@@ -556,11 +546,10 @@ class AppStore extends ChangeNotifier {
     }
     final value = _urutDari(rows, afterId: afterId, beforeId: beforeId);
     if (value != null) return value;
-    final start = beforeId != null &&
-            rows.isNotEmpty &&
-            rows.first['id'] == beforeId
-        ? 2000
-        : 1000;
+    final start =
+        beforeId != null && rows.isNotEmpty && rows.first['id'] == beforeId
+            ? 2000
+            : 1000;
     final peta = _petaRenumber(rows, start: start);
     _queueRenumber(extras, rw, rt, ts, peta);
     final next = _urutDari(_virtualRenumber(rows, start: start),
@@ -580,8 +569,8 @@ class AppStore extends ChangeNotifier {
     }
   }
 
-  RecordMap _wargaRecord(RecordMap fields, int id, int urut, String ts,
-      String dibuat) {
+  RecordMap _wargaRecord(
+      RecordMap fields, int id, int urut, String ts, String dibuat) {
     final nik = nullableText('${fields['nik'] ?? ''}');
     return {
       'id': id,
@@ -653,7 +642,8 @@ class AppStore extends ChangeNotifier {
             afterId: afterId, beforeId: beforeId, extras: extras, ts: ts);
         return _wargaRecord(fields, next, urut, ts, ts);
       }
-      final sebelum = await txn.query('warga', where: 'id = ?', whereArgs: [id]);
+      final sebelum =
+          await txn.query('warga', where: 'id = ?', whereArgs: [id]);
       if (sebelum.isEmpty) {
         // Typical cause: the row was deleted elsewhere (e.g. swiped away in
         // the RT list) while this edit form was still open.
@@ -766,13 +756,15 @@ class AppStore extends ChangeNotifier {
 
   Future<void> recordExport(
       List<RecordMap> files, int rw, List<int> rts) async {
-    await _commit('EXPORT', 'export',
+    await _commit(
+        'EXPORT',
+        'export',
         (txn, ts) async => {
               'files': files,
               'rw': rw,
               'rt': rts,
-              'jumlah': files.fold<int>(
-                  0, (n, f) => n + intValue(f['jumlah_baris'])),
+              'jumlah':
+                  files.fold<int>(0, (n, f) => n + intValue(f['jumlah_baris'])),
             });
   }
 
