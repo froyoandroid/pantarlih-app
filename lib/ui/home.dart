@@ -216,28 +216,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               Wrap(spacing: 8, runSpacing: 8, children: [
                                 for (final pair
                                     in widget.session.workspaceByRw[rw]!)
-                                  ChoiceChip(
-                                      label: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                                'RT ${pair.rt.toString().padLeft(2, '0')}'),
-                                            if (widget.session.rt == pair.rt &&
-                                                widget.session.rw ==
-                                                    pair.rw) ...[
-                                              const SizedBox(width: 4),
-                                              GestureDetector(
-                                                  onTap: busy
-                                                      ? null
-                                                      : () => _lepas(pair),
-                                                  child: const Icon(Icons.close,
-                                                      size: 14)),
-                                            ],
-                                          ]),
+                                  RawChip(
+                                      label: Text(
+                                          'RT ${pair.rt.toString().padLeft(2, '0')}'),
                                       selected: widget.session.rt == pair.rt &&
                                           widget.session.rw == pair.rw,
                                       onSelected:
-                                          busy ? null : (_) => _focus(pair)),
+                                          busy ? null : (_) => _focus(pair),
+                                      showCheckmark: false,
+                                      deleteIcon: const Icon(Icons.close,
+                                          size: 16),
+                                      deleteButtonTooltipMessage:
+                                          'Lepas dari wilayah kerja',
+                                      onDeleted: !busy &&
+                                              widget.session.rt == pair.rt &&
+                                              widget.session.rw == pair.rw
+                                          ? () => _lepas(pair)
+                                          : null),
                               ]),
                             ],
                             if (widget.session.rt > 0 &&
