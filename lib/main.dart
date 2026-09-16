@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mcp_toolkit/mcp_toolkit.dart';
+import 'package:path_provider/path_provider.dart';
 
+import 'core/format.dart';
 import 'data/storage.dart';
 import 'data/store.dart';
 import 'data/wilayah.dart';
@@ -13,14 +17,40 @@ import 'ui/lokasi_screen.dart';
 void main() {
   runZonedGuarded(() {
     WidgetsFlutterBinding.ensureInitialized();
-
-    MCPToolkitBinding.instance
-      ..initialize()
-      ..initializeFlutterToolkit();
+    if (kDebugMode) {
+      // MCP toolkit is agent tooling bound to the VM service. Debug-only:
+      // it must not exist in release builds, which promise offline-only.
+      MCPToolkitBinding.instance
+        ..initialize()
+        ..initializeFlutterToolkit();
+    }
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      _catatCrash(details.exception, details.stack);
+    };
     runApp(const PantarlihApp());
-  },
-      (error, stack) =>
-          MCPToolkitBinding.instance.handleZoneError(error, stack));
+  }, (error, stack) {
+    _catatCrash(error, stack);
+    if (kDebugMode) {
+      MCPToolkitBinding.instance.handleZoneError(error, stack);
+    }
+  });
+}
+
+/// Append the error to a `recovered/crash_<stamp>.log` file next to the app data.
+/// Never rethrows: the crash writer must not become the crash source.
+void _catatCrash(Object error, StackTrace? stack) {
+  try {
+    unawaited(() async {
+      try {
+        final dir = Directory(
+            '${(await getApplicationDocumentsDirectory()).path}/recovered');
+        await dir.create(recursive: true);
+        await File('${dir.path}/crash_${fileStamp()}.log')
+            .writeAsString('$error\n\n$stack', flush: true);
+      } catch (_) {}
+    }());
+  } catch (_) {}
 }
 
 class PantarlihApp extends StatelessWidget {
@@ -99,7 +129,13 @@ class _StartupScreenState extends State<StartupScreen> {
     });
     try {
       final resolved = await resolveDataRoot();
-      store ??= AppStore(resolved.root);
+      if (store == null || store!.root.path != resolved.root.path) {
+        // Retry after a failed attempt may resolve a different root (e.g. the
+        // user just granted storage permission). A cached store pointing at
+        // the old root would keep failing, so reopen on the new root.
+        await store?.close();
+        store = AppStore(resolved.root);
+      }
       if (recover) {
         await store!.rebuild();
       } else {
