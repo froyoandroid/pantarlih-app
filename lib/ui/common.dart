@@ -208,32 +208,30 @@ class AppPage extends StatelessWidget {
       listenable: session,
       builder: (context, _) => Scaffold(
             appBar: AppBar(
-                title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(title,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700)),
-                      InkWell(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      LokasiScreen(session: session))),
-                          child: Container(
-                              constraints: const BoxConstraints(minHeight: 44),
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.place_outlined, size: 12),
-                                    const SizedBox(width: 3),
-                                    Text(session.lokasiLabel,
-                                        style: const TextStyle(
-                                            fontSize: 11, letterSpacing: .6)),
-                                  ]))),
-                    ]),
+                title: Text(title,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w700)),
+                bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(44),
+                    child: InkWell(
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    LokasiScreen(session: session))),
+                        child: Container(
+                            height: 44,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(left: 16),
+                            child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.place_outlined, size: 12),
+                                  const SizedBox(width: 3),
+                                  Text(session.lokasiLabel,
+                                      style: const TextStyle(
+                                          fontSize: 11, letterSpacing: .6)),
+                                ])))),
                 actions: actions),
             body: SafeArea(
                 child: Column(children: [
