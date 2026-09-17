@@ -352,6 +352,25 @@ void main() {
     expect(await store.sumberReferensi(), isEmpty);
   });
 
+  test('reference file view keeps every row from that file across RTs',
+      () async {
+    final source = fixture();
+    final other = [
+      for (final row in source
+          .prepare('RT 03', source.suggestedMapping('RT 03'), 2, 3, 3)
+          .records)
+        {...row, 'rt': 4, 'rw': 9, 'sumber_file': 'lain.xlsx'}
+    ];
+    await store.importRows(other, 'lain.xlsx');
+
+    final fixtureRows = await store.referensiFile('fixture.xlsx');
+    final otherRows = await store.referensiFile('lain.xlsx');
+    expect(fixtureRows, hasLength(3));
+    expect(otherRows, hasLength(3));
+    expect(fixtureRows.every((row) => row['rw'] == 3), isTrue);
+    expect(otherRows.every((row) => row['rt'] == 4 && row['rw'] == 9), isTrue);
+  });
+
   test('clearReferensiFile removes only that file\'s rows and rebuild matches',
       () async {
     final source = fixture();
@@ -377,8 +396,8 @@ void main() {
     await store.rebuild();
     final setelahRebuild = await store.allReferensi(3);
     expect(setelahRebuild, hasLength(3));
-    expect(setelahRebuild.every((r) => r['sumber_file'] == 'lain.xlsx'),
-        isTrue);
+    expect(
+        setelahRebuild.every((r) => r['sumber_file'] == 'lain.xlsx'), isTrue);
   });
 
   test('app works without reference rows', () async {

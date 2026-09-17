@@ -839,7 +839,8 @@ class AppStore extends ChangeNotifier {
   /// wiping every RT's suggestions to fix it. sumberFile null matches rows
   /// imported before sumber_file was tracked.
   Future<int> clearReferensiFile(String? sumberFile) async {
-    final clause = sumberFile == null ? 'sumber_file IS NULL' : 'sumber_file = ?';
+    final clause =
+        sumberFile == null ? 'sumber_file IS NULL' : 'sumber_file = ?';
     final args = sumberFile == null ? const <Object?>[] : [sumberFile];
     final ada = await db.query('referensi', where: clause, whereArgs: args);
     if (ada.isEmpty) return 0;
@@ -892,6 +893,19 @@ class AppStore extends ChangeNotifier {
 
   Future<List<RecordMap>> allReferensi(int rw) =>
       db.query('referensi', where: 'rw = ?', whereArgs: [rw], orderBy: 'id');
+
+  /// All rows belonging to one imported file, independent of the active RT.
+  /// A null source name matches legacy rows imported before filenames were
+  /// tracked.
+  Future<List<RecordMap>> referensiFile(String? sumberFile) {
+    final clause =
+        sumberFile == null ? 'sumber_file IS NULL' : 'sumber_file = ?';
+    final args = sumberFile == null ? const <Object?>[] : [sumberFile];
+    return db.query('referensi',
+        where: clause,
+        whereArgs: args,
+        orderBy: 'rw ASC, rt ASC, urut_asli ASC, id ASC');
+  }
 
   Future<int> referensiCount() async {
     final rows = await db.rawQuery('SELECT COUNT(*) AS n FROM referensi');
