@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../data/spreadsheets.dart';
 import 'common.dart';
+import 'referensi_screen.dart';
 
 class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key, required this.session});
@@ -35,6 +36,14 @@ class _ImportScreenState extends State<ImportScreen> {
     referensiCount = await widget.session.store.referensiCount();
     sumber = await widget.session.store.sumberReferensi();
     if (mounted) setState(() {});
+  }
+
+  Future<void> _bukaReferensi() async {
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => ReferensiScreen(session: widget.session)));
+    if (mounted) _count();
   }
 
   @override
@@ -235,7 +244,8 @@ class _ImportScreenState extends State<ImportScreen> {
         'Hapus referensi dari $label?',
         'Hanya ${intValue(row['jumlah'])} baris dari file ini yang terhapus. '
             'File lain dan data hasil ketikan tidak ikut terhapus.',
-        action: 'HAPUS', dangerous: true)) {
+        action: 'HAPUS',
+        dangerous: true)) {
       return;
     }
     setState(() => busy = true);
@@ -269,7 +279,19 @@ class _ImportScreenState extends State<ImportScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           const Text(
-              'Aplikasi tetap berfungsi tanpa impor. Referensi hanya mengisi saran ketik.'),
+              'Aplikasi tetap berfungsi tanpa impor. Referensi dapat dibaca dan dipakai sebagai saran ketik.'),
+          const SizedBox(height: 12),
+          Card(
+              child: ListTile(
+                  leading:
+                      const Icon(Icons.folder_open_outlined, color: forest),
+                  title: const Text('Lihat referensi',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(referensiCount == 0
+                      ? 'Belum ada baris referensi'
+                      : '$referensiCount baris dari ${sumber.length} file'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: busy ? null : _bukaReferensi)),
           if (sumber.isNotEmpty) ...[
             const SizedBox(height: 14),
             const Text('File yang sedang dipakai',

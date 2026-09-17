@@ -251,8 +251,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       () => _open(JournalScreen(session: widget.session))
                     ),
                     (
-                      Icons.file_upload_outlined,
-                      'Impor referensi',
+                      Icons.folder_open_outlined,
+                      'Referensi',
                       _detailReferensi,
                       () => _open(ImportScreen(session: widget.session))
                     ),
@@ -399,8 +399,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// Compact secondary action: icon, title, one short line. Four of these fit
-/// in a 2x2 grid under the workspace card without pushing anything off screen.
+/// Compact secondary action: icon, title, one short line. These fit in a
+/// compact grid under the workspace card without pushing the daily actions
+/// away from the thumb.
 class _TileAksi extends StatelessWidget {
   const _TileAksi(
       {required this.icon,
