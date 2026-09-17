@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../core/app_info.dart';
 import '../core/format.dart';
 import '../data/exchange.dart';
 import '../data/storage.dart';
@@ -219,7 +220,17 @@ class AppPage extends StatelessWidget {
                                 color: Colors.black54,
                                 fontWeight: FontWeight.w600)),
                     ]),
-                actions: actions),
+                actions: [
+                  if (actions != null) ...actions!,
+                  Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Center(
+                          child: Text('v$appVersion',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w600)))),
+                ]),
             body: SafeArea(
                 child: Align(
                     alignment: Alignment.topCenter,
