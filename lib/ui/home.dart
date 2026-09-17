@@ -355,6 +355,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   jumlah: intValue(_countFor(pair)?['jumlah']),
                                   tanpaNik:
                                       intValue(_countFor(pair)?['tanpa_nik']),
+                                  tms: intValue(_countFor(pair)?['tms']),
+                                  pd: intValue(_countFor(pair)?['pd']),
+                                  b: intValue(_countFor(pair)?['b']),
+                                  md: intValue(_countFor(pair)?['md']),
                                   aktif: s.rt == pair.rt && s.rw == pair.rw,
                                   onTap: busy ? null : () => _focus(pair),
                                   onLepas: busy ? null : () => _lepas(pair))),
@@ -449,15 +453,41 @@ class _RtTile extends StatelessWidget {
       {required this.pair,
       required this.jumlah,
       required this.tanpaNik,
+      required this.tms,
+      required this.pd,
+      required this.b,
+      required this.md,
       required this.aktif,
       this.onTap,
       this.onLepas});
   final RtRw pair;
   final int jumlah;
   final int tanpaNik;
+  final int tms, pd, b, md;
   final bool aktif;
   final VoidCallback? onTap;
   final VoidCallback? onLepas;
+
+  Widget? _statusBar() {
+    final statuses = [
+      ('TMS', tms),
+      ('PD', pd),
+      ('MD', md),
+      ('B', b),
+    ].where((status) => status.$2 > 0).toList();
+    if (statuses.isEmpty) return null;
+    final color = aktif ? Colors.white : forest;
+    return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(7)),
+        child: Text(
+            statuses.map((status) => '${status.$1} ${status.$2}').join(' · '),
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w800, color: color)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -468,6 +498,7 @@ class _RtTile extends StatelessWidget {
         : tanpaNik > 0
             ? amber
             : Colors.grey.shade700;
+    final statusBar = _statusBar();
     return Material(
         color: aktif ? forest : canvas,
         borderRadius: BorderRadius.circular(14),
@@ -527,6 +558,7 @@ class _RtTile extends StatelessWidget {
                                   ? FontWeight.w600
                                   : FontWeight.normal,
                               color: nikWarna)),
+                      if (statusBar != null) statusBar,
                     ]))));
   }
 }

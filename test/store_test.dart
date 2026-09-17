@@ -944,6 +944,18 @@ void main() {
     expect(await store.posisi(satu['id'] as int, 3, 1), 1);
   });
 
+  test('dashboard RT counts include each known keterangan status', () async {
+    for (final code in ['TMS', 'PD', 'MD', 'B']) {
+      await store.saveWarga(fields(name: 'STATUS $code', note: code));
+    }
+    final row = (await store.countsByRtRw()).single;
+    expect(row['jumlah'], 4);
+    expect(row['tms'], 1);
+    expect(row['pd'], 1);
+    expect(row['md'], 1);
+    expect(row['b'], 1);
+  });
+
   test('same-RT name duplicates without NIK appear in duplicateNameRows',
       () async {
     await store.saveWarga(fields(name: 'MUHAMMAD HASSAN', nik: null));

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import '../core/format.dart';
+import '../core/keterangan.dart';
 import '../core/nama.dart';
 import 'migrate.dart';
 import 'order.dart';
@@ -963,10 +964,17 @@ class AppStore extends ChangeNotifier {
       COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
     FROM warga WHERE rw = ? GROUP BY rt ORDER BY rt''', [rw]);
 
-  Future<List<RecordMap>> countsByRtRw() => db.rawQuery('''
+  Future<List<RecordMap>> countsByRtRw() {
+    final statusColumns = [
+      for (final code in keteranganKode.keys)
+        'SUM(CASE WHEN UPPER(TRIM(keterangan)) = ? THEN 1 ELSE 0 END) AS ${code.toLowerCase()}'
+    ].join(',\n      ');
+    return db.rawQuery('''
     SELECT rw, rt, COUNT(*) AS jumlah,
-      COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik
-    FROM warga GROUP BY rw, rt ORDER BY rw, rt''');
+      COALESCE(SUM(CASE WHEN nik IS NULL OR nik = '' THEN 1 ELSE 0 END), 0) AS tanpa_nik,
+      $statusColumns
+    FROM warga GROUP BY rw, rt ORDER BY rw, rt''', [...keteranganKode.keys]);
+  }
 
   /// RTs that actually hold warga rows. Used for exports: a reference-only
   /// RT would otherwise produce an empty header-only DPS file.
