@@ -20,6 +20,8 @@ const _labelWarna = <String, String>{
   'biru': 'Biru',
 };
 
+const _ambangGeserHapus = .85; // HARDCODED: requires a deliberate long swipe.
+
 class RtListScreen extends StatefulWidget {
   const RtListScreen({super.key, required this.session, this.focusId});
   final Session session;
@@ -118,6 +120,10 @@ class _RtListScreenState extends State<RtListScreen> {
                   leading: const Icon(Icons.palette_outlined),
                   title: const Text('Ubah Warna'),
                   onTap: () => Navigator.pop(ctx, 'warna')),
+              ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: const Text('HAPUS WARGA'),
+                  onTap: () => Navigator.pop(ctx, 'hapus')),
             ])));
     if (!mounted || pilih == null) return;
     if (pilih == 'sebelum') {
@@ -126,6 +132,24 @@ class _RtListScreenState extends State<RtListScreen> {
       await _openKetik(afterId: id);
     } else if (pilih == 'warna') {
       await _ubahWarna(row);
+    } else if (pilih == 'hapus') {
+      if (await _konfirmasiHapus(row)) await _hapus(row);
+    }
+  }
+
+  Future<bool> _konfirmasiHapus(RecordMap row) => confirm(
+      context,
+      'Hapus ${row['nama']}?',
+      'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
+      action: 'HAPUS',
+      dangerous: true);
+
+  Future<void> _hapus(RecordMap row) async {
+    try {
+      await widget.session.store.deleteWarga(row['id'] as int);
+      await _load();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
     }
   }
 
@@ -338,68 +362,57 @@ class _RtListScreenState extends State<RtListScreen> {
                                               key: ValueKey('hapus-$id'),
                                               direction:
                                                   DismissDirection.endToStart,
+                                              dismissThresholds: const {
+                                                DismissDirection.endToStart:
+                                                    _ambangGeserHapus
+                                              },
                                               background: Container(
                                                   alignment:
                                                       Alignment.centerRight,
                                                   padding: const EdgeInsets.only(
                                                       right: 20),
                                                   color: Colors.red.shade800,
-                                                  child: const Icon(
-                                                      Icons.delete,
+                                                  child: const Icon(Icons.delete,
                                                       color: Colors.white)),
-                                              confirmDismiss: (_) => confirm(
-                                                  context,
-                                                  'Hapus ${row['nama']}?',
-                                                  'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
-                                                  action: 'HAPUS',
-                                                  dangerous: true),
-                                              onDismissed: (_) async {
-                                                try {
-                                                  await widget.session.store
-                                                      .deleteWarga(id);
-                                                  await _load();
-                                                } catch (e) {
-                                                  // The row is already gone from
-                                                  // the widget tree; reload or the
-                                                  // screen pretends it was deleted.
-                                                  await _load();
-                                                  // Closure context from the item
-                                                  // builder, so guard it directly.
-                                                  if (context.mounted) {
-                                                    feedback(context, e,
-                                                        error: true);
-                                                  }
-                                                }
-                                              },
+                                              confirmDismiss: (_) =>
+                                                  _konfirmasiHapus(row),
+                                              onDismissed: (_) => _hapus(row),
                                               child: Card(
                                                   color: sorot == id
                                                       ? const Color(0xFFFFF4D6)
                                                       : warnaKartu,
                                                   child: ListTile(
-                                                      isThreeLine: kodeKet ==
-                                                              null &&
+                                                      isThreeLine: kodeKet == null &&
                                                           catatan.isNotEmpty,
                                                       trailing: IconButton(
-                                                          icon: const Icon(Icons.more_vert),
+                                                          icon: const Icon(
+                                                              Icons.more_vert),
                                                           tooltip: 'Menu baris',
-                                                          onPressed: () => _opsiKartu(row)),
-                                                      leading: ReorderableDragStartListener(
-                                                          index: index,
-                                                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                            Text(
-                                                                '${posisi[id]}',
-                                                                style: const TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w800,
-                                                                    color:
-                                                                        forest)),
-                                                            const Icon(
-                                                                Icons
-                                                                    .drag_handle,
-                                                                size: 18)
-                                                          ])),
-                                                      title: Text('${row['nama']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                                                          onPressed: () =>
+                                                              _opsiKartu(row)),
+                                                      leading:
+                                                          ReorderableDragStartListener(
+                                                              index: index,
+                                                              child: Column(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                        '${posisi[id]}',
+                                                                        style: const TextStyle(
+                                                                            fontWeight:
+                                                                                FontWeight.w800,
+                                                                            color: forest)),
+                                                                    const Icon(
+                                                                        Icons
+                                                                            .drag_handle,
+                                                                        size:
+                                                                            18)
+                                                                  ])),
+                                                      title: Text('${row['nama']}',
+                                                          style: const TextStyle(
+                                                              fontWeight: FontWeight.w700)),
                                                       subtitle: Text.rich(TextSpan(children: [
                                                         TextSpan(
                                                             text: nik.isEmpty
