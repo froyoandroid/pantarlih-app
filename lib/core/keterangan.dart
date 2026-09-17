@@ -1,8 +1,8 @@
 /// Common DPS note codes. The column stays free text: unknown values are
 /// kept as-is under the "Lainnya" chip and never scored.
 const keteranganKode = <String, String>{
-  'PD': 'pindah domisili',
   'TMS': 'tidak memenuhi syarat',
+  'PD': 'pindah domisili',
   'B': 'baru',
   'MD': 'meninggal dunia',
 };

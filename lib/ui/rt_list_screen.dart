@@ -34,6 +34,7 @@ class _RtListScreenState extends State<RtListScreen> {
   RecordMap? counts;
   bool loading = true;
   String filter = '';
+  String? filterKeterangan;
   int? sorot;
 
   @override
@@ -183,7 +184,9 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
-    if (filter.isNotEmpty) return; // drag is locked while filtering
+    if (filter.trim().isNotEmpty || filterKeterangan != null) {
+      return; // drag is locked while filtering
+    }
     // onReorderItem delivers newIndex already adjusted for the removed row,
     // so convert back to the raw onReorder-style index for the helper.
     final ids = [for (final row in rows) row['id'] as int];
@@ -217,13 +220,17 @@ class _RtListScreenState extends State<RtListScreen> {
       for (var i = 0; i < rows.length; i++) rows[i]['id'] as int: i + 1,
     };
     final kunci = filter.trim().toLowerCase();
-    final tampil = kunci.isEmpty
-        ? rows
-        : rows
-            .where((r) =>
+    final filterAktif = kunci.isNotEmpty || filterKeterangan != null;
+    final tampil = filterAktif
+        ? rows.where((r) {
+            final cocokTeks = kunci.isEmpty ||
                 '${r['nama']}'.toLowerCase().contains(kunci) ||
-                teks(r['nik']).contains(kunci))
-            .toList();
+                teks(r['nik']).contains(kunci);
+            final cocokKeterangan = filterKeterangan == null ||
+                chipKeterangan(teks(r['keterangan'])) == filterKeterangan;
+            return cocokTeks && cocokKeterangan;
+          }).toList()
+        : rows;
     return AppPage(
         session: widget.session,
         title: 'Daftar RT',
@@ -263,7 +270,26 @@ class _RtListScreenState extends State<RtListScreen> {
                                             icon: const Icon(Icons.close)),
                                     labelText: 'Saring nama atau NIK',
                                     isDense: true))),
-                        if (filter.isNotEmpty)
+                        Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                            child: Align(
+                                alignment: Alignment.centerLeft,
+                                child:
+                                    Wrap(spacing: 8, runSpacing: 4, children: [
+                                  for (final code in [
+                                    keteranganNormal,
+                                    ...keteranganKode.keys
+                                  ])
+                                    ChoiceChip(
+                                        label: Text(code == keteranganNormal
+                                            ? 'Normal'
+                                            : code),
+                                        selected: filterKeterangan == code,
+                                        onSelected: (selected) => setState(() =>
+                                            filterKeterangan =
+                                                selected ? code : null)),
+                                ]))),
+                        if (filterAktif)
                           const Padding(
                               padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
                               child: Align(
@@ -277,7 +303,7 @@ class _RtListScreenState extends State<RtListScreen> {
                             child: tampil.isEmpty
                                 ? ListView(children: [
                                     EmptyState('Tidak ada yang cocok',
-                                        'Coba bagian lain dari nama atau NIK.',
+                                        'Coba kata kunci atau status lain.',
                                         icon: Icons.filter_alt_off_outlined)
                                   ])
                                 : ReorderableListView.builder(
