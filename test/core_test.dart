@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
 import 'package:pantarlih_kalitorong/core/format.dart';
 import 'package:pantarlih_kalitorong/core/keterangan.dart';
 import 'package:pantarlih_kalitorong/core/nama.dart';
@@ -55,6 +56,26 @@ void main() {
         TextEditingValue.empty, const TextEditingValue(text: '19091968'));
     expect(formatted.text, '19-09-1968');
     expect(parseTanggal(formatted.text), '1968-09-19');
+  });
+
+  test('date formatter keeps a middle cursor in place', () {
+    final formatted = TanggalInputFormatter().formatEditUpdate(
+        const TextEditingValue(
+            text: '20-12-1998', selection: TextSelection.collapsed(offset: 5)),
+        const TextEditingValue(
+            text: '20-13-1998', selection: TextSelection.collapsed(offset: 5)));
+    expect(formatted.text, '20-13-1998');
+    expect(formatted.selection.baseOffset, 5);
+  });
+
+  test('survey text formatter forces uppercase while preserving selection', () {
+    final formatted = HurufKapitalFormatter().formatEditUpdate(
+        const TextEditingValue(
+            text: 'NAMA', selection: TextSelection.collapsed(offset: 4)),
+        const TextEditingValue(
+            text: 'nama baru', selection: TextSelection.collapsed(offset: 9)));
+    expect(formatted.text, 'NAMA BARU');
+    expect(formatted.selection.baseOffset, 9);
   });
 
   test('strict day-first date parsing and leap years', () {

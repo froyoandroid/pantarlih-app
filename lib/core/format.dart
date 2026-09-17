@@ -2,11 +2,45 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
-class TanggalInputFormatter extends TextInputFormatter {
+class HurufKapitalFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
+}
+
+class TanggalInputFormatter extends TextInputFormatter {
+  static final _bukanDigit = RegExp(r'\D');
+
+  int _amanOffset(String value, int offset) {
+    if (offset < 0) return 0;
+    if (offset > value.length) return value.length;
+    return offset;
+  }
+
+  int _jumlahDigitSebelum(String value, int offset) {
+    final aman = _amanOffset(value, offset);
+    final jumlah = value.substring(0, aman).replaceAll(_bukanDigit, '').length;
+    return jumlah > 8 ? 8 : jumlah;
+  }
+
+  int _offsetHasil(String formatted, int jumlahDigit) {
+    if (jumlahDigit <= 0) return 0;
+    var dilalui = 0;
+    for (var i = 0; i < formatted.length; i++) {
+      final code = formatted.codeUnitAt(i);
+      if (code < 48 || code > 57) continue;
+      dilalui++;
+      if (dilalui == jumlahDigit) return i + 1;
+    }
+    return formatted.length;
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    final digits = newValue.text.replaceAll(_bukanDigit, '');
     final clipped = digits.length > 8 ? digits.substring(0, 8) : digits;
     final buffer = StringBuffer();
     for (var i = 0; i < clipped.length; i++) {
@@ -14,8 +48,28 @@ class TanggalInputFormatter extends TextInputFormatter {
       buffer.write(clipped[i]);
     }
     final text = buffer.toString();
-    return TextEditingValue(
-        text: text, selection: TextSelection.collapsed(offset: text.length));
+    int posisi(int offset) {
+      final aman = _amanOffset(newValue.text, offset);
+      final jumlahDigit = _jumlahDigitSebelum(newValue.text, aman);
+      var hasil = _offsetHasil(text, jumlahDigit);
+      // Keep a cursor placed immediately after an inserted dash on the
+      // same side of that dash after reformatting.
+      if (aman > 0 &&
+          aman <= newValue.text.length &&
+          newValue.text[aman - 1] == '-' &&
+          hasil < text.length &&
+          text[hasil] == '-') {
+        hasil++;
+      }
+      return hasil;
+    }
+
+    final base = posisi(newValue.selection.baseOffset);
+    final extent = posisi(newValue.selection.extentOffset);
+    return newValue.copyWith(
+        text: text,
+        selection: TextSelection(baseOffset: base, extentOffset: extent),
+        composing: TextRange.empty);
   }
 }
 

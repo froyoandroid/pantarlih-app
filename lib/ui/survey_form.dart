@@ -56,22 +56,25 @@ class _SurveyFormState extends State<SurveyForm> {
     }
 
     name = TextEditingController(
-        text: pilih([edit?['nama'], seed?['nama'], widget.initialName]));
+        text: pilih([edit?['nama'], seed?['nama'], widget.initialName])
+            .toUpperCase());
     nik = TextEditingController(text: pilih([edit?['nik']]));
     birthPlace = TextEditingController(
-        text: pilih([edit?['tempat_lahir'], seed?['tempat_lahir']]));
+        text: pilih([edit?['tempat_lahir'], seed?['tempat_lahir']])
+            .toUpperCase());
     birthDate = TextEditingController(
         text: edit?['tgl_lahir'] != null
             ? tanggalTampil(edit?['tgl_lahir'])
             : pilih(
                 [seed?['tgl_lahir_raw'], tanggalTampil(seed?['tgl_lahir'])]));
     village = TextEditingController(
-        text: pilih([edit?['desa'], seed?['desa']], widget.session.village));
+        text: pilih([edit?['desa'], seed?['desa']], widget.session.village)
+            .toUpperCase());
     rt = TextEditingController(
         text: teks(edit?['rt'] ?? seed?['rt'] ?? widget.session.rt));
     rw = TextEditingController(
         text: teks(edit?['rw'] ?? seed?['rw'] ?? widget.session.rw));
-    final rawNote = pilih([edit?['keterangan']]);
+    final rawNote = pilih([edit?['keterangan']]).toUpperCase();
     note = TextEditingController(text: rawNote);
     ketChip = chipKeterangan(rawNote);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;
@@ -117,16 +120,16 @@ class _SurveyFormState extends State<SurveyForm> {
       }
       final data = <String, Object?>{
         'nik': nullableText(nik.text),
-        'nama': name.text,
+        'nama': name.text.toUpperCase(),
         'jenis_kelamin': gender,
-        'tempat_lahir': nullableText(birthPlace.text),
+        'tempat_lahir': nullableText(birthPlace.text.toUpperCase()),
         'tgl_lahir': iso,
-        'desa': nullableText(village.text),
+        'desa': nullableText(village.text.toUpperCase()),
         'kode_wilayah':
             widget.warga?['kode_wilayah'] ?? widget.session.kodeWilayah,
         'rt': int.tryParse(rt.text),
         'rw': int.tryParse(rw.text),
-        'keterangan': nilaiKeterangan(ketChip, note.text),
+        'keterangan': nilaiKeterangan(ketChip, note.text.toUpperCase()),
         'warna': widget.warga?['warna'],
       };
       // A typed RT/RW outside the workspace would silently store the row in
@@ -285,6 +288,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 enableSuggestions: false,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
+                inputFormatters: [HurufKapitalFormatter()],
                 decoration: deco('NAMA *')),
             const SizedBox(height: 14),
             TextField(
@@ -321,6 +325,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 enableSuggestions: false,
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
+                inputFormatters: [HurufKapitalFormatter()],
                 decoration: deco('TEMPAT LAHIR')),
             const SizedBox(height: 14),
             TextField(
@@ -336,6 +341,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 autocorrect: false,
                 enableSuggestions: false,
                 textCapitalization: TextCapitalization.characters,
+                inputFormatters: [HurufKapitalFormatter()],
                 decoration: deco('DESA / DUSUN')),
             const SizedBox(height: 14),
             Row(children: [
@@ -392,6 +398,7 @@ class _SurveyFormState extends State<SurveyForm> {
                   controller: note,
                   focusNode: noteFocus,
                   maxLines: 3,
+                  inputFormatters: [HurufKapitalFormatter()],
                   decoration: deco('LAINNYA',
                       hint:
                           'Tulis keterangan. Tidak dipakai untuk penilaian atau pencarian')),
