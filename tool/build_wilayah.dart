@@ -61,7 +61,8 @@ Directory repoRoot() {
     if (File('${dir.path}/pubspec.yaml').existsSync()) return dir;
     final parent = dir.parent;
     if (parent.path == dir.path) {
-      throw StateError('pubspec.yaml tidak ditemukan dari ${Directory.current.path}');
+      throw StateError(
+          'pubspec.yaml tidak ditemukan dari ${Directory.current.path}');
     }
     dir = parent;
   }
@@ -175,7 +176,8 @@ CREATE TABLE wilayah_meta (
     };
     final metaBatch = db.batch();
     for (final entry in meta.entries) {
-      metaBatch.insert('wilayah_meta', {'kunci': entry.key, 'nilai': entry.value});
+      metaBatch
+          .insert('wilayah_meta', {'kunci': entry.key, 'nilai': entry.value});
     }
     await metaBatch.commit(noResult: true);
     await db.execute('VACUUM');
