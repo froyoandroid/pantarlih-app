@@ -112,5 +112,46 @@ void main() {
           reason: 'Ditemukan titik tengah tanpa spasi baku " · ":\n'
               '${violations.join('\n')}');
     });
+    test('tidak ada spasi ganda di dalam string antarmuka', () {
+      final violations = <String>[];
+      final stringRegex = RegExp(r"'(.*?)'|" r'"(.*?)"');
+
+      for (final file in targets) {
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          final line = lines[i].trim();
+          if (line.startsWith('//') || line.startsWith('*')) continue;
+
+          for (final match in stringRegex.allMatches(line)) {
+            final raw = match.group(1) ?? match.group(2) ?? '';
+            if (raw.contains('  ')) {
+              violations.add('${file.path}:${i + 1}: "$raw"');
+            }
+          }
+        }
+      }
+
+      expect(violations, isEmpty,
+          reason: 'Ditemukan spasi ganda pada string UI:\n'
+              '${violations.join('\n')}');
+    });
+
+    test('setiap berkas layar terdaftar di tabel judul README', () {
+      final readme = File('README.md').readAsLinesSync();
+      final screens = Directory('lib/ui')
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.uri.pathSegments.last)
+          .where((n) => n.endsWith('.dart') && n != 'common.dart')
+          .toList()
+        ..sort();
+      final missing = screens
+          .where((n) => !readme.any((line) => line.contains('lib/ui/$n')))
+          .toList();
+
+      expect(missing, isEmpty,
+          reason: 'Berkas layar tanpa baris di tabel judul README:\n'
+              '${missing.join('\n')}');
+    });
   });
 }
