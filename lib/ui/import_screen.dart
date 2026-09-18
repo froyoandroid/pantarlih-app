@@ -70,6 +70,11 @@ class _ImportScreenState extends State<ImportScreen> {
       final file = await FilePicker.pickFile(
           type: FileType.custom, allowedExtensions: ['xlsx', 'csv']);
       if (file == null) return;
+      final lampau = await lampauiBatasUkuran(file.length);
+      if (lampau != null) {
+        if (mounted) feedback(context, lampau, error: true);
+        return;
+      }
       final bytes = await file.readAsBytes();
       final loaded = csvBerkas(file.name)
           ? await _bukaCsv(file.name, bytes)
