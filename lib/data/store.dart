@@ -986,20 +986,20 @@ class AppStore extends ChangeNotifier {
   /// Form drafts are written straight to setelan without _commit: a journal
   /// event per keystroke pause would bloat the journal, and a draft is
   /// transient by nature - losing it to a journal rebuild is acceptable.
-  Future<void> saveDraft(String json) => db.insert(
-      'setelan', {'kunci': 'draf_form', 'nilai': json},
-      conflictAlgorithm: ConflictAlgorithm.replace);
+  Future<void> saveDraft(String json) =>
+      db.insert('setelan', {'kunci': 'draf_form', 'nilai': json},
+          conflictAlgorithm: ConflictAlgorithm.replace);
 
   Future<String?> loadDraft() async {
-    final rows = await db
-        .query('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
+    final rows =
+        await db.query('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
     if (rows.isEmpty) return null;
     final nilai = teks(rows.first['nilai']);
     return nilai.isEmpty ? null : nilai;
   }
 
-  Future<void> clearDraft() => db
-      .delete('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
+  Future<void> clearDraft() =>
+      db.delete('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
 
   /// Source files behind the stored reference rows, newest import first.
   /// One row per file with its row count and last import time, so the UI can

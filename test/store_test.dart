@@ -486,8 +486,8 @@ void main() {
     // Distinct NIKs: the export assertions below check that DUPLIKAT_NIK
     // is skipped when no NIK actually repeats.
     final first = await store.saveWarga(fields(nik: '3327071909680001'));
-    final third = await store.saveWarga(
-        fields(name: 'ORANG TIGA', nik: '3327071909680002'));
+    final third = await store
+        .saveWarga(fields(name: 'ORANG TIGA', nik: '3327071909680002'));
     final middle = await store.saveWarga(
         fields(name: 'ORANG DUA', nik: '3327071909680003'),
         afterId: first['id'] as int);
@@ -501,8 +501,10 @@ void main() {
     expect((await store.wargaRt(3, 3)).first['nama'], 'ORANG TIGA');
     // Save a real duplicate name and one warga without NIK so the problem
     // files are written (they are skipped when there is nothing to list).
-    await store.saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071909680077'));
-    await store.saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071109730088'));
+    await store
+        .saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071909680077'));
+    await store
+        .saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071109730088'));
     await store.saveWarga(fields(name: 'BELUM ADA NIK', nik: null));
     final files = await ExportService(store)
         .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
@@ -512,8 +514,7 @@ void main() {
     expect(files.any((f) => f.path.contains('DUPLIKAT_NIK')), isFalse);
     final duplikatNama =
         files.firstWhere((f) => f.path.contains('DUPLIKAT_NAMA'));
-    final duplikatBook =
-        Excel.decodeBytes(await duplikatNama.readAsBytes());
+    final duplikatBook = Excel.decodeBytes(await duplikatNama.readAsBytes());
     final duplikatData =
         duplikatBook.tables.entries.firstWhere((e) => e.key != 'INFO').value;
     // One header row plus the two rows sharing the duplicate name.
@@ -536,8 +537,8 @@ void main() {
 
   test('export skips problem files when there is nothing to list', () async {
     // setUp fixture: all rows have a NIK, every name is unique.
-    final files = await ExportService(store)
-        .generate(tujuan: Directory('${root.path}/bersih_ekspor'), rw: 3, rt: 3);
+    final files = await ExportService(store).generate(
+        tujuan: Directory('${root.path}/bersih_ekspor'), rw: 3, rt: 3);
     final names =
         files.map((f) => f.path.split(Platform.pathSeparator).last).toList();
     expect(names.any((n) => n.startsWith('DPS_')), isTrue);
@@ -1757,8 +1758,8 @@ void main() {
       expect(jumlah, sisa.length);
       expect(await store.referensiBelum(3, 3), isEmpty);
       final warga = await store.wargaRt(3, 3);
-      expect(warga.map((r) => r['nama']),
-          containsAll(sisa.map((r) => r['nama'])));
+      expect(
+          warga.map((r) => r['nama']), containsAll(sisa.map((r) => r['nama'])));
       // Batch rows land at the end, following the file's urut_asli order.
       final namaUrut = [for (final r in warga) '${r['nama']}'];
       var terakhir = -1;
