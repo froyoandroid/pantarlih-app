@@ -226,7 +226,7 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Ketahanan & Pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
-            'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 salinan terbaru di dalam aplikasi, yang paling lama dirotasi otomatis. Setiap snapshot juga dibundel bersama jurnal ke folder cadangan publik bila izin berkas sudah diberikan. Jurnal tidak pernah dihapus.',
+            'Setiap aksi dicatat ke jurnal sebelum disimpan ke database. Snapshot menyimpan 20 salinan terbaru secara otomatis. Berkas cadangan zip yang memuat snapshot dan jurnal tersimpan di folder cadangan publik saat izin berkas tersedia. Catatan jurnal tidak pernah dihapus.',
             icon: Icons.shield_outlined),
         OutlinedButton.icon(
             onPressed: busy
@@ -303,7 +303,7 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Folder pertukaran',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         Notice(
-            'Excel, cadangan, dan berkas impor berada di ${widget.session.labelFolderPertukaran}. Database, jurnal, dan snapshot tersimpan di dalam aplikasi dan tidak butuh izin. Izin akses berkas diminta saat pertama kali ekspor atau impor, setelah itu setiap pergantian RT menulis cadangan otomatis ke folder yang sama.',
+            'Excel, cadangan, dan berkas impor disimpan di ${widget.session.labelFolderPertukaran}. Database utama, jurnal, dan snapshot tersimpan di ruang privat aplikasi tanpa memerlukan izin. Izin penyimpanan publik hanya diminta saat Anda melakukan ekspor atau impor, setelah itu cadangan otomatis tersimpan di folder pertukaran setiap pergantian RT.',
             icon: Icons.folder_outlined),
         const Text(
             'Salin folder cadangan lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan di lokasi yang aman. Data di dalam aplikasi ikut hilang bila aplikasi dihapus, cadangan di folder publik tidak.',
@@ -315,7 +315,7 @@ class _AdminScreenState extends State<AdminScreen> {
             'Mode offline. Tidak ada jaringan keluar, foto KK, penilaian umur, atau keputusan kelayakan di aplikasi ini.',
             icon: Icons.shield_outlined),
         const Notice(
-            'Pantarlih memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
+            'TilikSuara memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
             icon: Icons.info_outline),
         const SizedBox(height: 32),
         const Center(

@@ -66,7 +66,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 onRefresh: load,
                 child: ListView(padding: const EdgeInsets.all(20), children: [
                   const Notice(
-                      'Setiap perubahan dicatat di sini sebelum masuk database, dan tidak pernah dihapus. Buka satu hari untuk melihat catatannya. Dari catatan warga Anda bisa mengembalikan versi lama atau membatalkan hapus. PERIKSA mengecek apakah semua catatan jurnal masih dapat digunakan untuk pemulihan tanpa mengubah data.',
+                      'Setiap perubahan data dicatat otomatis di jurnal dan tidak pernah dihapus. Ketuk tanggal untuk melihat riwayat harian. Anda dapat mengembalikan data ke versi sebelumnya atau membatalkan penghapusan warga. Tombol PERIKSA memastikan keutuhan catatan jurnal untuk pemulihan tanpa mengubah data aktif.',
                       icon: Icons.menu_book_outlined),
                   if (busy) const LinearProgressIndicator(),
                   if (hasil != null)
@@ -77,7 +77,7 @@ class _JournalScreenState extends State<JournalScreen> {
                         warning: hasil!.failed > 0),
                   if (hari!.isEmpty)
                     const EmptyState('Jurnal masih kosong',
-                        'Catatan pertama muncul setelah ada data tersimpan.'),
+                        'Catatan perubahan data akan muncul di sini setelah Anda menyimpan warga.'),
                   for (final h in hari!)
                     Card(
                         child: ListTile(
@@ -260,11 +260,12 @@ class _JournalEventScreenState extends State<JournalEventScreen> {
     try {
       await widget.session.store.kembalikanWarga(e.data);
       if (!mounted) return;
+      final namaWarga = e.data['nama'] ?? 'warga';
       feedback(
           context,
           e.hapusWarga
-              ? 'Warga dikembalikan ke daftar.'
-              : 'Versi dikembalikan.');
+              ? 'Data $namaWarga berhasil dikembalikan ke daftar'
+              : 'Versi data $namaWarga berhasil dikembalikan');
       await load();
     } catch (err) {
       if (mounted) feedback(context, err, error: true);
