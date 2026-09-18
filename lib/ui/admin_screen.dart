@@ -81,6 +81,12 @@ class _AdminScreenState extends State<AdminScreen> {
     final file = await FilePicker.pickFile(
         type: FileType.custom, allowedExtensions: ['zip']);
     if (file == null || !mounted) return;
+    final lampau = await lampauiBatasUkuran(file.length);
+    if (!mounted) return;
+    if (lampau != null) {
+      feedback(context, lampau, error: true);
+      return;
+    }
     if (!await confirm(context, 'Pulihkan dari cadangan?',
         'Database dan jurnal sekarang diganti dengan isi ${file.name}. Keduanya diamankan dulu ke folder recovered. Semua yang diketik setelah cadangan itu dibuat hilang dari daftar.',
         action: 'Pulihkan', dangerous: true)) {

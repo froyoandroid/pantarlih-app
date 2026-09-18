@@ -13,6 +13,22 @@ const forest = Color(0xFF194B3C);
 const canvas = Color(0xFFF5F5EF);
 const amber = Color(0xFF95641A);
 
+// HARDCODED: no config, DB, or package supplies an import ceiling. Referensi
+// sheets and cadangan bundles are a few MB in practice, so 100 MB is pure
+// headroom that only ever rejects a runaway or malicious file before it is
+// read whole into memory. Kept as a named constant, never inlined.
+const int batasUkuranBerkas = 100 * 1024 * 1024;
+
+/// Rejects a picked file larger than [batasUkuranBerkas] before it is read
+/// into memory. Returns an Indonesian error message when too large, or null
+/// when the size is acceptable (including when the picker reports no size).
+Future<String?> lampauiBatasUkuran(Future<int?> Function() ukuran) async {
+  final bytes = await ukuran();
+  if (bytes == null || bytes <= batasUkuranBerkas) return null;
+  return 'Berkas terlalu besar (${ukuranTampil(bytes)}). '
+      'Batas ${ukuranTampil(batasUkuranBerkas)}.';
+}
+
 class Session extends ChangeNotifier {
   Session(this.store, {WilayahRepo? wilayah, this.pertukaranInduk})
       : wilayah = wilayah ?? WilayahRepo.unavailable();
