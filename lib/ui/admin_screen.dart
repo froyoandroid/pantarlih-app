@@ -204,7 +204,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           await widget.session.store.missingKodeGroups();
                       final ringkas = groups
                           .map((g) =>
-                              '• ${g['desa'] == '' ? '(kosong)' : g['desa']} · ${g['jumlah']} warga')
+                              '• ${g['desa'] == '' ? '(kosong)' : g['desa']} · ${g['jumlah']} Warga')
                           .join('\n');
                       if (!context.mounted) return;
                       if (!await confirm(
