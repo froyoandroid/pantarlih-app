@@ -9,4 +9,4 @@ Lisensi       : MIT (Cahya DSN)
 Catatan: header komentar di wilayah.sql masih menyebut Kepmendagri
 No. 300.2.2-2138 Tahun 2025. README sumber pada tanggal unduh menyatakan
 db/wilayah.sql sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025.
-Wilayah pack ini mengikuti README sumber dan WILAYAH.md.
+Wilayah pack ini mengikuti README sumber dan docs/wilayah.md.
