@@ -259,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     (
                       Icons.admin_panel_settings_outlined,
-                      'Ekspor & pemulihan',
+                      'Ekspor & Pemulihan',
                       'Excel, snapshot, cadangan',
                       () => _open(AdminScreen(session: widget.session))
                     ),
