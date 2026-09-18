@@ -1,10 +1,10 @@
 /// Common DPS note codes. The column stays free text: unknown values are
 /// kept as-is under the "Lainnya" chip and never scored.
 const keteranganKode = <String, String>{
-  'TMS': 'tidak memenuhi syarat',
-  'PD': 'pindah domisili',
-  'B': 'baru',
-  'MD': 'meninggal dunia',
+  'TMS': 'Tidak memenuhi syarat',
+  'PD': 'Pindah domisili',
+  'B': 'Baru',
+  'MD': 'Meninggal Dunia',
 };
 
 const keteranganNormal = 'normal';
