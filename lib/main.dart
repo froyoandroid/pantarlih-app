@@ -56,7 +56,7 @@ class PantarlihApp extends StatelessWidget {
   final Future<bool> Function()? introSudah;
   @override
   Widget build(BuildContext context) => MaterialApp(
-      title: 'Pantarlih',
+      title: 'TilikSuara',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -170,7 +170,7 @@ class _StartupScreenState extends State<StartupScreen> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.fact_check_outlined, size: 68, color: forest),
         SizedBox(height: 24),
-        Text('Pantarlih',
+        Text('TilikSuara',
             style: TextStyle(
                 fontSize: 36, fontWeight: FontWeight.w800, color: forest)),
         SizedBox(height: 28),
@@ -190,7 +190,7 @@ class _StartupScreenState extends State<StartupScreen> {
                               const Icon(Icons.fact_check_outlined,
                                   size: 68, color: forest),
                               const SizedBox(height: 24),
-                              const Text('Pantarlih',
+                              const Text('TilikSuara',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       fontSize: 36,

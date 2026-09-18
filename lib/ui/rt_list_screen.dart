@@ -257,7 +257,8 @@ class _RtListScreenState extends State<RtListScreen> {
         : rows;
     return AppPage(
         session: widget.session,
-        title: 'Daftar RT',
+        title: 'Daftar warga',
+        subtitle: widget.session.label,
         actions: [
           TextButton(onPressed: () => _openKetik(), child: const Text('TAMBAH'))
         ],

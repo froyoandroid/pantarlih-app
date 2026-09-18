@@ -257,7 +257,7 @@ class _SurveyFormState extends State<SurveyForm> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: wargaId == null ? 'Input survei' : 'Edit data',
+      title: wargaId == null ? 'Warga baru' : 'Ubah data warga',
       bottom: Row(children: [
         Expanded(
             child: FilledButton.icon(

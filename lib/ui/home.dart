@@ -3,9 +3,9 @@ import '../core/format.dart';
 import 'admin_screen.dart';
 import 'common.dart';
 import 'history_screen.dart';
-import 'import_screen.dart';
 import 'journal_screen.dart';
 import 'lokasi_screen.dart';
+import 'referensi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
 
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? null
                       : () => _open(RtListScreen(session: widget.session)),
                   icon: const Icon(Icons.list_alt),
-                  label: const Text('DAFTAR RT'))),
+                  label: const Text('DAFTAR WARGA'))),
           const SizedBox(width: 12),
           Expanded(
               child: FilledButton.icon(
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? null
                       : () => _open(SearchScreen(session: widget.session)),
                   icon: const Icon(Icons.person_add_alt_1),
-                  label: const Text('KETIK DATA'))),
+                  label: const Text('TAMBAH WARGA'))),
         ]),
         child: RefreshIndicator(
             onRefresh: _load,
@@ -255,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Icons.folder_open_outlined,
                       'Referensi',
                       _detailReferensi,
-                      () => _open(ImportScreen(session: widget.session))
+                      () => _open(ReferensiScreen(session: widget.session))
                     ),
                     (
                       Icons.admin_panel_settings_outlined,
