@@ -343,7 +343,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           const Padding(
                               padding: EdgeInsets.all(12),
                               child: Text(
-                                  'Saran hanya mengisi field. Setelah dipilih, warga berdiri sendiri.',
+                                  'Saran hanya mengisi data awal. Setelah dipilih, data warga tersimpan sebagai data baru dan tidak terhubung ke referensi.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54))),
