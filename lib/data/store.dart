@@ -97,6 +97,22 @@ class AppStore extends ChangeNotifier {
     return completer.future;
   }
 
+  /// Write internal error detail to a private `recovered/error_<stamp>.log`
+  /// so it never reaches the UI. Never throws: logging must not mask the
+  /// original failure. Returns immediately, the write runs in the background.
+  void _catatDetail(String konteks, Object detail) {
+    try {
+      unawaited(() async {
+        try {
+          final dir = Directory('${root.path}/recovered');
+          await dir.create(recursive: true);
+          await File('${dir.path}/error_${fileStamp()}.log')
+              .writeAsString('$konteks\n\n$detail\n', flush: true);
+        } catch (_) {}
+      }());
+    } catch (_) {}
+  }
+
   Future<void> open() async {
     for (final path in [
       'journal',
@@ -113,14 +129,15 @@ class AppStore extends ChangeNotifier {
       await _snapshotBeforeUpgrade(dbPath);
       db = await _openDatabase(dbPath);
     } catch (e) {
-      throw AppException('Database tidak dapat dibuka. Berkas aman di '
-          '${root.path}. Gunakan pemulihan dari jurnal. Detail: $e');
+      _catatDetail('open', e);
+      throw AppException('Database tidak dapat dibuka. Data Anda aman. '
+          'Gunakan pemulihan dari jurnal.');
     }
     // Fase 2: integrity. Still recoverable, the file itself is suspect.
     final check = await db.rawQuery('PRAGMA quick_check');
     if (check.any((row) => row.values.first != 'ok')) {
-      throw AppException('Pemeriksaan integritas database gagal. Berkas aman '
-          'di ${root.path}. Gunakan pemulihan dari jurnal.');
+      throw AppException('Pemeriksaan integritas database gagal. Data Anda '
+          'aman. Gunakan pemulihan dari jurnal.');
     }
     await _muatKolom();
     // Fase 3: journal replay and cleanup on a healthy, open database.
@@ -148,8 +165,9 @@ class AppStore extends ChangeNotifier {
                 });
       }
     } catch (e) {
+      _catatDetail('open-fase3', e);
       throw AppException('Database sehat tetapi pembaruan isi belum selesai. '
-          'Buka ulang aplikasi, lalu laporkan bila masih berulang. Detail: $e');
+          'Buka ulang aplikasi untuk mencoba lagi.');
     }
   }
 
@@ -434,9 +452,10 @@ class AppStore extends ChangeNotifier {
     } catch (e) {
       if (journalWritten) {
         _recoveryRequired = true;
+        _catatDetail('commit', e);
         throw AppException(
             'Jurnal sudah tersimpan, tetapi database gagal diperbarui. '
-            'Jangan input ulang, bangun ulang dari jurnal. Detail: $e');
+            'Jangan input ulang, bangun ulang dari jurnal.');
       }
       rethrow;
     }

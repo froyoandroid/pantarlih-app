@@ -85,7 +85,9 @@ class _ImportScreenState extends State<ImportScreen> {
         });
       }
     } catch (e) {
-      if (mounted) feedback(context, 'Gagal membaca berkas: $e', error: true);
+      if (mounted) {
+        feedback(context, 'Gagal membaca berkas. Pastikan berkas Excel atau CSV yang benar.', error: true);
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }

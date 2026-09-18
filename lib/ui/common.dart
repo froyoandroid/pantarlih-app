@@ -315,10 +315,37 @@ class EmptyState extends StatelessWidget {
 }
 
 void feedback(BuildContext context, Object message, {bool error = false}) {
+  final teks = error ? _pesanAman(message) : '$message';
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$message'),
+      content: Text(teks),
       backgroundColor: error ? Colors.red.shade800 : forest,
       duration: Duration(seconds: error ? 7 : 3)));
+}
+
+/// User-safe text for an error. `AppException` messages are authored in
+/// Indonesian for the user, so they pass through. Any other object (SQL, IO,
+/// format exceptions, stack detail) is masked and logged to a private file so
+/// coding internals never reach the UI.
+String _pesanAman(Object message) {
+  if (message is AppException) return message.message;
+  if (message is String) return message;
+  _catatDetailUi(message);
+  return 'Terjadi kesalahan. Coba lagi.';
+}
+
+/// Append a masked error to a private `recovered/error_<stamp>.log`. Never
+/// throws, runs in the background.
+void _catatDetailUi(Object detail) {
+  try {
+    () async {
+      try {
+        final dir = Directory('${(await akarData()).path}/recovered');
+        await dir.create(recursive: true);
+        await File('${dir.path}/error_${fileStamp()}.log')
+            .writeAsString('ui\n\n$detail\n', flush: true);
+      } catch (_) {}
+    }();
+  } catch (_) {}
 }
 
 Future<bool> confirm(BuildContext context, String title, String message,

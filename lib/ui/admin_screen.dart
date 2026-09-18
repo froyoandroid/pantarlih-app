@@ -254,7 +254,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     await run(() async {
                       final result = await widget.session.store.rebuild();
                       await widget.session.load();
-                      return '$result\nDatabase lama: ${result.previousDatabase}${result.failurePath == null ? '' : '\nLaporan gagal: ${result.failurePath}'}';
+                      return '$result\nDatabase lama diamankan ke folder recovered.${result.failurePath == null ? '' : '\nSebagian baris gagal, laporan disimpan ke folder recovered.'}';
                     });
                   },
             icon: const Icon(Icons.restore),
