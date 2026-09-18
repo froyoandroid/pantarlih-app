@@ -277,7 +277,7 @@ class _RtListScreenState extends State<RtListScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                             child: Align(
                                 alignment: Alignment.centerLeft,
-                                child: Text('$jumlah warga · $tanpa tanpa NIK',
+                                child: Text('$jumlah Warga · $tanpa Tanpa NIK',
                                     style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700)))),

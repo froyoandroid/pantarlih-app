@@ -321,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fontWeight: FontWeight.w800,
                                         color: forest)),
                                 Text(
-                                    '${ringkas.rt} RT · ${ringkas.tanpaNik} tanpa NIK',
+                                    '${ringkas.rt} RT · ${ringkas.tanpaNik} Tanpa NIK',
                                     style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade700)),
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       title: Text(
-                          '${pair.label} · ${intValue(_countFor(pair)?['jumlah'])} Warga · ${intValue(_countFor(pair)?['tanpa_nik'])} tanpa NIK'),
+                          '${pair.label} · ${intValue(_countFor(pair)?['jumlah'])} Warga · ${intValue(_countFor(pair)?['tanpa_nik'])} Tanpa NIK'),
                       trailing: const Icon(Icons.add_circle_outline, size: 20),
                       onTap: busy ? null : () => _tambahkanLuar(pair)),
               ],
@@ -552,7 +552,7 @@ class _RtTile extends StatelessWidget {
                                 style: TextStyle(fontSize: 13, color: muted)),
                           ]),
                       const SizedBox(height: 4),
-                      Text('$tanpaNik tanpa NIK',
+                      Text('$tanpaNik Tanpa NIK',
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: tanpaNik > 0 && !aktif
