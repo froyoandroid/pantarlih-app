@@ -128,7 +128,8 @@ typedef RecordMap = Map<String, Object?>;
 
 String formatRt(Object? rt) => 'RT ${intValue(rt).toString().padLeft(2, '0')}';
 String formatRw(Object? rw) => 'RW ${intValue(rw).toString().padLeft(2, '0')}';
-String formatRtRw(Object? rt, Object? rw) => '${formatRt(rt)} / ${formatRw(rw)}';
+String formatRtRw(Object? rt, Object? rw) =>
+    '${formatRt(rt)} / ${formatRw(rw)}';
 
 class RtRw implements Comparable<RtRw> {
   const RtRw(this.rw, this.rt);
