@@ -112,7 +112,7 @@ class _ImportScreenState extends State<ImportScreen> {
     return showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-                title: const Text('Pilih penyandian berkas'),
+                title: const Text('Pilih Penyandian Berkas'),
                 content: SizedBox(
                     width: double.maxFinite,
                     child: Column(
@@ -133,10 +133,10 @@ class _ImportScreenState extends State<ImportScreen> {
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('PAKAI UTF-8')),
+                      child: const Text('Pakai UTF-8')),
                   TextButton(
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('PAKAI LATIN-1')),
+                      child: const Text('Pakai Latin-1')),
                 ]));
   }
 
@@ -169,7 +169,7 @@ class _ImportScreenState extends State<ImportScreen> {
           'Sheet $sheet · ${formatRtRw(rt.text, rw.text)}\n'
               '${prep.skipped.length} baris akan dilewati.\n\n'
               'Referensi hanya bantuan pengetikan. Impor ulang berkas yang sama diperbolehkan.',
-          action: 'IMPOR SEKARANG')) {
+          action: 'Impor Sekarang')) {
         return;
       }
       final stamped = [
@@ -219,7 +219,7 @@ class _ImportScreenState extends State<ImportScreen> {
   Future<void> clearAll() async {
     if (!await confirm(context, 'Hapus semua referensi?',
         'Data hasil ketikan tidak ikut terhapus. Saran pengetikan akan kosong sampai Anda impor lagi.',
-        action: 'HAPUS SEMUA', dangerous: true)) {
+        action: 'Hapus Semua', dangerous: true)) {
       return;
     }
     setState(() => busy = true);
@@ -244,7 +244,7 @@ class _ImportScreenState extends State<ImportScreen> {
         'Hapus referensi dari $label?',
         'Hanya ${intValue(row['jumlah'])} baris dari berkas ini yang terhapus. '
             'Berkas lain dan data hasil ketikan tidak ikut terhapus.',
-        action: 'HAPUS',
+        action: 'Hapus',
         dangerous: true)) {
       return;
     }
@@ -273,7 +273,7 @@ class _ImportScreenState extends State<ImportScreen> {
         : rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
     return AppPage(
         session: widget.session,
-        title: 'Impor referensi',
+        title: 'Impor Referensi',
         child: ListView(padding: const EdgeInsets.all(20), children: [
           Text('Referensi tersimpan: $referensiCount baris',
               style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -285,7 +285,7 @@ class _ImportScreenState extends State<ImportScreen> {
               child: ListTile(
                   leading:
                       const Icon(Icons.folder_open_outlined, color: forest),
-                  title: const Text('Lihat referensi',
+                  title: const Text('Lihat Referensi',
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text(referensiCount == 0
                       ? 'Belum ada baris referensi'
@@ -336,7 +336,7 @@ class _ImportScreenState extends State<ImportScreen> {
             OutlinedButton.icon(
                 onPressed: busy ? null : clearAll,
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('HAPUS SEMUA REFERENSI')),
+                label: const Text('Hapus Semua Referensi')),
           const SizedBox(height: 20),
           const Text('1. Pilih workbook',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -347,7 +347,7 @@ class _ImportScreenState extends State<ImportScreen> {
           OutlinedButton.icon(
               onPressed: busy ? null : pick,
               icon: const Icon(Icons.upload_file),
-              label: Text(source?.name ?? 'PILIH FILE .XLSX ATAU .CSV')),
+              label: Text(source?.name ?? 'Pilih Berkas .xlsx atau .csv')),
           if (busy)
             const Padding(
                 padding: EdgeInsets.only(top: 12),
@@ -446,7 +446,7 @@ class _ImportScreenState extends State<ImportScreen> {
             ]),
             SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Gunakan RT dari setiap baris'),
+                title: const Text('Gunakan RT Dari Setiap Baris'),
                 subtitle: const Text(
                     'Aktifkan hanya bila satu sheet berisi beberapa RT.'),
                 value: rowRt,
@@ -466,7 +466,7 @@ class _ImportScreenState extends State<ImportScreen> {
             FilledButton.icon(
                 onPressed: busy || !confirmed ? null : import,
                 icon: const Icon(Icons.download_done),
-                label: Text(busy ? 'Memproses' : 'IMPOR REFERENSI')),
+                label: Text(busy ? 'Memproses' : 'Impor Referensi')),
           ],
           const SizedBox(height: 12),
           const Notice(

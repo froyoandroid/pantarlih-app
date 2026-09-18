@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _lepas(RtRw pair) async {
     if (!await confirm(context, 'Lepas dari wilayah kerja?',
         '${pair.label} dilepas dari wilayah kerja. Data yang sudah diketik tetap ada.',
-        action: 'LEPAS')) {
+        action: 'Lepas')) {
       return;
     }
     setState(() => busy = true);
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-                title: const Text('Laporan jurnal rusak'),
+                title: const Text('Laporan Jurnal Rusak'),
                 content: SizedBox(
                     width: double.maxFinite,
                     child: SingleChildScrollView(
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _hapusLaporanJurnal() async {
     if (!await confirm(context, 'Hapus pemberitahuan ini?',
         'Laporan di layar dihilangkan. Baris jurnal yang rusak tetap di folder journal dan tidak ikut dihapus.',
-        action: 'HAPUS', dangerous: true)) {
+        action: 'Hapus', dangerous: true)) {
       return;
     }
     setState(() => busy = true);
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? null
                       : () => _open(RtListScreen(session: widget.session)),
                   icon: const Icon(Icons.list_alt),
-                  label: const Text('DAFTAR WARGA'))),
+                  label: const Text('Daftar Warga'))),
           const SizedBox(width: 12),
           Expanded(
               child: FilledButton.icon(
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? null
                       : () => _open(SearchScreen(session: widget.session)),
                   icon: const Icon(Icons.person_add_alt_1),
-                  label: const Text('TAMBAH WARGA'))),
+                  label: const Text('Tambah Warga'))),
         ]),
         child: RefreshIndicator(
             onRefresh: _load,
@@ -232,10 +232,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         actions: Wrap(spacing: 8, children: [
                           TextButton(
                               onPressed: busy ? null : _bukaLaporanJurnal,
-                              child: const Text('BUKA LAPORAN')),
+                              child: const Text('Buka Laporan')),
                           TextButton(
                               onPressed: busy ? null : _hapusLaporanJurnal,
-                              child: const Text('HAPUS')),
+                              child: const Text('Hapus')),
                         ])),
                   const SizedBox(height: 10),
                   _gridAksi([
@@ -377,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               if (_luarWilayah.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text('Di luar wilayah kerja',
+                const Text('Di Luar Wilayah Kerja',
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 const Padding(
@@ -614,6 +614,6 @@ class _TambahRtRwDialogState extends State<_TambahRtRwDialog> {
             TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Batal')),
-            FilledButton(onPressed: _simpan, child: const Text('TAMBAHKAN')),
+            FilledButton(onPressed: _simpan, child: const Text('Tambahkan')),
           ]);
 }

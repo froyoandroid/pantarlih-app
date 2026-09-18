@@ -40,9 +40,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
       title: switch (widget.kind) {
-        SurveyListKind.history => 'Riwayat · 20 terakhir',
+        SurveyListKind.history => 'Riwayat · 20 Terakhir',
         SurveyListKind.duplicates => 'Duplikat NIK',
-        SurveyListKind.duplicateNames => 'Duplikat nama',
+        SurveyListKind.duplicateNames => 'Duplikat Nama',
       },
       child: rows == null
           ? const Center(child: CircularProgressIndicator())
@@ -60,10 +60,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (rows!.isEmpty)
                   EmptyState(
                       switch (widget.kind) {
-                        SurveyListKind.history => 'Belum ada riwayat',
-                        SurveyListKind.duplicates => 'Tidak ada duplikat NIK',
+                        SurveyListKind.history => 'Belum Ada Riwayat',
+                        SurveyListKind.duplicates => 'Tidak Ada Duplikat NIK',
                         SurveyListKind.duplicateNames =>
-                          'Tidak ada duplikat nama',
+                          'Tidak Ada Duplikat Nama',
                       },
                       switch (widget.kind) {
                         SurveyListKind.history =>

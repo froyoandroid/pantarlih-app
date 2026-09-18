@@ -265,7 +265,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
-          title: const Text('Pilih lokasi kerja'),
+          title: const Text('Pilih Lokasi Kerja'),
           automaticallyImplyLeading: widget.nextPage == null),
       body: SafeArea(
           child: ListView(padding: const EdgeInsets.all(20), children: [
@@ -286,7 +286,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Nama pada formulir',
+                        const Text('Nama Pada Formulir',
                             style: TextStyle(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 6),
                         Text(
@@ -305,7 +305,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                                 onPressed: busy ? null : _ubahNamaFormulir,
-                                child: const Text('UBAH NAMA'))),
+                                child: const Text('Ubah Nama'))),
                       ]))),
         ],
         const SizedBox(height: 14),
@@ -354,7 +354,7 @@ class _LokasiScreenState extends State<LokasiScreen> {
         FilledButton.icon(
             onPressed: busy ? null : saveOfficial,
             icon: const Icon(Icons.check),
-            label: const Text('SIMPAN LOKASI')),
+            label: const Text('Simpan Lokasi')),
         const SizedBox(height: 8),
         OutlinedButton(
             onPressed: busy ? null : saveManual,
@@ -392,7 +392,7 @@ class _LokasiManualDialogState extends State<_LokasiManualDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-          title: const Text('Ketik lokasi secara manual'),
+          title: const Text('Ketik Lokasi Secara Manual'),
           content: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text(
@@ -427,7 +427,7 @@ class _LokasiManualDialogState extends State<_LokasiManualDialog> {
             FilledButton(
                 onPressed: () => Navigator.pop(
                     context, (desaC.text, kecC.text, kabC.text, provC.text)),
-                child: const Text('SIMPAN')),
+                child: const Text('Simpan')),
           ]);
 }
 
@@ -450,7 +450,7 @@ class _NamaFormulirDialogState extends State<_NamaFormulirDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-          title: const Text('Nama pada formulir'),
+          title: const Text('Nama Pada Formulir'),
           content: TextField(
               controller: desa,
               autofocus: true,
@@ -466,6 +466,6 @@ class _NamaFormulirDialogState extends State<_NamaFormulirDialog> {
                 child: const Text('Batal')),
             FilledButton(
                 onPressed: () => Navigator.pop(context, desa.text),
-                child: const Text('SIMPAN'))
+                child: const Text('Simpan'))
           ]);
 }

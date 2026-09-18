@@ -460,10 +460,10 @@ void main() {
     expect(updates, isNotEmpty);
   });
 
-  testWidgets('new form shows SIMPAN & LANJUT', (tester) async {
+  testWidgets('new form shows Simpan & Lanjut', (tester) async {
     await tester
         .pumpWidget(MaterialApp(home: SurveyForm(session: Session(store))));
-    expect(find.text('SIMPAN & LANJUT'), findsOneWidget);
+    expect(find.text('Simpan & Lanjut'), findsOneWidget);
     expect(find.textContaining('Orang ke-1'), findsOneWidget);
   });
 

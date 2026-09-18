@@ -196,7 +196,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                       fontSize: 36,
                                       fontWeight: FontWeight.w800,
                                       color: forest)),
-                              const Text('PENDATAAN DPS OFFLINE',
+                              const Text('Pendataan DPS Offline',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       letterSpacing: 1.7, fontSize: 12)),
@@ -218,9 +218,8 @@ class _StartupScreenState extends State<StartupScreen> {
                               FilledButton.icon(
                                   onPressed: busy ? null : start,
                                   icon: const Icon(Icons.arrow_forward),
-                                  label: Text(busy
-                                      ? 'Membuka data'
-                                      : 'BUKA APLIKASI')),
+                                  label: Text(
+                                      busy ? 'Membuka data' : 'Buka Aplikasi')),
                               if (error != null && store != null)
                                 TextButton(
                                     onPressed: busy
@@ -230,7 +229,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                                 context,
                                                 'Pulihkan database?',
                                                 'Database lama dipertahankan di folder recovered. Jurnal akan diputar ulang.',
-                                                action: 'PULIHKAN')) {
+                                                action: 'Pulihkan')) {
                                               await start(recover: true);
                                             }
                                           },

@@ -63,7 +63,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> share(List<File> selected) async {
     if (!await confirm(context, 'Bagikan data pribadi?',
         'Berkas memuat NIK, nama, dan tanggal lahir. Pilih penerima tepercaya, aplikasi lain yang Anda pilih dapat mengirimkan berkas ke internet.',
-        action: 'PILIH PENERIMA')) {
+        action: 'Pilih Penerima')) {
       return;
     }
     try {
@@ -83,7 +83,7 @@ class _AdminScreenState extends State<AdminScreen> {
     if (file == null || !mounted) return;
     if (!await confirm(context, 'Pulihkan dari cadangan?',
         'Database dan jurnal sekarang diganti dengan isi ${file.name}. Keduanya diamankan dulu ke folder recovered. Semua yang diketik setelah cadangan itu dibuat hilang dari daftar.',
-        action: 'PULIHKAN', dangerous: true)) {
+        action: 'Pulihkan', dangerous: true)) {
       return;
     }
     await run(() async {
@@ -117,7 +117,7 @@ class _AdminScreenState extends State<AdminScreen> {
         Card(
             child: ListTile(
                 leading: const Icon(Icons.people_outline),
-                title: const Text('Duplikat nama'),
+                title: const Text('Duplikat Nama'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: busy
                     ? null
@@ -138,13 +138,13 @@ class _AdminScreenState extends State<AdminScreen> {
             onChanged: busy ? null : (v) => setState(() => allRt = v)),
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Gabungan, satu sheet per RT'),
+            title: const Text('Gabungan, Satu Sheet Per RT'),
             subtitle: const Text('Nonaktif: satu berkas per RT'),
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Sertakan kop di atas tabel'),
+            title: const Text('Sertakan Kop di Atas Tabel'),
             subtitle: const Text('Header tabel bergeser ke baris 7.'),
             value: kop,
             onChanged: busy ? null : (v) => setState(() => kop = v)),
@@ -166,7 +166,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       return '${files.length} berkas Excel dibuat di ${folder.label}/ekspor. Belum dibagikan ke siapa pun.';
                     }),
             icon: const Icon(Icons.table_view_outlined),
-            label: const Text('BUAT FILE EXCEL')),
+            label: const Text('Buat File Excel')),
         if (files.isNotEmpty) ...[
           const SizedBox(height: 10),
           for (final file in files)
@@ -178,7 +178,7 @@ class _AdminScreenState extends State<AdminScreen> {
           OutlinedButton.icon(
               onPressed: busy ? null : () => share(files),
               icon: const Icon(Icons.share_outlined),
-              label: const Text('BAGIKAN FILE')),
+              label: const Text('Bagikan File')),
         ],
         const SizedBox(height: 28),
         const Text('Wilayah',
@@ -211,7 +211,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           context,
                           'Tetapkan kode wilayah untuk warga lama?',
                           '$missingKode warga tanpa kode akan diisi $kode.\n\n$ringkas\n\nIni bukan tebakan otomatis. Anda harus yakin warga lama berasal dari desa yang sekarang dipilih.',
-                          action: 'TETAPKAN')) {
+                          action: 'Tetapkan')) {
                         return;
                       }
                       await run(() async {
@@ -221,7 +221,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       });
                     },
               icon: const Icon(Icons.pin_drop_outlined),
-              label: const Text('TETAPKAN KODE WILAYAH UNTUK WARGA LAMA')),
+              label: const Text('Tetapkan Kode Wilayah untuk Warga Lama')),
         const SizedBox(height: 28),
         const Text('Ketahanan & Pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -240,7 +240,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       return 'Snapshot tersimpan. Cadangan ${zip.uri.pathSegments.last} ditulis ke ${folder.label}/cadangan.';
                     }),
             icon: const Icon(Icons.save_alt),
-            label: const Text('BUAT SNAPSHOT SEKARANG')),
+            label: const Text('Buat Snapshot Sekarang')),
         const SizedBox(height: 10),
         OutlinedButton.icon(
             onPressed: busy
@@ -248,7 +248,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 : () async {
                     if (!await confirm(context, 'Bangun ulang dari jurnal?',
                         'Database saat ini dipindahkan ke recovered, tidak dihapus. Semua jurnal diputar ulang. Baris rusak dicatat ke laporan dan tidak menghentikan pemulihan.',
-                        action: 'BANGUN ULANG', dangerous: true)) {
+                        action: 'Bangun Ulang', dangerous: true)) {
                       return;
                     }
                     await run(() async {
@@ -258,12 +258,12 @@ class _AdminScreenState extends State<AdminScreen> {
                     });
                   },
             icon: const Icon(Icons.restore),
-            label: const Text('BANGUN ULANG DATABASE')),
+            label: const Text('Bangun Ulang Database')),
         const SizedBox(height: 10),
         OutlinedButton.icon(
             onPressed: busy ? null : _pulihkanDariCadangan,
             icon: const Icon(Icons.unarchive_outlined),
-            label: const Text('PULIHKAN DARI CADANGAN')),
+            label: const Text('Pulihkan dari Cadangan')),
         if (busy)
           const Padding(
               padding: EdgeInsets.all(16), child: LinearProgressIndicator()),

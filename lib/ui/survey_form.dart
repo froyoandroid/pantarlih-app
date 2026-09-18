@@ -158,7 +158,7 @@ class _SurveyFormState extends State<SurveyForm> {
             context,
             '${formatRtRw(rtBaru, rwBaru)} belum ada di wilayah kerja',
             'Tambahkan agar data ini tampil di daftar. Bila dilewati, data tetap tersimpan dan bisa ditambahkan dari Beranda.',
-            action: 'TAMBAHKAN');
+            action: 'Tambahkan');
         if (!mounted) return;
         if (tambah) await widget.session.addRtRw(rtBaru, rwBaru);
       }
@@ -178,12 +178,12 @@ class _SurveyFormState extends State<SurveyForm> {
         if (!mounted) return;
         final isi = [
           'NIK yang sama sudah tercatat pada data warga berikut:\n${duplicates.map((r) => '• ${r['nama']} · ${formatRt(r['rt'])} · urutan ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
-          'Pilih SIMPAN TETAP jika kedua warga memang berbeda dan tercatat dengan NIK yang sama pada berkas.',
+          'Pilih Simpan Tetap jika kedua warga memang berbeda dan tercatat dengan NIK yang sama pada berkas.',
         ].join('\n\n');
         final decision = await showDialog<String>(
             context: context,
             builder: (ctx) => AlertDialog(
-                    title: Text('NIK sudah terdaftar',
+                    title: Text('NIK Sudah Terdaftar',
                         style: TextStyle(color: Colors.red.shade800)),
                     content: SingleChildScrollView(
                         child: Column(
@@ -208,7 +208,7 @@ class _SurveyFormState extends State<SurveyForm> {
                           child: const Text('Batal')),
                       FilledButton(
                           onPressed: () => Navigator.pop(ctx, 'save'),
-                          child: const Text('SIMPAN TETAP'))
+                          child: const Text('Simpan Tetap'))
                     ]));
         if (!mounted) return;
         if (decision != 'save') {
@@ -264,13 +264,12 @@ class _SurveyFormState extends State<SurveyForm> {
   }
 
   InputDecoration deco(String label, {String? hint, String? helper}) =>
-      InputDecoration(
-          labelText: label, hintText: hint, helperText: helper);
+      InputDecoration(labelText: label, hintText: hint, helperText: helper);
 
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: wargaId == null ? 'Warga baru' : 'Ubah data warga',
+      title: wargaId == null ? 'Warga Baru' : 'Ubah Data Warga',
       bottom: Row(children: [
         Expanded(
             child: FilledButton.icon(
@@ -282,12 +281,12 @@ class _SurveyFormState extends State<SurveyForm> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.save_outlined),
-                label: const Text('SIMPAN'))),
+                label: const Text('Simpan'))),
         const SizedBox(width: 10),
         Expanded(
             child: OutlinedButton(
                 onPressed: saving ? null : () => save(lanjut: true),
-                child: const Text('SIMPAN & LANJUT'))),
+                child: const Text('Simpan & Lanjut'))),
       ]),
       child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -307,7 +306,7 @@ class _SurveyFormState extends State<SurveyForm> {
             Card(
                 child: ListTile(
               dense: true,
-              title: const Text('Kelengkapan data'),
+              title: const Text('Kelengkapan Data'),
               subtitle: const Text('NIK belum diisi'),
               trailing: Text('${_persenKelengkapan.round()}%',
                   style: const TextStyle(
@@ -325,7 +324,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
                 onChanged: (_) => setState(() {}),
-                decoration: deco('NAMA *')),
+                decoration: deco('Nama *')),
             const SizedBox(height: 14),
             TextField(
                 controller: nik,
@@ -350,10 +349,10 @@ class _SurveyFormState extends State<SurveyForm> {
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
                 value: gender, // ignore: deprecated_member_use
-                decoration: deco('JENIS KELAMIN'),
+                decoration: deco('Jenis Kelamin'),
                 items: const [
-                  DropdownMenuItem(value: 'L', child: Text('LAKI-LAKI')),
-                  DropdownMenuItem(value: 'P', child: Text('PEREMPUAN')),
+                  DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
+                  DropdownMenuItem(value: 'P', child: Text('Perempuan')),
                 ],
                 onChanged: (value) => setState(() => gender = value)),
             const SizedBox(height: 14),
@@ -365,7 +364,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
                 onChanged: (_) => setState(() {}),
-                decoration: deco('TEMPAT LAHIR')),
+                decoration: deco('Tempat Lahir')),
             const SizedBox(height: 14),
             TextField(
                 controller: birthDate,
@@ -373,7 +372,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 onChanged: (_) => setState(() {}),
                 keyboardType: TextInputType.number,
                 inputFormatters: [TanggalInputFormatter()],
-                decoration: deco('TANGGAL LAHIR', hint: 'HH-BB-TTTT')),
+                decoration: deco('Tanggal Lahir', hint: 'HH-BB-TTTT')),
             const SizedBox(height: 14),
             TextField(
                 controller: village,
@@ -382,7 +381,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
                 onChanged: (_) => setState(() {}),
-                decoration: deco('DESA / DUSUN')),
+                decoration: deco('Desa / Dusun')),
             const SizedBox(height: 14),
             Row(children: [
               Expanded(
@@ -401,7 +400,7 @@ class _SurveyFormState extends State<SurveyForm> {
             ]),
             const SizedBox(height: 14),
             InputDecorator(
-                decoration: deco('KETERANGAN (opsional)'),
+                decoration: deco('Keterangan (opsional)'),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -439,7 +438,7 @@ class _SurveyFormState extends State<SurveyForm> {
                   focusNode: noteFocus,
                   maxLines: 3,
                   inputFormatters: [HurufKapitalFormatter()],
-                  decoration: deco('LAINNYA',
+                  decoration: deco('Lainnya',
                       hint:
                           'Tulis keterangan. Tidak dipakai untuk penilaian atau pencarian')),
             ],
