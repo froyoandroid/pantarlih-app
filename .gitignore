@@ -1,20 +1,39 @@
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins*
 .packages
 build/
+coverage/
+doc/api/
+migrate_working_dir/
+
+# Editor dan OS
 .idea/
+.vscode/
 *.iml
+.DS_Store
+Thumbs.db
+
+# Android
 android/local.properties
 android/.gradle/
 android/key.properties
+android/app/release/
 *.jks
-# Source workbooks and runtime resident records are private, never app assets.
+*.keystore
+*.apk
+*.aab
+
+# Data warga dan berkas sumber: privat, tidak pernah jadi aset aplikasi.
 data-exel/
 *.db
-!assets/wilayah.db
 *.db-shm
 *.db-wal
 *.jsonl
+!assets/wilayah.db
+!test/fixtures/*.jsonl
+!test/fixtures/*.db
 
-# Local agent tooling state, never app data.
+# State tooling agen lokal, bukan data aplikasi dan bukan riwayat proyek.
 .flutter_mcp/
+.pi/

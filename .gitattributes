@@ -1,0 +1,3 @@
+# Binaries and large generated files
+assets/wilayah.db binary
+third_party/wilayah/wilayah.sql -diff
