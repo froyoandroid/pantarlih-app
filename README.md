@@ -65,9 +65,9 @@ Menekan `Buat File Excel` menghasilkan berkas-berkas berikut di satu subfolder b
 |---|---|---|
 | `DPS_<kode>_<desa>_RT<nn>_RW<mm>_<tanggal>.xlsx` | `RT <nn>`, `INFO` | Satu berkas per RT (bila opsi gabungan mati) |
 | `DPS_GABUNGAN_<kode>_RW<mm>_<tanggal>.xlsx` | Satu sheet per RT, `INFO` | Seluruh RT dalam satu berkas (bila opsi gabungan aktif) |
-| `DUPLIKAT_NIK_<kode>_<tanggal>.xlsx` | `DUPLIKAT NIK`, `INFO` | Baris dengan NIK yang sama, kolom NO memakai nomor urut di RT masing-masing |
-| `DUPLIKAT_NAMA_<kode>_<tanggal>.xlsx` | `DUPLIKAT NAMA`, `INFO` | Nama serupa dalam satu RW |
-| `TANPA_NIK_<kode>_<tanggal>.xlsx` | `TANPA NIK`, `INFO` | Baris yang NIK-nya masih kosong |
+| `DUPLIKAT_NIK_<kode>_<tanggal>.xlsx` | `DUPLIKAT NIK`, `INFO` | Baris dengan NIK yang sama, kolom NO memakai nomor urut di RT masing-masing (hanya dibuat bila ada duplikat) |
+| `DUPLIKAT_NAMA_<kode>_<tanggal>.xlsx` | `DUPLIKAT NAMA`, `INFO` | Nama serupa dalam satu RW (hanya dibuat bila ada duplikat) |
+| `TANPA_NIK_<kode>_<tanggal>.xlsx` | `TANPA NIK`, `INFO` | Baris yang NIK-nya masih kosong (hanya dibuat bila ada) |
 
 Sheet data memakai sepuluh kolom: `NO`, `NAMA`, `NIK`, `JENIS KELAMIN`, `TEMPAT LAHIR`, `TANGGAL LAHIR`, `DESA`, `RT`, `RW`, `KETERANGAN`. Nomor `NO` mulai dari 1 di setiap RT. Sheet `INFO` memuat Provinsi, Kabupaten/Kota, Kecamatan, Desa/Kelurahan, Kode wilayah, RT, RW, Jumlah warga, Tanpa NIK, waktu ekspor, sumber kode wilayah, dan versi aplikasi. Nilai INFO dibaca dari snapshot tersimpan, bukan dari pack wilayah.
 

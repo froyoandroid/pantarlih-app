@@ -639,42 +639,50 @@ class ExportService {
     final nomorDari =
         await _posisiPeta([...duplicateRows, ...duplicateNames, ...missing]);
     int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
-    await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
-      'DUPLIKAT NIK': (
-        dpsHeaders,
-        [for (final row in duplicateRows) dpsRow(row, nomor(row))],
-      ),
-      'INFO': _info(
-          lokasi: lokasiRow,
-          rw: rw,
-          rt: rt,
-          jumlah: duplicateRows.length,
-          tanpaNik: 0),
-    });
-    await write('${namaBerkasBagian(['DUPLIKAT_NAMA', code, date])}.xlsx', {
-      'DUPLIKAT NAMA': (
-        dpsHeaders,
-        [for (final row in duplicateNames) dpsRow(row, nomor(row))],
-      ),
-      'INFO': _info(
-          lokasi: lokasiRow,
-          rw: rw,
-          rt: rt,
-          jumlah: duplicateNames.length,
-          tanpaNik: 0),
-    });
-    await write('${namaBerkasBagian(['TANPA_NIK', code, date])}.xlsx', {
-      'TANPA NIK': (
-        dpsHeaders,
-        [for (final row in missing) dpsRow(row, nomor(row))],
-      ),
-      'INFO': _info(
-          lokasi: lokasiRow,
-          rw: rw,
-          rt: rt,
-          jumlah: missing.length,
-          tanpaNik: missing.length),
-    });
+    // Problem files only exist when there is something to report: an empty
+    // DUPLIKAT_NIK workbook is noise, not a finding.
+    if (duplicateRows.isNotEmpty) {
+      await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
+        'DUPLIKAT NIK': (
+          dpsHeaders,
+          [for (final row in duplicateRows) dpsRow(row, nomor(row))],
+        ),
+        'INFO': _info(
+            lokasi: lokasiRow,
+            rw: rw,
+            rt: rt,
+            jumlah: duplicateRows.length,
+            tanpaNik: 0),
+      });
+    }
+    if (duplicateNames.isNotEmpty) {
+      await write('${namaBerkasBagian(['DUPLIKAT_NAMA', code, date])}.xlsx', {
+        'DUPLIKAT NAMA': (
+          dpsHeaders,
+          [for (final row in duplicateNames) dpsRow(row, nomor(row))],
+        ),
+        'INFO': _info(
+            lokasi: lokasiRow,
+            rw: rw,
+            rt: rt,
+            jumlah: duplicateNames.length,
+            tanpaNik: 0),
+      });
+    }
+    if (missing.isNotEmpty) {
+      await write('${namaBerkasBagian(['TANPA_NIK', code, date])}.xlsx', {
+        'TANPA NIK': (
+          dpsHeaders,
+          [for (final row in missing) dpsRow(row, nomor(row))],
+        ),
+        'INFO': _info(
+            lokasi: lokasiRow,
+            rw: rw,
+            rt: rt,
+            jumlah: missing.length,
+            tanpaNik: missing.length),
+      });
+    }
     await store.recordExport(metadata, rw, rts);
     return files;
   }
