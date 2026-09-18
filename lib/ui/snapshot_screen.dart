@@ -96,7 +96,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
     }
     try {
       await SharePlus.instance.share(ShareParams(
-          files: [XFile(info.file.path)], subject: 'Snapshot Pantarlih'));
+          files: [XFile(info.file.path)], subject: 'Snapshot TilikSuara'));
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     }
@@ -122,7 +122,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
               onRefresh: load,
               child: ListView(padding: const EdgeInsets.all(20), children: [
                 const Notice(
-                    'Snapshot adalah salinan utuh database pada satu waktu. Dibuat otomatis setiap pindah RT dan lewat tombol BUAT BARU. Yang paling lama dirotasi setelah 20. Pulihkan mengembalikan seluruh database ke waktu itu.',
+                    'Snapshot adalah salinan utuh database lokal pada titik waktu tertentu. Dibuat otomatis setiap berpindah RT dan lewat tombol BUAT BARU. Tersimpan hingga 20 salinan terbaru secara bergantian. Tombol PULIHKAN mengembalikan database ke keadaan pada waktu snapshot tersebut.',
                     icon: Icons.history_toggle_off),
                 if (busy) const LinearProgressIndicator(),
                 if (report != null) Notice(report!),
@@ -132,7 +132,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
                       warning: true),
                 if (items!.isEmpty)
                   const EmptyState('Belum ada snapshot',
-                      'Snapshot pertama dibuat saat pindah RT atau lewat BUAT BARU.',
+                      'Snapshot pertama dibuat otomatis saat berpindah RT atau saat Anda menekan BUAT BARU.',
                       icon: Icons.photo_camera_back_outlined),
                 for (var i = 0; i < items!.length; i++)
                   _SnapshotCard(
@@ -267,7 +267,7 @@ class _SnapshotIsiScreenState extends State<SnapshotIsiScreen> {
                   const Notice('Snapshot tidak dapat dibaca.', error: true)
                 else if (rows!.isEmpty)
                   const EmptyState('Snapshot kosong',
-                      'Tidak ada warga tersimpan pada waktu itu.')
+                      'Tidak ada data warga tersimpan pada waktu tersebut.')
                 else
                   const Notice(
                       'Tampilan baca saja. Untuk mengembalikan keadaan ini, pakai PULIHKAN pada daftar snapshot.'),
@@ -317,7 +317,7 @@ class _SnapshotBandingScreenState extends State<SnapshotBandingScreen> {
                 const Notice('Snapshot tidak dapat dibaca.', error: true)
               else if (hasil!.kosong)
                 const EmptyState('Tidak ada perbedaan',
-                    'Data sekarang sama dengan snapshot ini.',
+                    'Kondisi data saat ini identik dengan snapshot ini.',
                     icon: Icons.check_circle_outline)
               else ...[
                 const Notice(

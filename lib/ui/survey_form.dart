@@ -177,24 +177,31 @@ class _SurveyFormState extends State<SurveyForm> {
         }
         if (!mounted) return;
         final isi = [
-          'NIK yang sama sudah tercatat pada:\n${duplicates.map((r) => '• ${r['nama']} · ${formatRt(r['rt'])} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
-          'Simpan tetap bila memang dua orang berbeda.',
+          'NIK yang sama sudah tercatat pada data warga berikut:\n${duplicates.map((r) => '• ${r['nama']} · ${formatRt(r['rt'])} · urutan ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
+          'Pilih SIMPAN TETAP jika kedua warga memang berbeda dan tercatat dengan NIK yang sama pada berkas.',
         ].join('\n\n');
         final decision = await showDialog<String>(
             context: context,
             builder: (ctx) => AlertDialog(
-                    title: Text('NIK ini sudah terpakai',
+                    title: Text('NIK sudah terdaftar',
                         style: TextStyle(color: Colors.red.shade800)),
                     content: SingleChildScrollView(
-                        child:
-                            Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(isi),
-                      for (final row in duplicates)
-                        TextButton(
-                            onPressed: () =>
-                                Navigator.pop(ctx, 'open:${row['id']}'),
-                            child: Text('Buka ${row['nama']}')),
-                    ])),
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                          Text(isi),
+                          const SizedBox(height: 12),
+                          for (final row in duplicates)
+                            Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, 'open:${row['id']}'),
+                                    icon:
+                                        const Icon(Icons.open_in_new, size: 18),
+                                    label: Text('Buka data ${row['nama']}'))),
+                        ])),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.pop(ctx, 'cancel'),
@@ -222,8 +229,13 @@ class _SurveyFormState extends State<SurveyForm> {
       final saved = await widget.session.store.saveWarga(data,
           id: wargaId, afterId: widget.afterId, beforeId: widget.beforeId);
       if (!mounted) return;
-      feedback(context,
-          wargaId == null ? 'Data tersimpan.' : 'Perubahan tersimpan.');
+      final namaLabel =
+          name.text.trim().isEmpty ? 'Data warga' : 'Data ${name.text.trim()}';
+      feedback(
+          context,
+          wargaId == null
+              ? '$namaLabel berhasil disimpan'
+              : '$namaLabel berhasil diperbarui');
       if (lanjut) {
         FocusManager.instance.primaryFocus?.unfocus();
         Navigator.pushReplacement(
@@ -251,8 +263,9 @@ class _SurveyFormState extends State<SurveyForm> {
     }
   }
 
-  InputDecoration deco(String label, {String? hint}) =>
-      InputDecoration(labelText: label, hintText: hint);
+  InputDecoration deco(String label, {String? hint, String? helper}) =>
+      InputDecoration(
+          labelText: label, hintText: hint, helperText: helper);
 
   @override
   Widget build(BuildContext context) => AppPage(
@@ -288,7 +301,7 @@ class _SurveyFormState extends State<SurveyForm> {
                           color: Colors.grey.shade700,
                           fontWeight: FontWeight.w600))),
             const Text(
-                'Baca dan isi sesuai KK asli. Aplikasi tidak menilai kelayakan warga.',
+                'Periksa dan isi sesuai dokumen kependudukan. Aplikasi tidak menilai kelayakan hak pilih warga.',
                 style: TextStyle(color: Colors.black54)),
             const SizedBox(height: 12),
             Card(
@@ -324,7 +337,9 @@ class _SurveyFormState extends State<SurveyForm> {
                 ],
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                decoration: deco('NIK')),
+                decoration: deco('NIK',
+                    helper:
+                        '16 digit angka sesuai KTP atau KK. Boleh dikosongkan bila belum ada')),
             if (nik.text.isNotEmpty)
               ...periksaNik(
                       nik.text,
@@ -358,7 +373,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 onChanged: (_) => setState(() {}),
                 keyboardType: TextInputType.number,
                 inputFormatters: [TanggalInputFormatter()],
-                decoration: deco('TANGGAL LAHIR', hint: 'DD-MM-YYYY')),
+                decoration: deco('TANGGAL LAHIR', hint: 'HH-BB-TTTT')),
             const SizedBox(height: 14),
             TextField(
                 controller: village,
@@ -430,7 +445,6 @@ class _SurveyFormState extends State<SurveyForm> {
             ],
             const SizedBox(height: 18),
             const Notice(
-                'NIK boleh kosong dan tetap dapat disimpan, tetapi kelengkapan belum 100%. Bila diisi, kurang dari 16 digit hanya peringatan.',
-                warning: true),
+                'NIK boleh dikosongkan dan data tetap dapat disimpan. Peringatan format NIK hanya sebagai pengingat ketelitian.'),
           ]));
 }

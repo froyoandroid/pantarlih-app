@@ -66,16 +66,16 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
               child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   children: [
-                    Text('${sumber!.length} file referensi',
+                    Text('${sumber!.length} berkas referensi',
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
                     const Text(
-                        'Ketuk file untuk membaca isinya. Referensi hanya-baca dan tidak mengubah data hasil ketikan.'),
+                        'Ketuk berkas untuk melihat isinya. Data referensi bersifat hanya-baca dan tidak mengubah data hasil input warga.'),
                     const SizedBox(height: 12),
                     if (sumber!.isEmpty) ...[
                       const EmptyState('Belum ada berkas referensi',
-                          'Impor berkas .xlsx atau .csv untuk melihatnya di sini.',
+                          'Tekan IMPOR BERKAS untuk memuat daftar pemilih dari Excel atau CSV.',
                           icon: Icons.folder_open_outlined),
                       const SizedBox(height: 12),
                       Center(
@@ -215,11 +215,11 @@ class _ReferensiFileScreenState extends State<ReferensiFileScreen> {
                       if (tampil.isEmpty)
                         EmptyState(
                             filter.trim().isEmpty
-                                ? 'File ini belum memiliki baris'
-                                : 'Tidak ada yang cocok',
+                                ? 'Berkas belum memiliki data'
+                                : 'Tidak ada data yang cocok',
                             filter.trim().isEmpty
-                                ? 'Impor ulang file bila data seharusnya ada.'
-                                : 'Coba kata kunci lain.',
+                                ? 'Impor ulang berkas bila data seharusnya ada.'
+                                : 'Coba kata kunci pencarian lain.',
                             icon: Icons.search_off_outlined),
                       for (final row in tampil)
                         Card(

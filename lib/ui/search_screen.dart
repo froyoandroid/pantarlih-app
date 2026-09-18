@@ -284,11 +284,11 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (!active)
                             EmptyState(
                                 byDate
-                                    ? 'Cocokkan lewat tanggal lahir'
-                                    : 'Mulai dari nama di KK',
+                                    ? 'Pencarian tanggal lahir'
+                                    : 'Pencarian nama warga',
                                 byDate
-                                    ? 'Isi tanggal lengkap. Semua kecocokan ditampilkan, RT aktif lebih dulu.'
-                                    : 'Ketik sedikitnya 3 karakter. Nama dapat dicari dari kata mana pun.',
+                                    ? 'Ketik 8 angka tanggal lahir. Warga di RT aktif akan ditampilkan lebih awal.'
+                                    : 'Ketik minimal 3 huruf nama. Pencarian mencakup data yang sudah dicatat dan referensi.',
                                 icon: Icons.person_search_outlined),
                           if (hasil.wargaDiperluas)
                             const Notice(
@@ -321,7 +321,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         letterSpacing: .6))),
                             if (hasil.referensi.isEmpty)
                               const Text(
-                                  'Tidak ada saran referensi. Ketik manual lewat TAMBAH BARU.',
+                                  'Tidak ada saran referensi. Tambah data baru lewat tombol TAMBAH WARGA.',
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54)),
                             for (final candidate in hasil.referensi)
@@ -339,7 +339,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               child: FilledButton.icon(
                                   onPressed: () => _openForm(),
                                   icon: const Icon(Icons.person_add_alt_1),
-                                  label: const Text('TAMBAH BARU'))),
+                                  label: const Text('TAMBAH WARGA'))),
                           const Padding(
                               padding: EdgeInsets.all(12),
                               child: Text(

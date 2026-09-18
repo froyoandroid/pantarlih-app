@@ -268,8 +268,8 @@ class _RtListScreenState extends State<RtListScreen> {
                 onRefresh: _load,
                 child: rows.isEmpty
                     ? ListView(children: const [
-                        EmptyState('Belum ada data di RT ini',
-                            'Tekan TAMBAH untuk mengetik orang pertama. Aplikasi tetap berjalan tanpa impor referensi.',
+                        EmptyState('Belum ada warga di RT ini',
+                            'Tekan TAMBAH WARGA untuk mulai mencatat warga pertama.',
                             icon: Icons.person_add_alt_1)
                       ])
                     : Column(children: [
@@ -326,9 +326,9 @@ class _RtListScreenState extends State<RtListScreen> {
                                           color: Colors.black54)))),
                         Expanded(
                             child: tampil.isEmpty
-                                ? ListView(children: [
-                                    EmptyState('Tidak ada yang cocok',
-                                        'Coba kata kunci atau status lain.',
+                                ? ListView(children: const [
+                                    EmptyState('Tidak ada warga yang cocok',
+                                        'Coba periksa kembali ejaan nama atau kata kunci pencarian.',
                                         icon: Icons.filter_alt_off_outlined)
                                   ])
                                 : ReorderableListView.builder(

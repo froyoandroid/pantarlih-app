@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Padding(
                     padding: EdgeInsets.only(top: 6, right: 8),
                     child: Text(
-                        'Belum ada RT. Tambahkan RT di bawah RW desa ini. Boleh lebih dari satu RW.',
+                        'Belum ada RT di wilayah kerja. Tekan Tambahkan RT / RW untuk mulai mendata.',
                         style: TextStyle(color: Colors.black54)))
               else ...[
                 const SizedBox(height: 10),
@@ -370,7 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: Text(
-                          'Ketik data memakai ${s.label}. Ketuk kartu lain untuk pindah RT, ketuk ikon silang pada kartu aktif untuk melepas dari wilayah kerja.',
+                          'Input data warga menggunakan ${s.label}. Ketuk kartu untuk berpindah RT, atau ketuk ikon silang pada kartu aktif untuk melepas dari wilayah kerja.',
                           style: const TextStyle(
                               color: Colors.black54, fontSize: 12))),
                 ],
@@ -596,7 +596,7 @@ class _TambahRtRwDialogState extends State<_TambahRtRwDialog> {
           title: const Text('Tambah RT / RW'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text(
-                'RT berada di bawah RW, RW berada di bawah desa. Boleh menambah RW lain di desa yang sama.'),
+                'Tambahkan RT dan RW sesuai wilayah kerja penugasan Anda. Anda dapat menambahkan lebih dari satu RT.'),
             const SizedBox(height: 12),
             TextField(
                 controller: rw,

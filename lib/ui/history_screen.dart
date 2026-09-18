@@ -51,15 +51,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: ListView(padding: const EdgeInsets.all(16), children: [
                 if (widget.kind == SurveyListKind.duplicates)
                   const Notice(
-                      'Semua warga dengan NIK berulang. Buka warga untuk memeriksa dan mengoreksi sesuai KK.',
+                      'Daftar warga dengan NIK yang sama. Ketuk warga untuk memeriksa dan mencocokkan dengan dokumen kependudukan.',
                       warning: true),
                 if (widget.kind == SurveyListKind.duplicateNames)
                   const Notice(
-                      'Nama yang dinormalisasi sama di RT yang sama, termasuk yang tanpa NIK. Buka warga untuk memeriksa dan mengoreksi sesuai KK.',
+                      'Daftar warga dengan nama serupa di RT yang sama, termasuk yang belum memiliki NIK. Ketuk warga untuk memeriksa ketepatan data.',
                       warning: true),
                 if (rows!.isEmpty)
-                  const EmptyState('Belum ada warga',
-                      'Data yang sesuai akan ditampilkan di sini.'),
+                  EmptyState(
+                      switch (widget.kind) {
+                        SurveyListKind.history => 'Belum ada riwayat',
+                        SurveyListKind.duplicates => 'Tidak ada duplikat NIK',
+                        SurveyListKind.duplicateNames =>
+                          'Tidak ada duplikat nama',
+                      },
+                      switch (widget.kind) {
+                        SurveyListKind.history =>
+                          'Riwayat perubahan data warga akan ditampilkan di sini.',
+                        SurveyListKind.duplicates =>
+                          'Semua NIK warga tercatat unik atau belum diisi.',
+                        SurveyListKind.duplicateNames =>
+                          'Tidak ditemukan nama serupa pada RT yang sama.',
+                      }),
                 for (final row in rows!)
                   ResidentCard(row,
                       label: widget.kind == SurveyListKind.duplicates
