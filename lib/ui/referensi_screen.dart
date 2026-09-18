@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/format.dart';
 import 'common.dart';
 import 'import_screen.dart';
+import 'survey_form.dart';
 
 class ReferensiScreen extends StatefulWidget {
   const ReferensiScreen({super.key, required this.session});
@@ -104,6 +105,110 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () => _buka(file))),
                   ])));
+}
+
+/// Reference rows of the active RT that have no typed-warga counterpart yet.
+/// This is the field answer to "is this RT done": an empty list means done.
+class SisaReferensiScreen extends StatefulWidget {
+  const SisaReferensiScreen({super.key, required this.session});
+  final Session session;
+  @override
+  State<SisaReferensiScreen> createState() => _SisaReferensiScreenState();
+}
+
+class _SisaReferensiScreenState extends State<SisaReferensiScreen> {
+  List<RecordMap>? rows;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final s = widget.session;
+      final loaded = await s.store.referensiBelum(s.rw, s.rt);
+      if (mounted) setState(() => rows = loaded);
+    } catch (e) {
+      if (mounted) {
+        setState(() => rows ??= const []);
+        feedback(context, e, error: true);
+      }
+    }
+  }
+
+  Future<void> _promosikan(RecordMap row) async {
+    try {
+      await widget.session.store.promosikanReferensi(row['id'] as int);
+      if (!mounted) return;
+      feedback(context, '${row['nama']} ditambahkan sebagai warga');
+      await _load();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    }
+  }
+
+  Future<void> _periksa(RecordMap row) async {
+    final saved = await Navigator.push<int>(
+        context,
+        MaterialPageRoute(
+            builder: (_) =>
+                SurveyForm(session: widget.session, seed: row)));
+    if (!mounted) return;
+    if (saved != null) feedback(context, 'Data ${row['nama']} tersimpan');
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loaded = rows;
+    return AppPage(
+        session: widget.session,
+        title: 'Belum Diinput',
+        subtitle: widget.session.label,
+        child: loaded == null
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    children: [
+                      Text(
+                          loaded.isEmpty
+                              ? 'Tidak ada sisa'
+                              : '${loaded.length} baris referensi belum diinput',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      const Text(
+                          'Baris referensi yang belum punya padanan di data warga RT ini. Ketuk untuk memeriksa lewat formulir, atau langsung jadikan warga.'),
+                      const SizedBox(height: 12),
+                      if (loaded.isEmpty)
+                        const EmptyState('RT Ini Selesai',
+                            'Semua baris referensi sudah ada padanannya di data warga.',
+                            icon: Icons.check_circle_outline),
+                      for (final row in loaded)
+                        Card(
+                            child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 6),
+                                title: Text(teks(row['nama']),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700)),
+                                subtitle: Text([
+                                  if (tanggalTampil(row['tgl_lahir'])
+                                      .isNotEmpty)
+                                    '${tanggalTampil(row['tgl_lahir'])} · ${jkTampil(row['jenis_kelamin'])}',
+                                  if (teks(row['desa']).isNotEmpty)
+                                    teks(row['desa']),
+                                ].join('\n')),
+                                trailing: TextButton(
+                                    onPressed: () => _promosikan(row),
+                                    child: const Text('Jadikan Warga')),
+                                onTap: () => _periksa(row))),
+                    ])));
+  }
 }
 
 class ReferensiFileScreen extends StatefulWidget {
