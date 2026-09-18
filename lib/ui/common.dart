@@ -191,7 +191,8 @@ class AppPage extends StatelessWidget {
       required this.child,
       this.bottom,
       this.actions,
-      this.subtitle});
+      this.subtitle,
+      this.showVersion = false});
   final Session session;
   final String title;
   final Widget child;
@@ -201,6 +202,9 @@ class AppPage extends StatelessWidget {
   /// Small secondary line rendered directly under the title, e.g. the
   /// long-form date on Beranda.
   final String? subtitle;
+
+  /// Opt-in version chip in the app bar. Only Beranda shows it.
+  final bool showVersion;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
       listenable: session,
@@ -222,14 +226,15 @@ class AppPage extends StatelessWidget {
                     ]),
                 actions: [
                   if (actions != null) ...actions!,
-                  Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Center(
-                          child: Text('v$appVersion',
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.w600)))),
+                  if (showVersion)
+                    Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Center(
+                            child: Text('v$appVersion',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w600)))),
                 ]),
             body: SafeArea(
                 child: Align(
