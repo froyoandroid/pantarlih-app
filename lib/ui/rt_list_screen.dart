@@ -110,11 +110,11 @@ class _RtListScreenState extends State<RtListScreen> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
               ListTile(
                   leading: const Icon(Icons.subdirectory_arrow_left),
-                  title: const Text('TAMBAHKAN SEBELUMNYA'),
+                  title: const Text('Tambahkan Sebelumnya'),
                   onTap: () => Navigator.pop(ctx, 'sebelum')),
               ListTile(
                   leading: const Icon(Icons.subdirectory_arrow_right),
-                  title: const Text('TAMBAHKAN SESUDAHNYA'),
+                  title: const Text('Tambahkan Sesudahnya'),
                   onTap: () => Navigator.pop(ctx, 'sesudah')),
               ListTile(
                   leading: const Icon(Icons.palette_outlined),
@@ -122,7 +122,7 @@ class _RtListScreenState extends State<RtListScreen> {
                   onTap: () => Navigator.pop(ctx, 'warna')),
               ListTile(
                   leading: const Icon(Icons.delete_outline),
-                  title: const Text('HAPUS WARGA'),
+                  title: const Text('Hapus Warga'),
                   onTap: () => Navigator.pop(ctx, 'hapus')),
             ])));
     if (!mounted || pilih == null) return;
