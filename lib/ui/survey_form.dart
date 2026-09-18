@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/format.dart';
@@ -40,6 +42,108 @@ class _SurveyFormState extends State<SurveyForm> {
   String? ketChip;
   final noteFocus = FocusNode(skipTraversal: true);
   bool saving = false;
+
+  /// Autosave for the half-filled new-warga form, the last place a killed
+  /// app can still lose typing. New-warga mode only: an edit form already
+  /// has its data safe in the database, and an edit draft could silently
+  /// shadow a save made from another screen.
+  Timer? _draftTimer;
+  bool _draftReady = false;
+  bool get _drafAktif => wargaId == null;
+
+  void _jadwalkanDraf(String _) {
+    if (!_drafAktif || !_draftReady) return;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 500), _simpanDraf);
+  }
+
+  Map<String, Object?> _isiDraf() => {
+        'rt': widget.session.rt,
+        'rw': widget.session.rw,
+        'nama': name.text,
+        'nik': nik.text,
+        'tempat_lahir': birthPlace.text,
+        'tgl_lahir': birthDate.text,
+        'desa': village.text,
+        'f_rt': rt.text,
+        'f_rw': rw.text,
+        'jenis_kelamin': gender,
+        'ket_chip': ketChip,
+        'keterangan': note.text,
+      };
+
+  Future<void> _simpanDraf() async {
+    final isi = _isiDraf();
+    final kosong = ['nama', 'nik', 'tempat_lahir', 'tgl_lahir', 'keterangan']
+        .every((k) => teks(isi[k]).isEmpty);
+    try {
+      if (kosong) {
+        await widget.session.store.clearDraft();
+      } else {
+        await widget.session.store.saveDraft(jsonEncode(isi));
+      }
+    } catch (_) {
+      // A draft write must never break the form.
+    }
+  }
+
+  Future<void> _tawarkanDraf() async {
+    final raw = await widget.session.store.loadDraft();
+    if (!mounted) return;
+    if (raw == null) {
+      setState(() => _draftReady = true);
+      return;
+    }
+    RecordMap draf;
+    try {
+      draf = Map<String, Object?>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      await widget.session.store.clearDraft();
+      if (mounted) setState(() => _draftReady = true);
+      return;
+    }
+    // A draft from another RT/RW session would prefill the wrong context.
+    if (intValue(draf['rt']) != widget.session.rt ||
+        intValue(draf['rw']) != widget.session.rw) {
+      await widget.session.store.clearDraft();
+      if (mounted) setState(() => _draftReady = true);
+      return;
+    }
+    final nama = teks(draf['nama']);
+    if (!mounted) return;
+    final lanjut = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+                title: const Text('Lanjutkan Draf?'),
+                content: Text(
+                    'Ada formulir yang belum disimpan${nama.isEmpty ? '' : ' untuk $nama'}. Lanjutkan mengisi atau buang draf ini?'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Buang')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Lanjutkan')),
+                ]));
+    if (!mounted) return;
+    if (lanjut ?? false) {
+      setState(() {
+        name.text = teks(draf['nama']);
+        nik.text = teks(draf['nik']);
+        birthPlace.text = teks(draf['tempat_lahir']);
+        birthDate.text = teks(draf['tgl_lahir']);
+        village.text = teks(draf['desa']);
+        rt.text = teks(draf['f_rt']);
+        rw.text = teks(draf['f_rw']);
+        note.text = teks(draf['keterangan']);
+        gender = draf['jenis_kelamin'] as String?;
+        ketChip = draf['ket_chip'] as String?;
+      });
+    } else {
+      await widget.session.store.clearDraft();
+    }
+    if (mounted) setState(() => _draftReady = true);
+  }
   int? get wargaId => widget.warga?['id'] as int?;
   double get _persenKelengkapan => persenKelengkapanWarga({
         'nama': name.text,
@@ -88,6 +192,20 @@ class _SurveyFormState extends State<SurveyForm> {
     note = TextEditingController(text: rawNote);
     ketChip = chipKeterangan(rawNote);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;
+    if (_drafAktif) {
+      for (final c in [name, nik, birthPlace, birthDate, village, rt, rw, note]) {
+        c.addListener(() => _jadwalkanDraf(c.text));
+      }
+      // Offer a stored draft only over a truly empty form; a form opened
+      // with a seed (reference row) or an initial name already carries data.
+      final kosong = widget.seed == null &&
+          (widget.initialName == null || widget.initialName!.trim().isEmpty);
+      if (kosong) {
+        _tawarkanDraf();
+      } else {
+        _draftReady = true;
+      }
+    }
   }
 
   void _pilihKeterangan(String? next) {
@@ -110,6 +228,7 @@ class _SurveyFormState extends State<SurveyForm> {
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
     for (final c in [name, nik, birthPlace, birthDate, village, rt, rw, note]) {
       c.dispose();
     }
@@ -238,23 +357,26 @@ class _SurveyFormState extends State<SurveyForm> {
               : '$namaLabel berhasil diperbarui');
       if (lanjut) {
         FocusManager.instance.primaryFocus?.unfocus();
+        final next = SurveyForm(
+            session: widget.session,
+            afterId: saved['id'] as int,
+            chainCount: widget.chainCount + 1,
+            seed: {
+              'desa': nullableText(village.text) ?? widget.session.village,
+              'rt': int.tryParse(rt.text),
+              'rw': int.tryParse(rw.text),
+            });
+        if (_drafAktif) await widget.session.store.clearDraft();
+        if (!mounted) return;
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => SurveyForm(
-                        session: widget.session,
-                        afterId: saved['id'] as int,
-                        chainCount: widget.chainCount + 1,
-                        seed: {
-                          'desa': nullableText(village.text) ??
-                              widget.session.village,
-                          'rt': int.tryParse(rt.text),
-                          'rw': int.tryParse(rw.text),
-                        })));
+            context, MaterialPageRoute(builder: (_) => next));
         return;
       }
       FocusManager.instance.primaryFocus?.unfocus();
-      Navigator.pop(context, saved['id'] as int);
+      final idBaru = saved['id'] as int;
+      if (_drafAktif) await widget.session.store.clearDraft();
+      if (!mounted) return;
+      Navigator.pop(context, idBaru);
     } catch (e) {
       if (mounted) {
         setState(() => saving = false);
