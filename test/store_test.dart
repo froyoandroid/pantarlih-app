@@ -483,9 +483,13 @@ void main() {
 
   test('insert between rows uses sparse keys and export follows that order',
       () async {
-    final first = await store.saveWarga(fields());
-    final third = await store.saveWarga(fields(name: 'ORANG TIGA'));
-    final middle = await store.saveWarga(fields(name: 'ORANG DUA'),
+    // Distinct NIKs: the export assertions below check that DUPLIKAT_NIK
+    // is skipped when no NIK actually repeats.
+    final first = await store.saveWarga(fields(nik: '3327071909680001'));
+    final third = await store.saveWarga(
+        fields(name: 'ORANG TIGA', nik: '3327071909680002'));
+    final middle = await store.saveWarga(
+        fields(name: 'ORANG DUA', nik: '3327071909680003'),
         afterId: first['id'] as int);
     expect(first['urut_sort'], 1000);
     expect(third['urut_sort'], 2000);
@@ -495,12 +499,25 @@ void main() {
         ['MUHAMAD HASAN', 'ORANG DUA', 'ORANG TIGA']);
     await store.reorderWarga(third['id'] as int, null, first['id'] as int);
     expect((await store.wargaRt(3, 3)).first['nama'], 'ORANG TIGA');
+    // Save a real duplicate name and one warga without NIK so the problem
+    // files are written (they are skipped when there is nothing to list).
+    await store.saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071909680077'));
+    await store.saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071109730088'));
+    await store.saveWarga(fields(name: 'BELUM ADA NIK', nik: null));
     final files = await ExportService(store)
         .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
     expect(files.any((f) => f.path.contains('PENDING')), isFalse);
     expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
     expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
-    expect(files.any((f) => f.path.contains('DUPLIKAT_NAMA')), isTrue);
+    expect(files.any((f) => f.path.contains('DUPLIKAT_NIK')), isFalse);
+    final duplikatNama =
+        files.firstWhere((f) => f.path.contains('DUPLIKAT_NAMA'));
+    final duplikatBook =
+        Excel.decodeBytes(await duplikatNama.readAsBytes());
+    final duplikatData =
+        duplikatBook.tables.entries.firstWhere((e) => e.key != 'INFO').value;
+    // One header row plus the two rows sharing the duplicate name.
+    expect(duplikatData.rows.length - 1, 2);
     final dps = files.firstWhere((f) {
       final n = f.path.split(Platform.pathSeparator).last;
       return n.startsWith('DPS_') &&
@@ -515,6 +532,18 @@ void main() {
     expect(cellText(rows[1][1]), 'ORANG TIGA');
     expect(cellText(rows[1][0]), '1');
     expect(cellText(rows[2][1]), 'MUHAMAD HASAN');
+  });
+
+  test('export skips problem files when there is nothing to list', () async {
+    // setUp fixture: all rows have a NIK, every name is unique.
+    final files = await ExportService(store)
+        .generate(tujuan: Directory('${root.path}/bersih_ekspor'), rw: 3, rt: 3);
+    final names =
+        files.map((f) => f.path.split(Platform.pathSeparator).last).toList();
+    expect(names.any((n) => n.startsWith('DPS_')), isTrue);
+    expect(names.any((n) => n.contains('DUPLIKAT_NIK')), isFalse);
+    expect(names.any((n) => n.contains('DUPLIKAT_NAMA')), isFalse);
+    expect(names.any((n) => n.contains('TANPA_NIK')), isFalse);
   });
 
   test('insert before a row uses the gap before that row', () async {
