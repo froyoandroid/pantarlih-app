@@ -126,6 +126,10 @@ String fileStamp() => timestamp().replaceAll(RegExp(r'[^0-9]'), '');
 
 typedef RecordMap = Map<String, Object?>;
 
+String formatRt(Object? rt) => 'RT ${intValue(rt).toString().padLeft(2, '0')}';
+String formatRw(Object? rw) => 'RW ${intValue(rw).toString().padLeft(2, '0')}';
+String formatRtRw(Object? rt, Object? rw) => '${formatRt(rt)} / ${formatRw(rw)}';
+
 class RtRw implements Comparable<RtRw> {
   const RtRw(this.rw, this.rt);
   final int rw;
@@ -155,8 +159,7 @@ class RtRw implements Comparable<RtRw> {
     return copy.map((e) => '${e.rw}.${e.rt}').join(',');
   }
 
-  String get label =>
-      'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
+  String get label => formatRtRw(rt, rw);
 
   @override
   int compareTo(RtRw other) {

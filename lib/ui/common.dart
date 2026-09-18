@@ -32,8 +32,7 @@ class Session extends ChangeNotifier {
   String? kodeWilayah;
   Lokasi? lokasi;
   List<RtRw> workspace = [];
-  String get label =>
-      'RT ${rt.toString().padLeft(2, '0')} / RW ${rw.toString().padLeft(2, '0')}';
+  String get label => formatRtRw(rt, rw);
   String get lokasiLabel {
     if (kodeWilayah == null || kodeWilayah!.isEmpty) {
       return 'Lokasi belum diatur';
@@ -398,9 +397,11 @@ class ResidentCard extends StatelessWidget {
                             : Tooltip(message: tglRaw, child: barisTgl),
                         const SizedBox(height: 4),
                         Text(
-                            'RT ${row['rt']} / RW ${row['rw']}'
-                            '${row['urut_asli'] == null ? '' : ' · No. ${row['urut_asli']}'}'
-                            '${nik.isEmpty ? '' : ' · $nik'}',
+                            formatRtRw(row['rt'], row['rw']) +
+                                (row['urut_asli'] == null
+                                    ? ''
+                                    : ' · No. ${row['urut_asli']}') +
+                                (nik.isEmpty ? '' : ' · $nik'),
                             style: TextStyle(
                                 fontSize: 12, color: Colors.grey.shade700)),
                         if (row['dibuat_pada'] != null)

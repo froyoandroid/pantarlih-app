@@ -82,14 +82,14 @@ void main() {
 
       expect(find.text('SUPARMAN JAYA'), findsOneWidget);
       expect(find.text('SUPARMAN WIJAYA'), findsOneWidget);
-      expect(find.text('Referensi di RT 3'), findsOneWidget);
+      expect(find.text('Referensi di RT 03'), findsOneWidget);
       expect(find.text('TERISI'), findsNothing);
 
       final jaya = tester.getTopLeft(find.text('SUPARMAN JAYA'));
       final wijaya = tester.getTopLeft(find.text('SUPARMAN WIJAYA'));
       expect(jaya.dy, lessThan(wijaya.dy));
 
-      final label = tester.widget<Text>(find.text('Referensi di RT 3'));
+      final label = tester.widget<Text>(find.text('Referensi di RT 03'));
       expect(label.style?.color, amber);
     });
   });
@@ -134,7 +134,7 @@ void main() {
       }
 
       expect(find.text('BUDIMAN SANTOSO'), findsOneWidget);
-      expect(find.text('Referensi di RT 3'), findsOneWidget);
+      expect(find.text('Referensi di RT 03'), findsOneWidget);
     });
   });
 
@@ -151,7 +151,7 @@ void main() {
 
       expect(find.text('SUPARMAN JAYA'), findsOneWidget);
       expect(find.text('SUPARMAN WIJAYA'), findsOneWidget);
-      expect(find.text('Referensi di RT 3'), findsOneWidget);
+      expect(find.text('Referensi di RT 03'), findsOneWidget);
 
       final jaya = tester.getTopLeft(find.text('SUPARMAN JAYA'));
       final wijaya = tester.getTopLeft(find.text('SUPARMAN WIJAYA'));

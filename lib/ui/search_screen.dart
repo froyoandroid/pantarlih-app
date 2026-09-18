@@ -307,7 +307,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                   kelengkapan:
                                       persenKelengkapanWarga(candidate.$1),
                                   label: candidate.$1['rt'] != session.rt
-                                      ? 'SUDAH DIINPUT · RT ${candidate.$1['rt']}'
+                                      ? 'SUDAH DIINPUT · ${formatRt(candidate.$1['rt'])}'
                                       : 'SUDAH DIINPUT',
                                   onTap: () =>
                                       _openForm(wargaRow: candidate.$1)),
@@ -327,7 +327,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             for (final candidate in hasil.referensi)
                               ResidentCard(candidate.$1,
                                   label: candidate.$1['rt'] != session.rt
-                                      ? 'Referensi di RT ${candidate.$1['rt']}'
+                                      ? 'Referensi di ${formatRt(candidate.$1['rt'])}'
                                       : null,
                                   labelColor: candidate.$1['rt'] != session.rt
                                       ? amber

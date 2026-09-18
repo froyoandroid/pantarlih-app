@@ -219,7 +219,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                   onPressed: busy ? null : start,
                                   icon: const Icon(Icons.arrow_forward),
                                   label: Text(busy
-                                      ? 'Membuka data…'
+                                      ? 'Membuka data'
                                       : 'BUKA APLIKASI')),
                               if (error != null && store != null)
                                 TextButton(
