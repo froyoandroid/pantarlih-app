@@ -424,7 +424,7 @@ class ResidentCard extends StatelessWidget {
                                   color: kelengkapan! < 60
                                       ? Colors.deepOrange
                                       : forest)),
-                          const Text('TERISI',
+                          const Text('Terisi',
                               style: TextStyle(
                                   fontSize: 9, fontWeight: FontWeight.w700)),
                         ])),

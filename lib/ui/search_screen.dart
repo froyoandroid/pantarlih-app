@@ -222,7 +222,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final active = hasil.aktif;
     return AppPage(
         session: session,
-        title: 'Cari warga',
+        title: 'Cari Warga',
         child: Column(children: [
           Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -284,8 +284,8 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (!active)
                             EmptyState(
                                 byDate
-                                    ? 'Pencarian tanggal lahir'
-                                    : 'Pencarian nama warga',
+                                    ? 'Pencarian Tanggal Lahir'
+                                    : 'Pencarian Nama Warga',
                                 byDate
                                     ? 'Ketik 8 angka tanggal lahir. Warga di RT aktif akan ditampilkan lebih awal.'
                                     : 'Ketik minimal 3 huruf nama. Pencarian mencakup data yang sudah dicatat dan referensi.',
@@ -297,7 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           if (active && hasil.warga.isNotEmpty) ...[
                             const Padding(
                                 padding: EdgeInsets.only(top: 8, bottom: 4),
-                                child: Text('SUDAH DIINPUT',
+                                child: Text('Sudah Diinput',
                                     style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: .6))),
@@ -307,21 +307,21 @@ class _SearchScreenState extends State<SearchScreen> {
                                   kelengkapan:
                                       persenKelengkapanWarga(candidate.$1),
                                   label: candidate.$1['rt'] != session.rt
-                                      ? 'SUDAH DIINPUT · ${formatRt(candidate.$1['rt'])}'
-                                      : 'SUDAH DIINPUT',
+                                      ? 'Sudah Diinput · ${formatRt(candidate.$1['rt'])}'
+                                      : 'Sudah Diinput',
                                   onTap: () =>
                                       _openForm(wargaRow: candidate.$1)),
                           ],
                           if (active) ...[
                             const Padding(
                                 padding: EdgeInsets.only(top: 12, bottom: 4),
-                                child: Text('REFERENSI',
+                                child: Text('Referensi',
                                     style: TextStyle(
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: .6))),
                             if (hasil.referensi.isEmpty)
                               const Text(
-                                  'Tidak ada saran referensi. Tambah data baru lewat tombol TAMBAH WARGA.',
+                                  'Tidak ada saran referensi. Tambah data baru lewat tombol Tambah Warga.',
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54)),
                             for (final candidate in hasil.referensi)
@@ -339,7 +339,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               child: FilledButton.icon(
                                   onPressed: () => _openForm(),
                                   icon: const Icon(Icons.person_add_alt_1),
-                                  label: const Text('TAMBAH WARGA'))),
+                                  label: const Text('Tambah Warga'))),
                           const Padding(
                               padding: EdgeInsets.all(12),
                               child: Text(

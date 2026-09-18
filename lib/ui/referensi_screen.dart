@@ -57,7 +57,7 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
                       builder: (_) => ImportScreen(session: widget.session)));
               if (mounted) _load();
             },
-            child: const Text('IMPOR BERKAS'))
+            child: const Text('Impor Berkas'))
       ],
       child: sumber == null
           ? const Center(child: CircularProgressIndicator())
@@ -74,8 +74,8 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
                         'Ketuk berkas untuk melihat isinya. Data referensi bersifat hanya-baca dan tidak mengubah data hasil input warga.'),
                     const SizedBox(height: 12),
                     if (sumber!.isEmpty) ...[
-                      const EmptyState('Belum ada berkas referensi',
-                          'Tekan IMPOR BERKAS untuk memuat daftar pemilih dari Excel atau CSV.',
+                      const EmptyState('Belum Ada Berkas Referensi',
+                          'Tekan Impor Berkas untuk memuat daftar pemilih dari Excel atau CSV.',
                           icon: Icons.folder_open_outlined),
                       const SizedBox(height: 12),
                       Center(
@@ -89,7 +89,7 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
                                 if (mounted) _load();
                               },
                               icon: const Icon(Icons.file_upload_outlined),
-                              label: const Text('IMPOR BERKAS'))),
+                              label: const Text('Impor Berkas'))),
                     ],
                     for (final file in sumber!)
                       Card(
@@ -215,8 +215,8 @@ class _ReferensiFileScreenState extends State<ReferensiFileScreen> {
                       if (tampil.isEmpty)
                         EmptyState(
                             filter.trim().isEmpty
-                                ? 'Berkas belum memiliki data'
-                                : 'Tidak ada data yang cocok',
+                                ? 'Berkas Belum Memiliki Data'
+                                : 'Tidak Ada Data yang Cocok',
                             filter.trim().isEmpty
                                 ? 'Impor ulang berkas bila data seharusnya ada.'
                                 : 'Coba kata kunci pencarian lain.',

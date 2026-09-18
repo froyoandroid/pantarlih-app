@@ -141,7 +141,7 @@ class _RtListScreenState extends State<RtListScreen> {
       context,
       'Hapus ${row['nama']}?',
       'Warga ini dihapus dari daftar. Jejak lengkap tetap ada di jurnal.',
-      action: 'HAPUS',
+      action: 'Hapus',
       dangerous: true);
 
   Future<void> _hapus(RecordMap row) async {
@@ -176,7 +176,7 @@ class _RtListScreenState extends State<RtListScreen> {
                               fontWeight: FontWeight.w800, fontSize: 16)))),
               ListTile(
                   leading: _titikWarna(Colors.white),
-                  title: const Text('Tanpa warna'),
+                  title: const Text('Tanpa Warna'),
                   selected: sekarang.isEmpty,
                   onTap: () => Navigator.pop(ctx, '')),
               for (final e in _labelWarna.entries)
@@ -257,10 +257,10 @@ class _RtListScreenState extends State<RtListScreen> {
         : rows;
     return AppPage(
         session: widget.session,
-        title: 'Daftar warga',
+        title: 'Daftar Warga',
         subtitle: widget.session.label,
         actions: [
-          TextButton(onPressed: () => _openKetik(), child: const Text('TAMBAH'))
+          TextButton(onPressed: () => _openKetik(), child: const Text('Tambah'))
         ],
         child: loading
             ? const Center(child: CircularProgressIndicator())
@@ -268,8 +268,8 @@ class _RtListScreenState extends State<RtListScreen> {
                 onRefresh: _load,
                 child: rows.isEmpty
                     ? ListView(children: const [
-                        EmptyState('Belum ada warga di RT ini',
-                            'Tekan TAMBAH WARGA untuk mulai mencatat warga pertama.',
+                        EmptyState('Belum Ada Warga di RT Ini',
+                            'Tekan Tambah Warga untuk mulai mencatat warga pertama.',
                             icon: Icons.person_add_alt_1)
                       ])
                     : Column(children: [
@@ -327,7 +327,7 @@ class _RtListScreenState extends State<RtListScreen> {
                         Expanded(
                             child: tampil.isEmpty
                                 ? ListView(children: const [
-                                    EmptyState('Tidak ada warga yang cocok',
+                                    EmptyState('Tidak Ada Warga yang Cocok',
                                         'Coba periksa kembali ejaan nama atau kata kunci pencarian.',
                                         icon: Icons.filter_alt_off_outlined)
                                   ])

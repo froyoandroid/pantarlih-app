@@ -58,7 +58,7 @@ class _JournalScreenState extends State<JournalScreen> {
         subtitle: hari == null ? null : '${hari!.length} hari · $total catatan',
         actions: [
           TextButton(
-              onPressed: busy ? null : _periksa, child: const Text('PERIKSA'))
+              onPressed: busy ? null : _periksa, child: const Text('Periksa'))
         ],
         child: hari == null
             ? const Center(child: CircularProgressIndicator())
@@ -66,7 +66,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 onRefresh: load,
                 child: ListView(padding: const EdgeInsets.all(20), children: [
                   const Notice(
-                      'Setiap perubahan data dicatat otomatis di jurnal dan tidak pernah dihapus. Ketuk tanggal untuk melihat riwayat harian. Anda dapat mengembalikan data ke versi sebelumnya atau membatalkan penghapusan warga. Tombol PERIKSA memastikan keutuhan catatan jurnal untuk pemulihan tanpa mengubah data aktif.',
+                      'Setiap perubahan data dicatat otomatis di jurnal dan tidak pernah dihapus. Ketuk tanggal untuk melihat riwayat harian. Anda dapat mengembalikan data ke versi sebelumnya atau membatalkan penghapusan warga. Tombol Periksa memastikan keutuhan catatan jurnal untuk pemulihan tanpa mengubah data aktif.',
                       icon: Icons.menu_book_outlined),
                   if (busy) const LinearProgressIndicator(),
                   if (hasil != null)
@@ -76,7 +76,7 @@ class _JournalScreenState extends State<JournalScreen> {
                             : 'Jurnal bermasalah. ${hasil!}\n\n${hasil!.details.take(20).join('\n')}${hasil!.details.length > 20 ? '\ndan ${hasil!.details.length - 20} baris lainnya' : ''}',
                         warning: hasil!.failed > 0),
                   if (hari!.isEmpty)
-                    const EmptyState('Jurnal masih kosong',
+                    const EmptyState('Jurnal Masih Kosong',
                         'Catatan perubahan data akan muncul di sini setelah Anda menyimpan warga.'),
                   for (final h in hari!)
                     Card(
@@ -253,7 +253,7 @@ class _JournalEventScreenState extends State<JournalEventScreen> {
             ? '${e.data['nama']} sudah tidak ada di daftar. Versi ini dimasukkan lagi di urutan paling akhir RT-nya.'
             : 'Data ${e.data['nama']} sekarang ditimpa dengan versi ini. Versi sekarang tetap tersimpan di jurnal.';
     if (!await confirm(context, judul, isi,
-        action: e.hapusWarga ? 'BATALKAN HAPUS' : 'KEMBALIKAN')) {
+        action: e.hapusWarga ? 'Batalkan Hapus' : 'Kembalikan')) {
       return;
     }
     setState(() => busy = true);
@@ -360,13 +360,13 @@ class _JournalEventScreenState extends State<JournalEventScreen> {
                                       session: widget.session,
                                       warga: sekarang!))).then((_) => load()),
                       icon: const Icon(Icons.person_search),
-                      label: const Text('BUKA WARGA SEKARANG')),
+                      label: const Text('Buka Warga Sekarang')),
                 const SizedBox(height: 8),
                 if (e.hapusWarga && sekarang == null)
                   FilledButton.icon(
                       onPressed: busy ? null : _kembalikan,
                       icon: const Icon(Icons.undo),
-                      label: const Text('BATALKAN HAPUS'))
+                      label: const Text('Batalkan Hapus'))
                 else if (e.versiWarga &&
                     (sekarang == null ||
                         _kolom.any(
@@ -374,7 +374,7 @@ class _JournalEventScreenState extends State<JournalEventScreen> {
                   FilledButton.icon(
                       onPressed: busy ? null : _kembalikan,
                       icon: const Icon(Icons.history),
-                      label: const Text('KEMBALIKAN VERSI INI')),
+                      label: const Text('Kembalikan Versi Ini')),
               ]));
   }
 }

@@ -78,7 +78,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
     final waktu = waktuTampil(timestamp(info.dibuat));
     if (!await confirm(context, 'Pulihkan snapshot ini?',
         'Database kembali ke keadaan $waktu dengan ${info.jumlah} warga. Warga yang diketik setelah itu hilang dari daftar, yang dihapus kembali muncul.\n\nDatabase sekarang diamankan ke folder recovered dan jurnal tetap lengkap. Pemulihan ini juga tercatat di jurnal.',
-        action: 'PULIHKAN', dangerous: true)) {
+        action: 'Pulihkan', dangerous: true)) {
       return;
     }
     await run(() async {
@@ -91,7 +91,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
   Future<void> _bagikan(SnapshotInfo info) async {
     if (!await confirm(context, 'Bagikan data pribadi?',
         'Snapshot memuat NIK, nama, dan tanggal lahir semua warga. Pilih penerima tepercaya, aplikasi lain yang Anda pilih dapat mengirimkan berkas ke internet.',
-        action: 'PILIH PENERIMA')) {
+        action: 'Pilih Penerima')) {
       return;
     }
     try {
@@ -114,7 +114,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
       subtitle: items == null ? null : '${items!.length} dari 20 tersimpan',
       actions: [
         TextButton(
-            onPressed: busy ? null : _buat, child: const Text('BUAT BARU'))
+            onPressed: busy ? null : _buat, child: const Text('Buat Baru'))
       ],
       child: items == null
           ? const Center(child: CircularProgressIndicator())
@@ -122,7 +122,7 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
               onRefresh: load,
               child: ListView(padding: const EdgeInsets.all(20), children: [
                 const Notice(
-                    'Snapshot adalah salinan utuh database lokal pada titik waktu tertentu. Dibuat otomatis setiap berpindah RT dan lewat tombol BUAT BARU. Tersimpan hingga 20 salinan terbaru secara bergantian. Tombol PULIHKAN mengembalikan database ke keadaan pada waktu snapshot tersebut.',
+                    'Snapshot adalah salinan utuh database lokal pada titik waktu tertentu. Dibuat otomatis setiap berpindah RT dan lewat tombol Buat Baru. Tersimpan hingga 20 salinan terbaru secara bergantian. Tombol Pulihkan mengembalikan database ke keadaan pada waktu snapshot tersebut.',
                     icon: Icons.history_toggle_off),
                 if (busy) const LinearProgressIndicator(),
                 if (report != null) Notice(report!),
@@ -131,8 +131,8 @@ class _SnapshotScreenState extends State<SnapshotScreen> {
                       '$rusak berkas snapshot tidak dapat dibaca dan tidak ditampilkan.',
                       warning: true),
                 if (items!.isEmpty)
-                  const EmptyState('Belum ada snapshot',
-                      'Snapshot pertama dibuat otomatis saat berpindah RT atau saat Anda menekan BUAT BARU.',
+                  const EmptyState('Belum Ada Snapshot',
+                      'Snapshot pertama dibuat otomatis saat berpindah RT atau saat Anda menekan Buat Baru.',
                       icon: Icons.photo_camera_back_outlined),
                 for (var i = 0; i < items!.length; i++)
                   _SnapshotCard(
@@ -201,15 +201,15 @@ class _SnapshotCard extends StatelessWidget {
             Wrap(spacing: 4, children: [
               TextButton(
                   onPressed: busy ? null : onLihat,
-                  child: const Text('LIHAT ISI')),
+                  child: const Text('Lihat Isi')),
               TextButton(
                   onPressed: busy ? null : onBanding,
-                  child: const Text('BANDINGKAN')),
+                  child: const Text('Bandingkan')),
               TextButton(
                   onPressed: busy ? null : onPulihkan,
                   style: TextButton.styleFrom(
                       foregroundColor: Colors.red.shade800),
-                  child: const Text('PULIHKAN')),
+                  child: const Text('Pulihkan')),
             ]),
           ])));
 }
@@ -258,7 +258,7 @@ class _SnapshotIsiScreenState extends State<SnapshotIsiScreen> {
     }
     return AppPage(
         session: widget.session,
-        title: 'Isi snapshot',
+        title: 'Isi Snapshot',
         subtitle: waktuTampil(timestamp(widget.info.dibuat)),
         child: rows == null && gagal == null
             ? const Center(child: CircularProgressIndicator())
@@ -266,11 +266,11 @@ class _SnapshotIsiScreenState extends State<SnapshotIsiScreen> {
                 if (gagal != null)
                   const Notice('Snapshot tidak dapat dibaca.', error: true)
                 else if (rows!.isEmpty)
-                  const EmptyState('Snapshot kosong',
+                  const EmptyState('Snapshot Kosong',
                       'Tidak ada data warga tersimpan pada waktu tersebut.')
                 else
                   const Notice(
-                      'Tampilan baca saja. Untuk mengembalikan keadaan ini, pakai PULIHKAN pada daftar snapshot.'),
+                      'Tampilan baca saja. Untuk mengembalikan keadaan ini, pakai Pulihkan pada daftar snapshot.'),
                 ...children,
               ]));
   }
@@ -308,7 +308,7 @@ class _SnapshotBandingScreenState extends State<SnapshotBandingScreen> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: 'Bandingkan snapshot',
+      title: 'Bandingkan Snapshot',
       subtitle: waktuTampil(timestamp(widget.info.dibuat)),
       child: hasil == null && gagal == null
           ? const Center(child: CircularProgressIndicator())
@@ -316,7 +316,7 @@ class _SnapshotBandingScreenState extends State<SnapshotBandingScreen> {
               if (gagal != null)
                 const Notice('Snapshot tidak dapat dibaca.', error: true)
               else if (hasil!.kosong)
-                const EmptyState('Tidak ada perbedaan',
+                const EmptyState('Tidak Ada Perbedaan',
                     'Kondisi data saat ini identik dengan snapshot ini.',
                     icon: Icons.check_circle_outline)
               else ...[
@@ -325,20 +325,20 @@ class _SnapshotBandingScreenState extends State<SnapshotBandingScreen> {
                 if (hasil!.ditambah.isNotEmpty) ...[
                   _judul('Ditambah sejak snapshot', hasil!.ditambah.length),
                   for (final r in hasil!.ditambah)
-                    ResidentCard(r, label: 'BARU'),
+                    ResidentCard(r, label: 'Baru'),
                 ],
                 if (hasil!.dihapus.isNotEmpty) ...[
                   _judul('Dihapus sejak snapshot', hasil!.dihapus.length),
                   for (final r in hasil!.dihapus)
-                    ResidentCard(r, label: 'DIHAPUS · ADA DI SNAPSHOT'),
+                    ResidentCard(r, label: 'Dihapus · Ada di Snapshot'),
                 ],
                 if (hasil!.berubah.isNotEmpty) ...[
                   _judul('Berubah', hasil!.berubah.length),
                   for (final (lama, kini, beda) in hasil!.berubah) ...[
                     ResidentCard(kini,
                         label:
-                            'SEKARANG · berubah: ${beda.map(namaKolomTampil).join(', ')}'),
-                    ResidentCard(lama, label: 'DI SNAPSHOT'),
+                            'Sekarang · Berubah: ${beda.map(namaKolomTampil).join(', ')}'),
+                    ResidentCard(lama, label: 'Di Snapshot'),
                     const SizedBox(height: 6),
                   ],
                 ],
