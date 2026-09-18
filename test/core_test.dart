@@ -51,6 +51,26 @@ void main() {
     expect(teks(3), '3');
   });
 
+  test('warga completeness counts main fields and ignores optional fields', () {
+    expect(
+        persenKelengkapanWarga({
+          'nama': 'HAMZAH',
+          'jenis_kelamin': 'L',
+          'tempat_lahir': 'BREBES',
+          'tgl_lahir': '1990-01-01',
+          'desa': 'KALITORONG',
+          'rt': 3,
+          'rw': 2,
+          'nik': null,
+          'keterangan': null,
+        }),
+        100);
+    expect(persenKelengkapanWarga({'nama': 'HAMZAH', 'rt': 3, 'rw': 2}),
+        closeTo(3 / 7 * 100, 0.0001));
+    expect(persenKelengkapanWarga({'nama': 'HAMZAH', 'rt': 0, 'rw': null}),
+        closeTo(1 / 7 * 100, 0.0001));
+  });
+
   test('date formatter inserts dashes and still parses to ISO', () {
     final formatted = TanggalInputFormatter().formatEditUpdate(
         TextEditingValue.empty, const TextEditingValue(text: '19091968'));

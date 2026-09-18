@@ -346,14 +346,14 @@ Future<bool> confirm(BuildContext context, String title, String message,
 class ResidentCard extends StatelessWidget {
   const ResidentCard(this.row,
       {super.key,
-      this.score,
+      this.kelengkapan,
       this.onTap,
       this.label,
       this.labelColor,
       this.trailing,
       this.highlight = false});
   final RecordMap row;
-  final double? score;
+  final double? kelengkapan;
   final VoidCallback? onTap;
   final String? label;
   final Color? labelColor;
@@ -387,8 +387,8 @@ class ResidentCard extends StatelessWidget {
                                   style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color:
-                                          labelColor ?? Colors.blueGrey.shade700))),
+                                      color: labelColor ??
+                                          Colors.blueGrey.shade700))),
                         Text('${row['nama']}',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 16)),
@@ -407,18 +407,26 @@ class ResidentCard extends StatelessWidget {
                           Text(waktuTampil(row['dibuat_pada']),
                               style: const TextStyle(fontSize: 11)),
                       ])),
-                  if (score != null)
+                  if (kelengkapan != null)
                     Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                            color: (score! < 60 ? Colors.deepOrange : forest)
-                                .withValues(alpha: .1),
+                            color:
+                                (kelengkapan! < 60 ? Colors.deepOrange : forest)
+                                    .withValues(alpha: .1),
                             borderRadius: BorderRadius.circular(10)),
-                        child: Text('${score!.round()}%',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color:
-                                    score! < 60 ? Colors.deepOrange : forest))),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text('${kelengkapan!.round()}%',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: kelengkapan! < 60
+                                      ? Colors.deepOrange
+                                      : forest)),
+                          const Text('TERISI',
+                              style: TextStyle(
+                                  fontSize: 9, fontWeight: FontWeight.w700)),
+                        ])),
                   if (trailing != null) trailing!,
                 ]))));
   }
