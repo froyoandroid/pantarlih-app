@@ -97,7 +97,7 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
-      title: 'Ekspor & pemulihan',
+      title: 'Ekspor & Pemulihan',
       child: ListView(padding: const EdgeInsets.all(20), children: [
         const Text('Pemeriksaan data',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
@@ -223,7 +223,7 @@ class _AdminScreenState extends State<AdminScreen> {
               icon: const Icon(Icons.pin_drop_outlined),
               label: const Text('TETAPKAN KODE WILAYAH UNTUK WARGA LAMA')),
         const SizedBox(height: 28),
-        const Text('Ketahanan & pemulihan',
+        const Text('Ketahanan & Pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
             'Jurnal dicatat sebelum database pada setiap aksi. Snapshot menyimpan 20 salinan terbaru di dalam aplikasi, yang paling lama dirotasi otomatis. Setiap snapshot juga dibundel bersama jurnal ke folder cadangan publik bila izin berkas sudah diberikan. Jurnal tidak pernah dihapus.',
