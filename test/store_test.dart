@@ -1775,4 +1775,20 @@ void main() {
     });
   });
 
+  group('draf formulir', () {
+    test('save, load, and clear round-trip without journal events', () async {
+      expect(await store.loadDraft(), isNull);
+      await store.saveDraft('{"nama":"UJICOBA"}');
+      expect(await store.loadDraft(), '{"nama":"UJICOBA"}');
+      await store.saveDraft('{"nama":"KEDUA"}');
+      expect(await store.loadDraft(), '{"nama":"KEDUA"}');
+      await store.clearDraft();
+      expect(await store.loadDraft(), isNull);
+      // Drafts must not bloat the journal: no log rows are written.
+      final log = await store.db
+          .query('log', where: 'tabel = ?', whereArgs: ['setelan']);
+      expect(
+          log.where((r) => '${r['payload']}'.contains('draf_form')), isEmpty);
+    });
+  });
 }
