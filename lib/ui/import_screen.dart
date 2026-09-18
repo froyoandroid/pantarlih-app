@@ -168,7 +168,7 @@ class _ImportScreenState extends State<ImportScreen> {
           'Impor ${prep.records.length} referensi?',
           'Sheet $sheet · ${formatRtRw(rt.text, rw.text)}\n'
               '${prep.skipped.length} baris akan dilewati.\n\n'
-              'Referensi hanya bantuan pengetikan. Impor ulang file yang sama diperbolehkan.',
+              'Referensi hanya bantuan pengetikan. Impor ulang berkas yang sama diperbolehkan.',
           action: 'IMPOR SEKARANG')) {
         return;
       }
@@ -238,12 +238,12 @@ class _ImportScreenState extends State<ImportScreen> {
 
   Future<void> _hapusFile(RecordMap row) async {
     final nama = teks(row['sumber_file']);
-    final label = nama.isEmpty ? 'file tanpa nama' : nama;
+    final label = nama.isEmpty ? 'berkas tanpa nama' : nama;
     if (!await confirm(
         context,
         'Hapus referensi dari $label?',
-        'Hanya ${intValue(row['jumlah'])} baris dari file ini yang terhapus. '
-            'File lain dan data hasil ketikan tidak ikut terhapus.',
+        'Hanya ${intValue(row['jumlah'])} baris dari berkas ini yang terhapus. '
+            'Berkas lain dan data hasil ketikan tidak ikut terhapus.',
         action: 'HAPUS',
         dangerous: true)) {
       return;
@@ -323,7 +323,7 @@ class _ImportScreenState extends State<ImportScreen> {
                                       color: Colors.grey.shade700)),
                             ])),
                         IconButton(
-                            tooltip: 'Hapus referensi dari file ini',
+                            tooltip: 'Hapus referensi dari berkas ini',
                             visualDensity: VisualDensity.compact,
                             onPressed: busy ? null : () => _hapusFile(row),
                             icon: const Icon(Icons.delete_outline, size: 20)),
@@ -433,7 +433,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       controller: rt,
                       keyboardType: TextInputType.number,
                       decoration:
-                          const InputDecoration(labelText: 'RT file ini'),
+                          const InputDecoration(labelText: 'RT berkas ini'),
                       onChanged: (_) => setState(() => confirmed = false))),
               const SizedBox(width: 12),
               Expanded(

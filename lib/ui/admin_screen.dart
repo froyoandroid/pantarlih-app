@@ -139,7 +139,7 @@ class _AdminScreenState extends State<AdminScreen> {
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Gabungan, satu sheet per RT'),
-            subtitle: const Text('Nonaktif: satu file per RT'),
+            subtitle: const Text('Nonaktif: satu berkas per RT'),
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
         SwitchListTile(
@@ -149,7 +149,7 @@ class _AdminScreenState extends State<AdminScreen> {
             value: kop,
             onChanged: busy ? null : (v) => setState(() => kop = v)),
         const Notice(
-            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di file mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK dibuat terpisah.'),
+            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di berkas mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK dibuat terpisah.'),
         FilledButton.icon(
             onPressed: busy
                 ? null
