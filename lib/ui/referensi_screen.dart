@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/format.dart';
 import 'common.dart';
+import 'import_screen.dart';
 
 class ReferensiScreen extends StatefulWidget {
   const ReferensiScreen({super.key, required this.session});
@@ -47,6 +48,17 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
   Widget build(BuildContext context) => AppPage(
       session: widget.session,
       title: 'Referensi',
+      actions: [
+        TextButton(
+            onPressed: () async {
+              await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => ImportScreen(session: widget.session)));
+              if (mounted) _load();
+            },
+            child: const Text('IMPOR BERKAS'))
+      ],
       child: sumber == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -61,10 +73,24 @@ class _ReferensiScreenState extends State<ReferensiScreen> {
                     const Text(
                         'Ketuk file untuk membaca isinya. Referensi hanya-baca dan tidak mengubah data hasil ketikan.'),
                     const SizedBox(height: 12),
-                    if (sumber!.isEmpty)
-                      const EmptyState('Belum ada file referensi',
-                          'Impor file .XLSX atau .CSV untuk melihatnya di sini.',
+                    if (sumber!.isEmpty) ...[
+                      const EmptyState('Belum ada berkas referensi',
+                          'Impor berkas .xlsx atau .csv untuk melihatnya di sini.',
                           icon: Icons.folder_open_outlined),
+                      const SizedBox(height: 12),
+                      Center(
+                          child: FilledButton.icon(
+                              onPressed: () async {
+                                await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => ImportScreen(
+                                            session: widget.session)));
+                                if (mounted) _load();
+                              },
+                              icon: const Icon(Icons.file_upload_outlined),
+                              label: const Text('IMPOR BERKAS'))),
+                    ],
                     for (final file in sumber!)
                       Card(
                           child: ListTile(

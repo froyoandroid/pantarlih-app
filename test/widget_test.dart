@@ -8,7 +8,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(PantarlihApp(introSudah: () async => false));
     await tester.pump();
-    expect(find.text('Pantarlih'), findsOneWidget);
+    expect(find.text('TilikSuara'), findsOneWidget);
     expect(find.text('BUKA APLIKASI'), findsOneWidget);
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     expect(tester.takeException(), isNull);

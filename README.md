@@ -1,4 +1,4 @@
-# Pantarlih Kalitorong
+# TilikSuara · pendataan DPS offline
 
 Aplikasi Flutter/Dart untuk Android, satu pengguna dan perangkat, sepenuhnya offline. Alat entri data DPS: mengetik sesuai KK asli, dengan saran dari data lama bila diimpor. Tidak menghitung umur dan tidak menentukan kelayakan warga.
 
@@ -30,7 +30,7 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 
 - Semua teks antarmuka berbahasa Indonesia dan tidak mengandung titik koma (`;`).
 - Kapitalisasi tombol: aksi utama dan destruktif HURUF BESAR (SIMPAN, HAPUS, BANGUN ULANG DATABASE), aksi sekunder atau pembatal kapital kalimat (Batal, Tutup, Coba minta izin lagi).
-- Judul AppBar selalu nama halaman (Beranda, Daftar RT, Ketik nama, Input survei, Riwayat, Referensi, Impor referensi, Ekspor & pemulihan). Tanggal dan hitungan berada di badan halaman, bukan di judul.
+- Judul AppBar selalu nama halaman (Beranda, Daftar warga, Cari warga, Warga baru / Ubah data warga, Riwayat, Referensi, Impor referensi, Ekspor & pemulihan). Tanggal dan hitungan berada di badan halaman, bukan di judul.
 - Penggabung bagian teks memakai titik tengah dengan spasi (` · `), konsisten di seluruh layar.
 
 ## Penggunaan
@@ -38,8 +38,8 @@ APK produksi: `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~19 MB,
 1. Instal APK (Android 7.0+) dan buka aplikasi. Tidak ada izin yang diminta saat membuka. Izin akses berkas (Android 11+: “Izinkan akses untuk mengelola semua file”, Android 7–10: izin penyimpanan biasa) baru diminta saat pertama kali ekspor Excel, membuat cadangan, atau impor.
 2. Impor referensi bersifat opsional. Bila ada workbook lama, pilih sheet `RT 03`, `RT 04`, dan `RT 05` satu per satu. Jangan impor `REKAP`. Kolom dipetakan di layar. Impor ulang diperbolehkan. Halaman Referensi di Beranda dapat membuka isi setiap file yang sudah diimpor. Ada menu hapus semua referensi.
 3. Saat pertama dibuka, pilih Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan, atau ketik manual, atau lewati. RT/RW tetap diketik petugas (data Kemendagri berhenti di desa). Pergantian RT/RW membuat snapshot di dalam aplikasi, dan bila izin berkas sudah ada, juga bundel cadangan plus Excel otomatis di folder publik. Beranda menampilkan jumlah baris dan jumlah tanpa NIK per RT, tanpa persen atau target.
-4. Daftar RT adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
-5. Ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. Referensi juga dapat dibaca sendiri dari halaman Referensi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
+4. Daftar warga adalah layar utama. Tambah di akhir, tombol + di bawah baris untuk sisip, tahan gagang untuk geser, geser kiri untuk hapus. Nomor di ekspor mengikuti urutan ini.
+5. Cari warga: ketik nama minimal 3 karakter. Bagian SUDAH DIINPUT membuka baris yang sudah ada. Bagian REFERENSI mengisi field tanpa menyimpan relasi. Referensi juga dapat dibaca sendiri dari halaman Referensi. TAMBAH BARU selalu dapat ditekan. Jalur tanggal lahir menampilkan semua kecocokan, RT aktif lebih dulu.
 6. Isi nama dulu, lalu NIK, JK, tempat/tanggal lahir. NIK boleh kosong. NIK yang bukan 16 digit, tanggal/JK yang tidak cocok, dan NIK duplikat hanya peringatan dan tetap bisa disimpan. Keterangan tetap satu kolom teks bebas di database dan di ekspor, dengan empat kode yang dikenali (TMS, PD, B, MD) untuk pintasan pengisian dan penyaringan di layar. Nilai tak dikenal disimpan apa adanya dan tidak pernah dinilai.
 7. Riwayat menampilkan 20 input terakhir. Jurnal menampilkan semua catatan perubahan per hari dan bisa mengembalikan versi lama seorang warga. Ekspor membuat DPS per RT atau gabungan, plus DUPLIKAT_NIK dan TANPA_NIK. Tidak ada file pending atau konflik RT. Berbagi selalu memerlukan aksi dan konfirmasi eksplisit.
 

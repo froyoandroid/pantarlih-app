@@ -222,7 +222,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final active = hasil.aktif;
     return AppPage(
         session: session,
-        title: 'Ketik nama',
+        title: 'Cari warga',
         child: Column(children: [
           Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
