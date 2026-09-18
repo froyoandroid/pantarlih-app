@@ -171,7 +171,7 @@ class _ReferensiFileScreenState extends State<ReferensiFileScreen> {
     if (tanggal.isNotEmpty) {
       bagian.add('$tanggal · ${jkTampil(row['jenis_kelamin'])}');
     }
-    if (rt > 0 || rw > 0) bagian.add('RT $rt / RW $rw');
+    if (rt > 0 || rw > 0) bagian.add(formatRtRw(rt, rw));
     if (desa.isNotEmpty) bagian.add(desa);
     if (urut > 0) bagian.add('No. $urut');
     if (baris > 0) bagian.add('Baris file $baris');

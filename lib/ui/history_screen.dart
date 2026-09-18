@@ -65,7 +65,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       label: widget.kind == SurveyListKind.duplicates
                           ? 'NIK ${row['nik']}'
                           : widget.kind == SurveyListKind.duplicateNames
-                              ? 'RT ${row['rt']} · ${row['nama']}'
+                              ? '${formatRt(row['rt'])} · ${row['nama']}'
                               : null,
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () async {

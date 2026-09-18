@@ -166,7 +166,7 @@ class _ImportScreenState extends State<ImportScreen> {
       if (!await confirm(
           context,
           'Impor ${prep.records.length} referensi?',
-          'Sheet $sheet · RT ${rt.text} / RW ${rw.text}\n'
+          'Sheet $sheet · ${formatRtRw(rt.text, rw.text)}\n'
               '${prep.skipped.length} baris akan dilewati.\n\n'
               'Referensi hanya bantuan pengetikan. Impor ulang file yang sama diperbolehkan.',
           action: 'IMPOR SEKARANG')) {
@@ -459,14 +459,14 @@ class _ImportScreenState extends State<ImportScreen> {
             CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text(
-                    'Saya sudah memeriksa pemetaan dan RT ${rt.text} / RW ${rw.text}.'),
+                    'Saya sudah memeriksa pemetaan dan ${formatRtRw(rt.text, rw.text)}.'),
                 value: confirmed,
                 onChanged: busy ? null : (v) => setState(() => confirmed = v!)),
             if (report != null) Notice(report!),
             FilledButton.icon(
                 onPressed: busy || !confirmed ? null : import,
                 icon: const Icon(Icons.download_done),
-                label: Text(busy ? 'Memproses…' : 'IMPOR REFERENSI')),
+                label: Text(busy ? 'Memproses' : 'IMPOR REFERENSI')),
           ],
           const SizedBox(height: 12),
           const Notice(

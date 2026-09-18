@@ -156,7 +156,7 @@ class _SurveyFormState extends State<SurveyForm> {
           !widget.session.workspace.contains(RtRw(rwBaru, rtBaru))) {
         final tambah = await confirm(
             context,
-            'RT ${rtBaru.toString().padLeft(2, '0')} RW ${rwBaru.toString().padLeft(2, '0')} belum ada di wilayah kerja',
+            '${formatRtRw(rtBaru, rwBaru)} belum ada di wilayah kerja',
             'Tambahkan agar data ini tampil di daftar. Bila dilewati, data tetap tersimpan dan bisa ditambahkan dari Beranda.',
             action: 'TAMBAHKAN');
         if (!mounted) return;
@@ -177,7 +177,7 @@ class _SurveyFormState extends State<SurveyForm> {
         }
         if (!mounted) return;
         final isi = [
-          'NIK yang sama sudah tercatat pada:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
+          'NIK yang sama sudah tercatat pada:\n${duplicates.map((r) => '• ${r['nama']} · ${formatRt(r['rt'])} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
           'Simpan tetap bila memang dua orang berbeda.',
         ].join('\n\n');
         final decision = await showDialog<String>(
