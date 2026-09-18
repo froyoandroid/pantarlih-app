@@ -932,6 +932,58 @@ class AppStore extends ChangeNotifier {
     return rows.first['n'] as int;
   }
 
+  /// Reference rows without a typed-warga counterpart. A row counts as done
+  /// when a warga in the same RT shares its nama_norm and, when both sides
+  /// carry a birthdate, the same tgl_lahir - same rule the UI uses to label
+  /// a reference row as already typed, so batch and the sisa screen agree.
+  Future<List<RecordMap>> referensiBelum(int rw, int rt) => db.rawQuery('''
+    SELECT r.* FROM referensi r
+    WHERE r.rw = ? AND r.rt = ? AND NOT EXISTS (
+      SELECT 1 FROM warga w
+      WHERE w.rw = r.rw AND w.rt = r.rt AND w.nama_norm = r.nama_norm
+        AND (r.tgl_lahir IS NULL OR w.tgl_lahir IS NULL
+             OR w.tgl_lahir = r.tgl_lahir))
+    ORDER BY r.urut_asli ASC, r.id ASC''', [rw, rt]);
+
+  /// Turns one reference row into a typed warga through the normal saveWarga
+  /// path, so validation, journal and end-of-list ordering stay identical to
+  /// a manual entry. The reference row itself is kept untouched as source
+  /// evidence; referensiBelum stops listing it once the warga exists.
+  Future<RecordMap> promosikanReferensi(int refId,
+      {int? afterId, int? beforeId}) async {
+    final rows =
+        await db.query('referensi', where: 'id = ?', whereArgs: [refId]);
+    if (rows.isEmpty) {
+      throw AppException('Baris referensi tidak ditemukan');
+    }
+    final ref = rows.first;
+    return saveWarga({
+      'nik': nullableText(teks(ref['nik_lama'])),
+      'nama': ref['nama'],
+      'jenis_kelamin': ref['jenis_kelamin'],
+      'tempat_lahir': ref['tempat_lahir'],
+      'tgl_lahir': ref['tgl_lahir'],
+      'desa': ref['desa'],
+      'kode_wilayah': ref['kode_wilayah'],
+      'rt': ref['rt'],
+      'rw': ref['rw'],
+      'keterangan': null,
+      'warna': null,
+    }, afterId: afterId, beforeId: beforeId);
+  }
+
+  /// Promotes every unmatched reference row of one RT, in file order. Each
+  /// promotion is its own journaled INSERT; a failure mid-batch leaves the
+  /// earlier rows committed and returns no partial state.
+  Future<int> promosikanBatch(int rw, int rt) async {
+    final sisa = await referensiBelum(rw, rt);
+    for (final ref in sisa) {
+      await promosikanReferensi(ref['id'] as int);
+    }
+    return sisa.length;
+  }
+
+
   /// Source files behind the stored reference rows, newest import first.
   /// One row per file with its row count and last import time, so the UI can
   /// answer "referensi dari file mana yang sedang dipakai".

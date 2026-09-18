@@ -1726,4 +1726,53 @@ void main() {
       await isolated.delete(recursive: true);
     }
   });
+
+  group('promosi referensi', () {
+    test('promosikanReferensi copies the row through saveWarga', () async {
+      final ref = (await store.referensiFile('fixture.xlsx')).first;
+      final saved = await store.promosikanReferensi(ref['id'] as int);
+      expect(saved['nama'], ref['nama']);
+      expect(saved['nik'], ref['nik_lama']);
+      expect(saved['tgl_lahir'], ref['tgl_lahir']);
+      expect(saved['rt'], 3);
+      expect(saved['rw'], 3);
+      // The reference row stays untouched as source evidence.
+      expect(await store.referensiFile('fixture.xlsx'), isNotEmpty);
+    });
+
+    test('referensiBelum drops rows once a matching warga exists', () async {
+      final sisaAwal = await store.referensiBelum(3, 3);
+      expect(sisaAwal, isNotEmpty);
+      final ref = sisaAwal.first;
+      await store.promosikanReferensi(ref['id'] as int);
+      final sisa = await store.referensiBelum(3, 3);
+      expect(sisa.length, sisaAwal.length - 1);
+      expect(sisa.map((r) => r['id']), isNot(contains(ref['id'])));
+    });
+
+    test('promosikanBatch promotes every unmatched row in file order',
+        () async {
+      final sisa = await store.referensiBelum(3, 3);
+      final jumlah = await store.promosikanBatch(3, 3);
+      expect(jumlah, sisa.length);
+      expect(await store.referensiBelum(3, 3), isEmpty);
+      final warga = await store.wargaRt(3, 3);
+      expect(warga.map((r) => r['nama']),
+          containsAll(sisa.map((r) => r['nama'])));
+      // Batch rows land at the end, following the file's urut_asli order.
+      final namaUrut = [for (final r in warga) '${r['nama']}'];
+      var terakhir = -1;
+      for (final ref in sisa) {
+        final pos = namaUrut.indexOf('${ref['nama']}');
+        expect(pos, greaterThan(terakhir));
+        terakhir = pos;
+      }
+    });
+
+    test('promosikanReferensi rejects an unknown reference id', () {
+      expect(() => store.promosikanReferensi(999999),
+          throwsA(isA<AppException>()));
+    });
+  });
+
 }
