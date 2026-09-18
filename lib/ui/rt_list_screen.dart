@@ -3,6 +3,7 @@ import '../core/format.dart';
 import '../core/keterangan.dart';
 import '../data/order.dart';
 import 'common.dart';
+import 'referensi_screen.dart';
 import 'search_screen.dart';
 import 'survey_form.dart';
 
@@ -235,6 +236,38 @@ class _RtListScreenState extends State<RtListScreen> {
     }
   }
 
+  Future<void> _promosikanBatch() async {
+    final s = widget.session;
+    try {
+      final sisa = await s.store.referensiBelum(s.rw, s.rt);
+      if (!mounted) return;
+      if (sisa.isEmpty) {
+        feedback(context, 'Semua referensi RT ini sudah diinput');
+        return;
+      }
+      final setuju = await confirm(
+          context,
+          'Promosikan Referensi',
+          '${sisa.length} baris referensi RT ini belum diinput. Semuanya akan disimpan sebagai data warga di akhir daftar.',
+          action: 'Promosikan');
+      if (!setuju || !mounted) return;
+      final jumlah = await s.store.promosikanBatch(s.rw, s.rt);
+      if (!mounted) return;
+      feedback(context, '$jumlah warga ditambahkan dari referensi');
+      await _load();
+    } catch (e) {
+      if (mounted) feedback(context, e, error: true);
+    }
+  }
+
+  Future<void> _bukaSisa() async {
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => SisaReferensiScreen(session: widget.session)));
+    if (mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final jumlah = intValue(counts?['jumlah']);
@@ -260,7 +293,19 @@ class _RtListScreenState extends State<RtListScreen> {
         title: 'Daftar Warga',
         subtitle: widget.session.label,
         actions: [
-          TextButton(onPressed: () => _openKetik(), child: const Text('Tambah'))
+          TextButton(onPressed: () => _openKetik(), child: const Text('Tambah')),
+          PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'sisa') _bukaSisa();
+                if (value == 'promosi') _promosikanBatch();
+              },
+              itemBuilder: (ctx) => const [
+                    PopupMenuItem(
+                        value: 'sisa', child: Text('Belum Diinput')),
+                    PopupMenuItem(
+                        value: 'promosi',
+                        child: Text('Promosikan Referensi')),
+                  ]),
         ],
         child: loading
             ? const Center(child: CircularProgressIndicator())
