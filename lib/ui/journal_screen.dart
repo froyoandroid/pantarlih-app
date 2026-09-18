@@ -66,7 +66,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 onRefresh: load,
                 child: ListView(padding: const EdgeInsets.all(20), children: [
                   const Notice(
-                      'Setiap perubahan dicatat di sini sebelum masuk database, dan tidak pernah dihapus. Buka satu hari untuk melihat catatannya. Dari catatan warga Anda bisa mengembalikan versi lama atau membatalkan hapus. PERIKSA memutar ulang seluruh jurnal ke database uji tanpa menyentuh data.',
+                      'Setiap perubahan dicatat di sini sebelum masuk database, dan tidak pernah dihapus. Buka satu hari untuk melihat catatannya. Dari catatan warga Anda bisa mengembalikan versi lama atau membatalkan hapus. PERIKSA mengecek apakah semua catatan jurnal masih dapat digunakan untuk pemulihan tanpa mengubah data.',
                       icon: Icons.menu_book_outlined),
                   if (busy) const LinearProgressIndicator(),
                   if (hasil != null)
