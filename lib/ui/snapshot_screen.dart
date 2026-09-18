@@ -191,7 +191,7 @@ class _SnapshotCard extends StatelessWidget {
             ]),
             const SizedBox(height: 4),
             Text(
-                '${info.jumlah} warga · ${info.tanpaNik} tanpa NIK · ${ukuranTampil(info.ukuran)}',
+                '${info.jumlah} Warga · ${info.tanpaNik} Tanpa NIK · ${ukuranTampil(info.ukuran)}',
                 style: TextStyle(color: Colors.grey.shade800)),
             if (info.eventTerakhir > 0)
               Text(
