@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/format.dart';
 import '../data/exchange.dart';
 import '../data/spreadsheets.dart';
+import '../data/storage.dart' show bukaBerkas;
 import 'common.dart';
 import 'history_screen.dart';
 import 'journal_screen.dart';
@@ -178,8 +179,21 @@ class _AdminScreenState extends State<AdminScreen> {
           for (final file in files)
             Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Text(file.path.split('/').last,
-                    style: const TextStyle(fontSize: 12))),
+                child: Row(children: [
+                  Expanded(
+                      child: Text(file.path.split('/').last,
+                          style: const TextStyle(fontSize: 12))),
+                  TextButton(
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              final pesan = await bukaBerkas(file.path);
+                              if (pesan != null && context.mounted) {
+                                feedback(context, pesan, error: true);
+                              }
+                            },
+                      child: const Text('Buka')),
+                ])),
           const SizedBox(height: 10),
           OutlinedButton.icon(
               onPressed: busy ? null : () => share(files),

@@ -32,6 +32,24 @@ String basenameDir(Directory dir) {
   return parts.isEmpty ? '' : parts.last;
 }
 
+/// Buka berkas di aplikasi lain (mis. spreadsheet). Error dikembalikan
+/// sebagai String Indonesia agar bisa langsung ditampilkan ke pengguna.
+Future<String?> bukaBerkas(String path) async {
+  try {
+    await _channelPenyimpanan.invokeMethod<bool>('openFile', {
+      'path': path,
+      'mime': path.endsWith('.zip')
+          ? 'application/zip'
+          : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    return null;
+  } on PlatformException catch (e) {
+    return e.code == 'NO_APP'
+        ? 'Tidak ada aplikasi yang bisa membuka berkas ini. Buka lewat manajer berkas.'
+        : 'Berkas tidak ditemukan. Mungkin sudah dihapus atau dipindah.';
+  }
+}
+
 /// App-private data root. Holds the database, journal, snapshots, import
 /// archive and recovery files. Needs no permission and never moves. It does
 /// not survive uninstall, which is why every snapshot is also bundled into
