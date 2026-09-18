@@ -41,6 +41,15 @@ class _SurveyFormState extends State<SurveyForm> {
   final noteFocus = FocusNode(skipTraversal: true);
   bool saving = false;
   int? get wargaId => widget.warga?['id'] as int?;
+  double get _persenKelengkapan => persenKelengkapanWarga({
+        'nama': name.text,
+        'jenis_kelamin': gender,
+        'tempat_lahir': birthPlace.text,
+        'tgl_lahir': parseTanggal(birthDate.text),
+        'desa': village.text,
+        'rt': rt.text,
+        'rw': rw.text,
+      });
 
   @override
   void initState() {
@@ -280,6 +289,18 @@ class _SurveyFormState extends State<SurveyForm> {
             const Text(
                 'Baca dan isi sesuai KK asli. Aplikasi tidak menilai kelayakan warga.',
                 style: TextStyle(color: Colors.black54)),
+            const SizedBox(height: 12),
+            Card(
+                child: ListTile(
+              dense: true,
+              title: const Text('Kelengkapan data'),
+              subtitle: const Text('NIK dan keterangan boleh kosong'),
+              trailing: Text('${_persenKelengkapan.round()}%',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: forest)),
+            )),
             const SizedBox(height: 18),
             TextField(
                 controller: name,
@@ -289,6 +310,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
+                onChanged: (_) => setState(() {}),
                 decoration: deco('NAMA *')),
             const SizedBox(height: 14),
             TextField(
@@ -326,6 +348,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
+                onChanged: (_) => setState(() {}),
                 decoration: deco('TEMPAT LAHIR')),
             const SizedBox(height: 14),
             TextField(
@@ -342,6 +365,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 enableSuggestions: false,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [HurufKapitalFormatter()],
+                onChanged: (_) => setState(() {}),
                 decoration: deco('DESA / DUSUN')),
             const SizedBox(height: 14),
             Row(children: [

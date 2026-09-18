@@ -182,6 +182,32 @@ class RingkasanWarga {
   final int tanpaNik;
 }
 
+/// Field data utama yang dipakai untuk mengukur kelengkapan warga.
+///
+/// NIK dan keterangan sengaja tidak dihitung karena keduanya opsional pada
+/// formulir. RT dan RW dinilai sebagai angka wilayah yang valid, bukan hanya
+/// sebagai teks yang tidak kosong.
+const _kolomKelengkapanWarga = <String>[
+  'nama',
+  'jenis_kelamin',
+  'tempat_lahir',
+  'tgl_lahir',
+  'desa',
+  'rt',
+  'rw',
+];
+
+double persenKelengkapanWarga(RecordMap row) {
+  var terisi = 0;
+  for (final kolom in _kolomKelengkapanWarga) {
+    final isi = kolom == 'rt' || kolom == 'rw'
+        ? intValue(row[kolom]) > 0
+        : teks(row[kolom]).isNotEmpty;
+    if (isi) terisi++;
+  }
+  return terisi / _kolomKelengkapanWarga.length * 100;
+}
+
 RingkasanWarga ringkasWarga(List<RecordMap> counts, List<RtRw> workspace) {
   var jumlah = 0, tanpaNik = 0;
   for (final row in counts) {

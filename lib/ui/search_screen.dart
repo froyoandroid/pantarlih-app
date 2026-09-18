@@ -304,7 +304,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             for (final candidate in hasil.warga)
                               ResidentCard(candidate.$1,
                                   highlight: true,
-                                  score: byDate ? null : candidate.$2,
+                                  kelengkapan:
+                                      persenKelengkapanWarga(candidate.$1),
                                   label: candidate.$1['rt'] != session.rt
                                       ? 'SUDAH DIINPUT · RT ${candidate.$1['rt']}'
                                       : 'SUDAH DIINPUT',
@@ -325,7 +326,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                       fontSize: 12, color: Colors.black54)),
                             for (final candidate in hasil.referensi)
                               ResidentCard(candidate.$1,
-                                  score: byDate ? null : candidate.$2,
+                                  kelengkapan:
+                                      persenKelengkapanWarga(candidate.$1),
                                   label: candidate.$1['rt'] != session.rt
                                       ? 'Referensi di RT ${candidate.$1['rt']}'
                                       : null,
