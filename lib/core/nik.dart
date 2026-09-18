@@ -17,17 +17,19 @@ List<String> periksaNik(String nik, DateTime? tgl, String? jk,
     final perempuan = day > 40;
     if (perempuan) day -= 40;
     if (day != tgl.day || month != tgl.month || year != tgl.year % 100) {
-      warnings.add('Tanggal lahir di NIK tidak cocok');
+      warnings.add(
+          'Tanggal lahir di NIK tidak cocok dengan yang diisi. Periksa lagi di KK.');
     }
     if (jk != null && perempuan != (jk == 'P')) {
-      warnings.add('Jenis kelamin di NIK tidak cocok');
+      warnings.add(
+          'Jenis kelamin di NIK tidak cocok dengan yang diisi. Periksa lagi di KK.');
     }
   }
   if (prefixWilayah != null &&
       prefixWilayah.length == 6 &&
       nik.substring(0, 6) != prefixWilayah) {
     warnings.add(
-        'Enam digit awal NIK (${nik.substring(0, 6)}) berbeda dari kecamatan lokasi ($prefixWilayah), wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain');
+        'Enam digit awal NIK (${nik.substring(0, 6)}) bukan kode kecamatan $prefixWilayah. Wajar untuk warga pendatang.');
   }
   return warnings;
 }

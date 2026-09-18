@@ -177,13 +177,13 @@ class _SurveyFormState extends State<SurveyForm> {
         }
         if (!mounted) return;
         final isi = [
-          'NIK ini sudah dipakai oleh:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
-          'Peringatan ini boleh diabaikan',
-        ].join('\n');
+          'NIK yang sama sudah tercatat pada:\n${duplicates.map((r) => '• ${r['nama']} · RT ${r['rt']} · posisi ${positions[r['id']]} · ${waktuTampil(r['dibuat_pada'])}').join('\n')}',
+          'Simpan tetap bila memang dua orang berbeda.',
+        ].join('\n\n');
         final decision = await showDialog<String>(
             context: context,
             builder: (ctx) => AlertDialog(
-                    title: Text('Peringatan NIK duplikat',
+                    title: Text('NIK ini sudah terpakai',
                         style: TextStyle(color: Colors.red.shade800)),
                     content: SingleChildScrollView(
                         child:
@@ -193,7 +193,7 @@ class _SurveyFormState extends State<SurveyForm> {
                         TextButton(
                             onPressed: () =>
                                 Navigator.pop(ctx, 'open:${row['id']}'),
-                            child: Text('BUKA WARGA ITU · ${row['nama']}')),
+                            child: Text('Buka ${row['nama']}')),
                     ])),
                     actions: [
                       TextButton(
@@ -295,7 +295,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 child: ListTile(
               dense: true,
               title: const Text('Kelengkapan data'),
-              subtitle: const Text('NIK wajib diisi untuk mencapai 100%'),
+              subtitle: const Text('NIK belum diisi'),
               trailing: Text('${_persenKelengkapan.round()}%',
                   style: const TextStyle(
                       fontSize: 18,
@@ -324,7 +324,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 ],
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                decoration: deco('NIK', hint: 'kosong berarti belum lengkap')),
+                decoration: deco('NIK')),
             if (nik.text.isNotEmpty)
               ...periksaNik(
                       nik.text,
