@@ -134,7 +134,8 @@ void main() {
   test('NIK warnings never block and do not infer eligibility', () {
     expect(periksaNik('', null, null), isEmpty);
     expect(periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
-    expect(periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P'),
+    expect(
+        periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P'),
         contains(
             'Jenis kelamin di NIK tidak cocok dengan yang diisi. Periksa lagi di KK.'));
     expect(periksaNik('123', null, null), ['NIK bukan 16 digit angka']);
