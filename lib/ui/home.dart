@@ -149,11 +149,11 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Detail line for the Impor referensi tile: the file actually feeding the
   /// typing suggestions, not a generic description.
   String get _detailReferensi {
-    if (sumberReferensi.isEmpty) return 'Belum ada file referensi';
+    if (sumberReferensi.isEmpty) return 'Belum ada berkas referensi';
     final utama = teks(sumberReferensi.first['sumber_file']);
-    final nama = utama.isEmpty ? 'File tanpa nama' : utama;
+    final nama = utama.isEmpty ? 'Berkas tanpa nama' : utama;
     final lain = sumberReferensi.length - 1;
-    return lain == 0 ? nama : '$nama +$lain file lain';
+    return lain == 0 ? nama : '$nama +$lain berkas lain';
   }
 
   String get _lokasiSub {
