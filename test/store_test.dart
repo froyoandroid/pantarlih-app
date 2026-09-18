@@ -5,14 +5,14 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
-import 'package:pantarlih_kalitorong/data/migrate.dart';
-import 'package:pantarlih_kalitorong/data/schema.dart';
-import 'package:pantarlih_kalitorong/data/spreadsheets.dart';
-import 'package:pantarlih_kalitorong/data/journal.dart';
-import 'package:pantarlih_kalitorong/data/store.dart';
-import 'package:pantarlih_kalitorong/ui/common.dart';
-import 'package:pantarlih_kalitorong/ui/survey_form.dart';
+import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/data/migrate.dart';
+import 'package:tiliksuara/data/schema.dart';
+import 'package:tiliksuara/data/spreadsheets.dart';
+import 'package:tiliksuara/data/journal.dart';
+import 'package:tiliksuara/data/store.dart';
+import 'package:tiliksuara/ui/common.dart';
+import 'package:tiliksuara/ui/survey_form.dart';
 
 /// The frozen v2 shape, kept verbatim so upgrade-path tests create genuinely
 /// old databases instead of franken-databases with a lowered user_version.

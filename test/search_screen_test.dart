@@ -2,11 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
-import 'package:pantarlih_kalitorong/core/nama.dart';
-import 'package:pantarlih_kalitorong/data/store.dart';
-import 'package:pantarlih_kalitorong/ui/common.dart';
-import 'package:pantarlih_kalitorong/ui/search_screen.dart';
+import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/core/nama.dart';
+import 'package:tiliksuara/data/store.dart';
+import 'package:tiliksuara/ui/common.dart';
+import 'package:tiliksuara/ui/search_screen.dart';
 
 /// Referensi search must never hide a neighboring RT's row: the whole RW is
 /// searched every time, active RT first, other RTs labelled and pushed

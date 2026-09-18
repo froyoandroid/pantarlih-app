@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
-import 'package:pantarlih_kalitorong/data/exchange.dart';
-import 'package:pantarlih_kalitorong/data/storage.dart';
-import 'package:pantarlih_kalitorong/data/store.dart';
+import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/data/exchange.dart';
+import 'package:tiliksuara/data/storage.dart';
+import 'package:tiliksuara/data/store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

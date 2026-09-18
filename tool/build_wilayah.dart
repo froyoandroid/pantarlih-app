@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:pantarlih_kalitorong/core/nama.dart';
+import 'package:tiliksuara/core/nama.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Counts from the source README table (Kepmendagri 2025), used as a

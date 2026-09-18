@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
-import 'package:pantarlih_kalitorong/core/keterangan.dart';
-import 'package:pantarlih_kalitorong/core/nama.dart';
-import 'package:pantarlih_kalitorong/core/nik.dart';
-import 'package:pantarlih_kalitorong/data/migrate.dart';
-import 'package:pantarlih_kalitorong/data/order.dart';
+import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/core/keterangan.dart';
+import 'package:tiliksuara/core/nama.dart';
+import 'package:tiliksuara/core/nik.dart';
+import 'package:tiliksuara/data/migrate.dart';
+import 'package:tiliksuara/data/order.dart';
 
 void main() {
   test('Indonesian normalization follows ordered transformations', () {

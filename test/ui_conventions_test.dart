@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pantarlih_kalitorong/core/format.dart';
+import 'package:tiliksuara/core/format.dart';
 
 void main() {
   group('Konvensi format RT dan RW', () {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pantarlih_kalitorong/main.dart';
+import 'package:tiliksuara/main.dart';
 
 void main() {
   testWidgets(

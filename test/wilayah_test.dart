@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:pantarlih_kalitorong/data/wilayah.dart';
+import 'package:tiliksuara/data/wilayah.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:pantarlih_kalitorong/data/store.dart';
-import 'package:pantarlih_kalitorong/ui/common.dart';
-import 'package:pantarlih_kalitorong/ui/rt_list_screen.dart';
+import 'package:tiliksuara/data/store.dart';
+import 'package:tiliksuara/ui/common.dart';
+import 'package:tiliksuara/ui/rt_list_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
