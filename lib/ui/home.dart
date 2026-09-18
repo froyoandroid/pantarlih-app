@@ -315,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                                Text('${ringkas.jumlah} warga',
+                                Text('${ringkas.jumlah} Warga',
                                     style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800,
@@ -390,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       title: Text(
-                          '${pair.label} · ${intValue(_countFor(pair)?['jumlah'])} warga · ${intValue(_countFor(pair)?['tanpa_nik'])} tanpa NIK'),
+                          '${pair.label} · ${intValue(_countFor(pair)?['jumlah'])} Warga · ${intValue(_countFor(pair)?['tanpa_nik'])} tanpa NIK'),
                       trailing: const Icon(Icons.add_circle_outline, size: 20),
                       onTap: busy ? null : () => _tambahkanLuar(pair)),
               ],
@@ -548,7 +548,7 @@ class _RtTile extends StatelessWidget {
                                     height: 1.1,
                                     color: fg)),
                             const SizedBox(width: 6),
-                            Text('warga',
+                            Text('Warga',
                                 style: TextStyle(fontSize: 13, color: muted)),
                           ]),
                       const SizedBox(height: 4),
