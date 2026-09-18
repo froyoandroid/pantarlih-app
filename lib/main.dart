@@ -208,7 +208,7 @@ class _StartupScreenState extends State<StartupScreen> {
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(height: 14),
                               const Text(
-                                  'Data tersimpan di dalam aplikasi dan tidak butuh izin apa pun. Excel, cadangan, dan impor memakai folder Documents dengan nama Pantarlih diikuti nama desa. Izin akses berkas baru diminta saat pertama kali ekspor atau impor.',
+                                  'Data tersimpan di dalam aplikasi dan bisa dipakai tanpa izin apa pun. Izin akses berkas hanya diminta saat Anda mengekspor Excel atau membuat cadangan ke folder Documents.',
                                   textAlign: TextAlign.center),
                               const Notice(
                                   'Data warga bersifat pribadi. Lindungi perangkat dan folder cadangan. Tidak ada pengiriman otomatis ke internet.',

@@ -135,7 +135,8 @@ void main() {
     expect(periksaNik('', null, null), isEmpty);
     expect(periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
     expect(periksaNik('3327071109730002', DateTime(1973, 9, 11), 'P'),
-        contains('Jenis kelamin di NIK tidak cocok'));
+        contains(
+            'Jenis kelamin di NIK tidak cocok dengan yang diisi. Periksa lagi di KK.'));
     expect(periksaNik('123', null, null), ['NIK bukan 16 digit angka']);
     expect(periksaNik('1234565109730002', DateTime(1973, 9, 11), 'P'), isEmpty);
     expect(
@@ -146,7 +147,7 @@ void main() {
         periksaNik('3327995109730002', DateTime(1973, 9, 11), 'P',
             prefixWilayah: '332707'),
         contains(
-            'Enam digit awal NIK (332799) berbeda dari kecamatan lokasi (332707), wajar bila warga pendatang atau NIK diterbitkan di kecamatan lain'));
+            'Enam digit awal NIK (332799) bukan kode kecamatan 332707. Wajar untuk warga pendatang.'));
     expect(
         periksaNik('3327075109730002', DateTime(1973, 9, 11), 'P',
             prefixWilayah: null),
@@ -223,7 +224,7 @@ void main() {
     expect(nilaiKeterangan(null, 'abaikan'), '');
     expect(nilaiKeterangan(keteranganNormal, 'abaikan'), '');
     expect(nilaiKeterangan('PD', 'abaikan'), 'PD');
-    expect(keteranganArti('PD'), 'pindah domisili');
+    expect(keteranganArti('PD'), 'Pindah Domisili');
     expect(keteranganArti(keteranganNormal), isNull);
     expect(nilaiKeterangan(keteranganLainnya, '  bebas  '), '  bebas  ');
     expect(keteranganTampil('TMS'), 'TMS');
