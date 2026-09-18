@@ -317,5 +317,13 @@ class _AdminScreenState extends State<AdminScreen> {
         const Notice(
             'Pantarlih memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
             icon: Icons.info_outline),
+        const SizedBox(height: 32),
+        const Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Made by Firenza',
+              style: TextStyle(fontSize: 11, color: Colors.black45)),
+          Text('2026 - Kalitorong',
+              style: TextStyle(fontSize: 11, color: Colors.black45)),
+        ])),
       ]));
 }
