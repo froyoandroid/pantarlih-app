@@ -43,6 +43,7 @@ class _SurveyFormState extends State<SurveyForm> {
   int? get wargaId => widget.warga?['id'] as int?;
   double get _persenKelengkapan => persenKelengkapanWarga({
         'nama': name.text,
+        'nik': nik.text,
         'jenis_kelamin': gender,
         'tempat_lahir': birthPlace.text,
         'tgl_lahir': parseTanggal(birthDate.text),
@@ -294,7 +295,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 child: ListTile(
               dense: true,
               title: const Text('Kelengkapan data'),
-              subtitle: const Text('NIK dan keterangan boleh kosong'),
+              subtitle: const Text('NIK wajib diisi untuk mencapai 100%'),
               trailing: Text('${_persenKelengkapan.round()}%',
                   style: const TextStyle(
                       fontSize: 18,
@@ -323,7 +324,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 ],
                 onChanged: (_) => setState(() {}),
                 style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                decoration: deco('NIK', hint: 'boleh kosong')),
+                decoration: deco('NIK', hint: 'kosong berarti belum lengkap')),
             if (nik.text.isNotEmpty)
               ...periksaNik(
                       nik.text,
@@ -429,7 +430,7 @@ class _SurveyFormState extends State<SurveyForm> {
             ],
             const SizedBox(height: 18),
             const Notice(
-                'NIK boleh kosong. Bila diisi, kurang dari 16 digit hanya peringatan dan tetap bisa disimpan.',
+                'NIK boleh kosong dan tetap dapat disimpan, tetapi kelengkapan belum 100%. Bila diisi, kurang dari 16 digit hanya peringatan.',
                 warning: true),
           ]));
 }
