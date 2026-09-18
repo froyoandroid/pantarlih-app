@@ -326,8 +326,6 @@ class _SearchScreenState extends State<SearchScreen> {
                                       fontSize: 12, color: Colors.black54)),
                             for (final candidate in hasil.referensi)
                               ResidentCard(candidate.$1,
-                                  kelengkapan:
-                                      persenKelengkapanWarga(candidate.$1),
                                   label: candidate.$1['rt'] != session.rt
                                       ? 'Referensi di RT ${candidate.$1['rt']}'
                                       : null,

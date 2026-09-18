@@ -184,11 +184,13 @@ class RingkasanWarga {
 
 /// Field data utama yang dipakai untuk mengukur kelengkapan warga.
 ///
-/// NIK dan keterangan sengaja tidak dihitung karena keduanya opsional pada
-/// formulir. RT dan RW dinilai sebagai angka wilayah yang valid, bukan hanya
-/// sebagai teks yang tidak kosong.
+/// Keterangan sengaja tidak dihitung karena opsional pada formulir. NIK tetap
+/// dihitung, sehingga NIK kosong berarti data belum lengkap. RT dan RW dinilai
+/// sebagai angka wilayah yang valid, bukan hanya sebagai teks yang tidak
+/// kosong.
 const _kolomKelengkapanWarga = <String>[
   'nama',
+  'nik',
   'jenis_kelamin',
   'tempat_lahir',
   'tgl_lahir',

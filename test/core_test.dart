@@ -51,7 +51,20 @@ void main() {
     expect(teks(3), '3');
   });
 
-  test('warga completeness counts main fields and ignores optional fields', () {
+  test('warga completeness counts NIK and ignores optional keterangan', () {
+    expect(
+        persenKelengkapanWarga({
+          'nama': 'HAMZAH',
+          'nik': '3327070101900001',
+          'jenis_kelamin': 'L',
+          'tempat_lahir': 'BREBES',
+          'tgl_lahir': '1990-01-01',
+          'desa': 'KALITORONG',
+          'rt': 3,
+          'rw': 2,
+          'keterangan': null,
+        }),
+        100);
     expect(
         persenKelengkapanWarga({
           'nama': 'HAMZAH',
@@ -61,14 +74,12 @@ void main() {
           'desa': 'KALITORONG',
           'rt': 3,
           'rw': 2,
-          'nik': null,
-          'keterangan': null,
         }),
-        100);
+        closeTo(7 / 8 * 100, 0.0001));
     expect(persenKelengkapanWarga({'nama': 'HAMZAH', 'rt': 3, 'rw': 2}),
-        closeTo(3 / 7 * 100, 0.0001));
+        closeTo(3 / 8 * 100, 0.0001));
     expect(persenKelengkapanWarga({'nama': 'HAMZAH', 'rt': 0, 'rw': null}),
-        closeTo(1 / 7 * 100, 0.0001));
+        closeTo(1 / 8 * 100, 0.0001));
   });
 
   test('date formatter inserts dashes and still parses to ISO', () {

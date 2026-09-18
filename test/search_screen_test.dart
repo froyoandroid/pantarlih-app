@@ -83,6 +83,7 @@ void main() {
       expect(find.text('SUPARMAN JAYA'), findsOneWidget);
       expect(find.text('SUPARMAN WIJAYA'), findsOneWidget);
       expect(find.text('Referensi di RT 3'), findsOneWidget);
+      expect(find.text('TERISI'), findsNothing);
 
       final jaya = tester.getTopLeft(find.text('SUPARMAN JAYA'));
       final wijaya = tester.getTopLeft(find.text('SUPARMAN WIJAYA'));
