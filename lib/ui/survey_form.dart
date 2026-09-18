@@ -144,6 +144,7 @@ class _SurveyFormState extends State<SurveyForm> {
     }
     if (mounted) setState(() => _draftReady = true);
   }
+
   int? get wargaId => widget.warga?['id'] as int?;
   double get _persenKelengkapan => persenKelengkapanWarga({
         'nama': name.text,
@@ -193,7 +194,16 @@ class _SurveyFormState extends State<SurveyForm> {
     ketChip = chipKeterangan(rawNote);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;
     if (_drafAktif) {
-      for (final c in [name, nik, birthPlace, birthDate, village, rt, rw, note]) {
+      for (final c in [
+        name,
+        nik,
+        birthPlace,
+        birthDate,
+        village,
+        rt,
+        rw,
+        note
+      ]) {
         c.addListener(() => _jadwalkanDraf(c.text));
       }
       // Offer a stored draft only over a truly empty form; a form opened

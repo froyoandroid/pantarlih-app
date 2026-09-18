@@ -153,8 +153,7 @@ class _SisaReferensiScreenState extends State<SisaReferensiScreen> {
     final saved = await Navigator.push<int>(
         context,
         MaterialPageRoute(
-            builder: (_) =>
-                SurveyForm(session: widget.session, seed: row)));
+            builder: (_) => SurveyForm(session: widget.session, seed: row)));
     if (!mounted) return;
     if (saved != null) feedback(context, 'Data ${row['nama']} tersimpan');
     await _load();

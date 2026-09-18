@@ -245,9 +245,7 @@ class _RtListScreenState extends State<RtListScreen> {
         feedback(context, 'Semua referensi RT ini sudah diinput');
         return;
       }
-      final setuju = await confirm(
-          context,
-          'Promosikan Referensi',
+      final setuju = await confirm(context, 'Promosikan Referensi',
           '${sisa.length} baris referensi RT ini belum diinput. Semuanya akan disimpan sebagai data warga di akhir daftar.',
           action: 'Promosikan');
       if (!setuju || !mounted) return;
@@ -293,18 +291,17 @@ class _RtListScreenState extends State<RtListScreen> {
         title: 'Daftar Warga',
         subtitle: widget.session.label,
         actions: [
-          TextButton(onPressed: () => _openKetik(), child: const Text('Tambah')),
+          TextButton(
+              onPressed: () => _openKetik(), child: const Text('Tambah')),
           PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'sisa') _bukaSisa();
                 if (value == 'promosi') _promosikanBatch();
               },
               itemBuilder: (ctx) => const [
+                    PopupMenuItem(value: 'sisa', child: Text('Belum Diinput')),
                     PopupMenuItem(
-                        value: 'sisa', child: Text('Belum Diinput')),
-                    PopupMenuItem(
-                        value: 'promosi',
-                        child: Text('Promosikan Referensi')),
+                        value: 'promosi', child: Text('Promosikan Referensi')),
                   ]),
         ],
         child: loading
