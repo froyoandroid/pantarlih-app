@@ -62,7 +62,7 @@ flowchart TD
 Menekan `Buat File Excel` menghasilkan berkas-berkas berikut di satu subfolder baru pada `ekspor/`. Duplikat selalu berupa berkas terpisah, bukan sheet di dalam berkas DPS.
 
 | Berkas | Sheet | Isi |
-|---|---|---|
+| --- | --- | --- |
 | `DPS_<kode>_<desa>_RT<nn>_RW<mm>_<tanggal>.xlsx` | `RT <nn>`, `INFO` | Satu berkas per RT (bila opsi gabungan mati) |
 | `DPS_GABUNGAN_<kode>_RW<mm>_<tanggal>.xlsx` | Satu sheet per RT, `INFO` | Seluruh RT dalam satu berkas (bila opsi gabungan aktif) |
 | `DUPLIKAT_NIK_<kode>_<tanggal>.xlsx` | `DUPLIKAT NIK`, `INFO` | Baris dengan NIK yang sama, kolom NO memakai nomor urut di RT masing-masing (hanya dibuat bila ada duplikat) |
@@ -78,7 +78,7 @@ Ekspor otomatis saat pindah RT menulis salinan DPS yang sama ke `ekspor/otomatis
 Kolom `KETERANGAN` tetap teks bebas. Kode berikut dikenali sebagai pilihan cepat di formulir:
 
 | Kode | Arti |
-|---|---|
+| --- | --- |
 | TMS | Tidak Memenuhi Syarat |
 | PD | Pindah Domisili |
 | B | Baru |
@@ -198,7 +198,7 @@ erDiagram
     warga {
         int id PK
         int urut_sort "renggang 1000"
-        int grup_id
+        int grup_id "cadangan, sengaja tidak dipakai"
         string nik "boleh kosong"
         string nama
         string nama_norm
@@ -293,7 +293,7 @@ flowchart TD
 Tabel berkas ke judul layar (diuji otomatis oleh `test/ui_conventions_test.dart`, setiap berkas layar wajib muncul di sini):
 
 | Berkas | Judul |
-|---|---|
+| --- | --- |
 | `lib/ui/home.dart` | Beranda |
 | `lib/ui/lokasi_screen.dart` | Pilih Lokasi Kerja |
 | `lib/ui/rt_list_screen.dart` | Daftar Warga |
@@ -309,7 +309,7 @@ Tabel berkas ke judul layar (diuji otomatis oleh `test/ui_conventions_test.dart`
 Tanggung jawab berkas:
 
 | Berkas | Tanggung jawab |
-|---|---|
+| --- | --- |
 | `lib/main.dart` | Entry, layar mulai, penulisan `crash_<stamp>.log` privat |
 | `lib/data/store.dart` | Satu-satunya penulis database dan jurnal, replay, snapshot, pemulihan |
 | `lib/data/schema.dart` | Bentuk skema v7 |
@@ -351,7 +351,7 @@ Catatan kompatibilitas: UI memakai `ReorderableListView.onReorder` dan `Dropdown
 ## Pengujian
 
 | Berkas tes | Cakupan |
-|---|---|
+| --- | --- |
 | `test/core_test.dart` | Normalisasi nama, fuzzy matching, tanggal DD-first, NIK sebagai peringatan |
 | `test/store_test.dart` | Sisip, geser, renumber, duplikat, replay identik termasuk `urut_sort`, baris jurnal terpotong, database hilang, kegagalan tulis jurnal, snapshot dan perubahan sesi |
 | `test/storage_test.dart` | Nama folder desa, akar data privat, folder pertukaran, rotasi cadangan |
