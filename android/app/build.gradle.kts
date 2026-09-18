@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "id.kalitorong.pantarlih_kalitorong"
+    namespace = "id.tiliksuara.app"
     // permission_handler_android 14 requires compileSdk 37 (AGP 9.0.1 caps
     // its recommendation at 36 — verified building fine with 37).
     compileSdk = 37
@@ -18,7 +18,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "id.kalitorong.pantarlih_kalitorong"
+        applicationId = "id.tiliksuara.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24

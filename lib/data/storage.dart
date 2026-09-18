@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-const _channelPenyimpanan = MethodChannel('id.kalitorong.pantarlih/storage');
+const _channelPenyimpanan = MethodChannel('id.tiliksuara.app/storage');
 
 class StorageAccessException implements Exception {
   const StorageAccessException(this.message);
