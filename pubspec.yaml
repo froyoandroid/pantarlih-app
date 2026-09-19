@@ -39,4 +39,3 @@ flutter:
   assets:
     - assets/wilayah.db
     - assets/wilayah.meta.json
-    - assets/tanda_bukti_template.xlsx

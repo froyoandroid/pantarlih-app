@@ -737,12 +737,12 @@ class TandaBuktiIsi {
   final bool belumRekaman;
 }
 
-/// Fills the official template: DESA/KEC on the header, KRT/RT/RW labels,
-/// voter rows starting at row 10, place+date and both signature names. The
-/// template ships exactly 12 data rows; a longer pick list inserts extra
-/// rows inside the form.
+/// Builds a clean tanda bukti workbook from scratch. The official form is
+/// only a visual reference: column order, headers, and the two signature
+/// blocks are reproduced with consistent borders and alignment instead of
+/// patching the web-tool template (its rels and empty inlineStr cells break
+/// the excel v4 parser).
 Excel buatTandaBukti(
-  List<int> template,
   List<TandaBuktiIsi> baris, {
   required String desa,
   required String kecamatan,
@@ -752,53 +752,121 @@ Excel buatTandaBukti(
   required String petugas,
   required String penerima,
 }) {
-  final book = Excel.decodeBytes(template);
-  final sheet = book['Form Tanda Bukti'];
-  void set(String ref, String value) {
-    final cell = sheet.cell(CellIndex.indexByString(ref));
-    cell.value = value.isEmpty ? null : TextCellValue(value);
+  final book = Excel.createExcel();
+  final sheet = book['Tanda Bukti'];
+  book.delete('Sheet1');
+  book.setDefaultSheet('Tanda Bukti');
+
+  final thin = Border(borderStyle: BorderStyle.Thin);
+  final bordered = CellStyle(
+      topBorder: thin,
+      bottomBorder: thin,
+      leftBorder: thin,
+      rightBorder: thin,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText);
+  final header = CellStyle(
+      bold: true,
+      topBorder: thin,
+      bottomBorder: thin,
+      leftBorder: thin,
+      rightBorder: thin,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+      backgroundColorHex: ExcelColor.fromHexString('#E8EFEA'));
+  final judul = CellStyle(
+      bold: true,
+      fontSize: 14,
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center);
+  final kop = CellStyle(
+      bold: true, fontSize: 12, horizontalAlign: HorizontalAlign.Center);
+
+  // Column widths A..I.
+  const widths = [5.0, 28.0, 14.0, 14.0, 22.0, 6.0, 10.0, 10.0, 14.0];
+  for (var c = 0; c < widths.length; c++) {
+    sheet.setColumnWidth(c, widths[c]);
   }
 
-  set('B2', 'DESA $desa');
-  set('E2', 'KEC. $kecamatan');
-  set('D5', krt);
-  set('C6', desa);
-  set('G6', intValue(rt).toString().padLeft(2, '0'));
-  set('I6', intValue(rw).toString().padLeft(2, '0'));
-  if (baris.length > 12) {
-    sheet.insertRowIterables(
-        List.filled(baris.length - 12, null), 21,
-        startingColumn: 0);
+  void set(int col, int row, String value, [CellStyle? style]) {
+    final cell =
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row));
+    if (value.isNotEmpty) cell.value = TextCellValue(value);
+    if (style != null) cell.cellStyle = style;
   }
+
+  void mergeRow(int row, int c0, int c1, String value, [CellStyle? style]) {
+    sheet.merge(
+        CellIndex.indexByColumnRow(columnIndex: c0, rowIndex: row),
+        CellIndex.indexByColumnRow(columnIndex: c1, rowIndex: row));
+    set(c0, row, value, style);
+  }
+
+  // Header block.
+  mergeRow(0, 0, 8, 'PANITIA PEMILIHAN KEPALA DESA', kop);
+  mergeRow(1, 0, 8, 'DESA $desa, KEC. $kecamatan', kop);
+  sheet.setRowHeight(2, 26);
+  mergeRow(2, 0, 8, 'FORMULIR TANDA BUKTI SUDAH DIDAFTAR SEBAGAI PEMILIH',
+      judul);
+  sheet.setRowHeight(4, 20);
+  mergeRow(4, 0, 3, 'Nama Kepala Rumah Tangga : $krt');
+  mergeRow(4, 4, 8,
+      'Alamat : Desa $desa  RT ${intValue(rt).toString().padLeft(2, '0')} / RW ${intValue(rw).toString().padLeft(2, '0')}');
+
+  // Table header, two rows: row 5 top labels, row 6 the keterangan split.
+  const heads = [
+    'No.',
+    'Nama Pemilih',
+    'Tanggal Lahir',
+    'Status Perkawinan',
+    'NIK',
+    'L/P'
+  ];
+  sheet.setRowHeight(5, 22);
+  for (var c = 0; c < heads.length; c++) {
+    set(c, 5, heads[c], header);
+    sheet.merge(
+        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 5),
+        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 6));
+  }
+  sheet.merge(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: 5),
+      CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: 5));
+  set(6, 5, 'Keterangan', header);
+  set(6, 6, 'E-KTP', header);
+  set(7, 6, 'Suket', header);
+  set(8, 6, 'Belum Rekaman', header);
+
+  // Data rows.
   for (var i = 0; i < baris.length; i++) {
-    final row = baris[i];
-    final w = row.row;
-    final r = 10 + i;
-    set('A$r', '${i + 1}');
-    set('B$r', teks(w['nama']));
-    set('C$r', tanggalTampil(w['tgl_lahir']));
-    set('D$r', row.statusPerkawinan);
-    set('E$r', "'${teks(w['nik'])}");
-    set('F$r', teks(w['jenis_kelamin']));
-    set('G$r', row.ektp ? '√' : '');
-    set('H$r', row.suket ? '√' : '');
-    set('I$r', row.belumRekaman ? '√' : '');
+    final r = 7 + i;
+    final b = baris[i];
+    final w = b.row;
+    set(0, r, '${i + 1}',
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(1, r, teks(w['nama']), bordered);
+    set(2, r, tanggalTampil(w['tgl_lahir']),
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(3, r, b.statusPerkawinan,
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(4, r, "'${teks(w['nik'])}", bordered);
+    set(5, r, teks(w['jenis_kelamin']),
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(6, r, b.ektp ? '√' : '',
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(7, r, b.suket ? '√' : '',
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
+    set(8, r, b.belumRekaman ? '√' : '',
+        bordered.copyWith(horizontalAlignVal: HorizontalAlign.Center));
   }
-  final footTgl = 21 + baris.length - 12;
-  final footPetugas = 22 + baris.length - 12;
-  final footNama = 26 + baris.length - 12;
-  if (baris.length > 12) {
-    // insertRowIterables shifted the footer; rewrite it at its new seat.
-    set('A$footTgl', 'Yang menerima,');
-    set('F$footTgl', '$desa, ${tanggalPanjang()}');
-    set('F$footPetugas', 'Petugas,');
-    set('A$footNama', '( ${penerima.toUpperCase()} )');
-    set('F$footNama', '( ${petugas.toUpperCase()} )');
-  } else {
-    set('F21', '$desa, ${tanggalPanjang()}');
-    set('A26', '( ${penerima.toUpperCase()} )');
-    set('F26', '( ${petugas.toUpperCase()} )');
-  }
-  book.setDefaultSheet('Form Tanda Bukti');
+
+  // Signature block: two blank lines after the table, labels, then names
+  // after enough space for a wet signature.
+  final f0 = 7 + baris.length + 2;
+  set(0, f0, 'Yang menerima,');
+  set(5, f0, '$desa, ${tanggalPanjang()}');
+  set(5, f0 + 1, 'Petugas,');
+  set(0, f0 + 4, '( ${penerima.toUpperCase()} )', CellStyle(bold: true));
+  set(5, f0 + 4, '( ${petugas.toUpperCase()} )', CellStyle(bold: true));
   return book;
 }

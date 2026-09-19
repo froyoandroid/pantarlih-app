@@ -1871,9 +1871,6 @@ void main() {
   });
 
   group('tanda bukti', () {
-    List<int> template() =>
-        File('assets/tanda_bukti_template.xlsx').readAsBytesSync();
-
     TandaBuktiIsi isi(String nama, {String status = 'Kawin'}) =>
         TandaBuktiIsi(
             row: {
@@ -1887,54 +1884,51 @@ void main() {
             suket: false,
             belumRekaman: false);
 
-    test('sheet formulir terisi dan nama file baris tidak bergeser', () {
-      final book = buatTandaBukti(template(), [isi('UJICOBA SATU')],
-          desa: 'KALITORONG',
-          kecamatan: 'RANDUDONGKAL',
-          krt: 'KEPALA RT',
-          rt: 3,
-          rw: 3,
-          petugas: 'Petugas Uji',
-          penerima: 'Penerima Uji');
-      final sheet = book['Form Tanda Bukti'];
-      String baca(String ref) =>
-          '${sheet.cell(CellIndex.indexByString(ref)).value ?? ''}';
-      expect(baca('B2'), 'DESA KALITORONG');
-      expect(baca('E2'), 'KEC. RANDUDONGKAL');
-      expect(baca('D5'), 'KEPALA RT');
-      expect(baca('C6'), 'KALITORONG');
-      expect(baca('G6'), '03');
-      expect(baca('I6'), '03');
-      expect(baca('A10'), '1');
-      expect(baca('B10'), 'UJICOBA SATU');
-      expect(baca('C10'), '19-09-1968');
-      expect(baca('D10'), 'Kawin');
-      expect(baca('E10'), "'3327071909680001");
-      expect(baca('G10'), '√');
-      expect(baca('F26'), '( PETUGAS UJI )');
-      expect(baca('A26'), '( PENERIMA UJI )');
-      // Round-trip: the filled book must still decode cleanly.
-      expect(book.encode(), isNotEmpty);
+    Excel contoh(List<TandaBuktiIsi> baris) => buatTandaBukti(baris,
+        desa: 'KALITORONG',
+        kecamatan: 'RANDUDONGKAL',
+        krt: 'KEPALA RT',
+        rt: 3,
+        rw: 3,
+        petugas: 'Petugas Uji',
+        penerima: 'Penerima Uji');
+
+    test('sheet terisi rapi dari kop sampai tanda tangan', () {
+      final book = contoh([isi('UJICOBA SATU')]);
+      final sheet = book['Tanda Bukti'];
+      String baca(int col, int row) =>
+          '${sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row)).value ?? ''}';
+      expect(baca(0, 0), 'PANITIA PEMILIHAN KEPALA DESA');
+      expect(baca(0, 1), 'DESA KALITORONG, KEC. RANDUDONGKAL');
+      expect(baca(0, 4), 'Nama Kepala Rumah Tangga : KEPALA RT');
+      expect(baca(4, 4), contains('RT 03 / RW 03'));
+      expect(baca(1, 5), 'Nama Pemilih');
+      expect(baca(0, 7), '1');
+      expect(baca(1, 7), 'UJICOBA SATU');
+      expect(baca(2, 7), '19-09-1968');
+      expect(baca(3, 7), 'Kawin');
+      expect(baca(4, 7), "'3327071909680001");
+      expect(baca(6, 7), '√');
+      // Signature block: two blank rows after the single data row.
+      expect(baca(0, 10), 'Yang menerima,');
+      expect(baca(5, 11), 'Petugas,');
+      expect(baca(5, 14), '( PETUGAS UJI )');
+      expect(baca(0, 14), '( PENERIMA UJI )');
+      // Round-trip: the generated book must still decode cleanly.
+      expect(Excel.decodeBytes(book.encode()!).tables.keys,
+          contains('Tanda Bukti'));
     });
 
-    test('lebih dari 12 baris menggeser footer tanpa menimpanya', () {
-      final book = buatTandaBukti(
-          template(), [for (var i = 1; i <= 14; i++) isi('WARGA $i')],
-          desa: 'KALITORONG',
-          kecamatan: 'RANDUDONGKAL',
-          krt: '',
-          rt: 3,
-          rw: 3,
-          petugas: 'Petugas',
-          penerima: 'Penerima');
-      final sheet = book['Form Tanda Bukti'];
-      String baca(String ref) =>
-          '${sheet.cell(CellIndex.indexByString(ref)).value ?? ''}';
-      expect(baca('A22'), '13');
-      expect(baca('B23'), 'WARGA 14');
-      // Footer sits two rows lower and still reads as a signature block.
-      expect(baca('F28'), '( PETUGAS )');
-      expect(baca('A28'), '( PENERIMA )');
+    test('footer bergeser sesuai jumlah baris tanpa menimpa data', () {
+      final book = contoh([for (var i = 1; i <= 14; i++) isi('WARGA $i')]);
+      final sheet = book['Tanda Bukti'];
+      String baca(int col, int row) =>
+          '${sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row)).value ?? ''}';
+      expect(baca(0, 7), '1');
+      expect(baca(0, 20), '14');
+      expect(baca(1, 20), 'WARGA 14');
+      expect(baca(0, 23), 'Yang menerima,');
+      expect(baca(5, 27), '( PETUGAS UJI )');
     });
   });
 }
