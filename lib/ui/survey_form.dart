@@ -174,7 +174,10 @@ class _SurveyFormState extends State<SurveyForm> {
     name = TextEditingController(
         text: pilih([edit?['nama'], seed?['nama'], widget.initialName])
             .toUpperCase());
-    nik = TextEditingController(text: pilih([edit?['nik']]));
+    // NIK dari referensi dibawa ke form: NIK utuh terisi penuh, NIK tersensor
+    // menyumbang digit awalnya saja karena kolom NIK hanya menerima angka.
+    final nikSeed = teks(seed?['nik_lama']).replaceAll(RegExp(r'\D'), '');
+    nik = TextEditingController(text: pilih([edit?['nik'], nikSeed]));
     birthPlace = TextEditingController(
         text: pilih([edit?['tempat_lahir'], seed?['tempat_lahir']])
             .toUpperCase());
