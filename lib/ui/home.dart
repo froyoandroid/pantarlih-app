@@ -5,7 +5,6 @@ import 'common.dart';
 import 'history_screen.dart';
 import 'journal_screen.dart';
 import 'lokasi_screen.dart';
-import 'pengaturan_screen.dart';
 import 'referensi_screen.dart';
 import 'rt_list_screen.dart';
 import 'search_screen.dart';
@@ -257,12 +256,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       'Referensi',
                       _detailReferensi,
                       () => _open(ReferensiScreen(session: widget.session))
-                    ),
-                    (
-                      Icons.settings_outlined,
-                      'Pengaturan',
-                      'Chip keterangan warga',
-                      () => _open(PengaturanScreen(session: widget.session))
                     ),
                     (
                       Icons.admin_panel_settings_outlined,
