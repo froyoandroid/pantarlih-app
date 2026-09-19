@@ -945,6 +945,47 @@ class AppStore extends ChangeNotifier {
              OR w.tgl_lahir = r.tgl_lahir))
     ORDER BY r.urut_asli ASC, r.id ASC''', [rw, rt]);
 
+  /// Reasons one reference row may not be promoted, in check order. Empty
+  /// means promotable. A promotion writes the row as-is, so a row carrying a
+  /// masked NIK or a missing birthdate would become a half-empty warga record
+  /// - better refused here than cleaned up later.
+  List<String> alasanPromosi(RecordMap ref) {
+    final alasan = <String>[];
+    if (teks(ref['nama']).trim().isEmpty) alasan.add('Nama kosong');
+    if (nullableText(teks(ref['desa'])) == null) {
+      alasan.add('Desa belum terisi');
+    }
+    if (intValue(ref['rt']) <= 0 || intValue(ref['rw']) <= 0) {
+      alasan.add('RT/RW belum terisi');
+    }
+    if (nullableText(teks(ref['tgl_lahir'])) == null) {
+      alasan.add('Tanggal lahir tidak ada');
+    }
+    final jk = ref['jenis_kelamin'];
+    if (jk != 'L' && jk != 'P') alasan.add('Jenis kelamin belum terisi');
+    final nik = teks(ref['nik_lama']);
+    if (!RegExp(r'^\d{16}$').hasMatch(nik)) {
+      alasan.add('NIK belum lengkap');
+    } else {
+      final tgl = DateTime.tryParse(teks(ref['tgl_lahir']));
+      if (tgl != null) {
+        var day = int.parse(nik.substring(6, 8));
+        final month = int.parse(nik.substring(8, 10));
+        final year = int.parse(nik.substring(10, 12));
+        if (day > 40) day -= 40;
+        if (day != tgl.day || month != tgl.month || year != tgl.year % 100) {
+          alasan.add('NIK tidak cocok dengan tanggal lahir');
+        }
+        if (jk == 'L' || jk == 'P') {
+          if ((int.parse(nik.substring(6, 8)) > 40) != (jk == 'P')) {
+            alasan.add('NIK tidak cocok dengan jenis kelamin');
+          }
+        }
+      }
+    }
+    return alasan;
+  }
+
   /// Turns one reference row into a typed warga through the normal saveWarga
   /// path, so validation, journal and end-of-list ordering stay identical to
   /// a manual entry. The reference row itself is kept untouched as source
@@ -957,6 +998,11 @@ class AppStore extends ChangeNotifier {
       throw AppException('Baris referensi tidak ditemukan');
     }
     final ref = rows.first;
+    final alasan = alasanPromosi(ref);
+    if (alasan.isNotEmpty) {
+      throw AppException(
+          '${ref['nama']} tidak dapat dipromosikan. ${alasan.join('. ')}.');
+    }
     return saveWarga({
       'nik': nullableText(teks(ref['nik_lama'])),
       'nama': ref['nama'],
@@ -972,15 +1018,25 @@ class AppStore extends ChangeNotifier {
     }, afterId: afterId, beforeId: beforeId);
   }
 
-  /// Promotes every unmatched reference row of one RT, in file order. Each
-  /// promotion is its own journaled INSERT; a failure mid-batch leaves the
-  /// earlier rows committed and returns no partial state.
-  Future<int> promosikanBatch(int rw, int rt) async {
+  /// Promotes every promotable unmatched reference row of one RT, in file
+  /// order. Each promotion is its own journaled INSERT. Rows failing
+  /// alasanPromosi are skipped, not fatal: the result lists them by name so
+  /// the dialog can say exactly who was left behind and why.
+  Future<({int berhasil, List<String> gagal})> promosikanBatch(
+      int rw, int rt) async {
     final sisa = await referensiBelum(rw, rt);
+    final gagal = <String>[];
+    var berhasil = 0;
     for (final ref in sisa) {
+      final alasan = alasanPromosi(ref);
+      if (alasan.isNotEmpty) {
+        gagal.add('${ref['nama']} — ${alasan.join(', ').toLowerCase()}');
+        continue;
+      }
       await promosikanReferensi(ref['id'] as int);
+      berhasil++;
     }
-    return sisa.length;
+    return (berhasil: berhasil, gagal: gagal);
   }
 
   /// Form drafts are written straight to setelan without _commit: a journal

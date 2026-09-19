@@ -159,6 +159,24 @@ class _SisaReferensiScreenState extends State<SisaReferensiScreen> {
     await _load();
   }
 
+  /// The one-tap button only appears for a fully promotable row. A row
+  /// missing one thing names that thing; two or more collapse to a generic
+  /// label so the tile stays narrow - tap the row to fix it via the form.
+  Widget _aksiPromosi(RecordMap row) {
+    final alasan = widget.session.store.alasanPromosi(row);
+    if (alasan.isEmpty) {
+      return TextButton(
+          onPressed: () => _promosikan(row),
+          child: const Text('Jadikan Warga'));
+    }
+    return Text(alasan.length > 1 ? 'Data Tidak Lengkap' : alasan.single,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Colors.red.shade800));
+  }
+
   @override
   Widget build(BuildContext context) {
     final loaded = rows;
@@ -181,7 +199,7 @@ class _SisaReferensiScreenState extends State<SisaReferensiScreen> {
                               fontSize: 18, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 6),
                       const Text(
-                          'Baris referensi yang belum punya padanan di data warga RT ini. Ketuk untuk memeriksa lewat formulir, atau langsung jadikan warga.'),
+                          'Baris referensi yang belum punya padanan di data warga RT ini. Ketuk untuk memeriksa lewat formulir. Tombol Jadikan Warga hanya tampil bila data sudah lengkap.'),
                       const SizedBox(height: 12),
                       if (loaded.isEmpty)
                         const EmptyState('RT Ini Selesai',
@@ -202,9 +220,7 @@ class _SisaReferensiScreenState extends State<SisaReferensiScreen> {
                                   if (teks(row['desa']).isNotEmpty)
                                     teks(row['desa']),
                                 ].join('\n')),
-                                trailing: TextButton(
-                                    onPressed: () => _promosikan(row),
-                                    child: const Text('Jadikan Warga')),
+                                trailing: _aksiPromosi(row),
                                 onTap: () => _periksa(row))),
                     ])));
   }
