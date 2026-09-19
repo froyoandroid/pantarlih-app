@@ -1747,8 +1747,7 @@ void main() {
           'sumber_file': 'layak.xlsx',
         },
       ], 'layak.xlsx');
-      final ref =
-          (await store.referensiFile('layak.xlsx')).single;
+      final ref = (await store.referensiFile('layak.xlsx')).single;
       final saved = await store.promosikanReferensi(ref['id'] as int);
       expect(saved['nama'], 'MUHAMAD LAYAK');
       expect(saved['nik'], '3327071909680001');
@@ -1823,8 +1822,7 @@ void main() {
           throwsA(isA<AppException>()));
     });
 
-    test('alasanPromosi flags NIK/birthdate and NIK/gender mismatch',
-        () async {
+    test('alasanPromosi flags NIK/birthdate and NIK/gender mismatch', () async {
       RecordMap dasar(String nik, String jk, String tgl) => {
             'nama': 'UJI',
             'nik_lama': nik,
@@ -1869,6 +1867,74 @@ void main() {
           .query('log', where: 'tabel = ?', whereArgs: ['setelan']);
       expect(
           log.where((r) => '${r['payload']}'.contains('draf_form')), isEmpty);
+    });
+  });
+
+  group('tanda bukti', () {
+    List<int> template() =>
+        File('assets/tanda_bukti_template.xlsx').readAsBytesSync();
+
+    TandaBuktiIsi isi(String nama, {String status = 'Kawin'}) =>
+        TandaBuktiIsi(
+            row: {
+              'nama': nama,
+              'tgl_lahir': '1968-09-19',
+              'nik': '3327071909680001',
+              'jenis_kelamin': 'L',
+            },
+            statusPerkawinan: status,
+            ektp: true,
+            suket: false,
+            belumRekaman: false);
+
+    test('sheet formulir terisi dan nama file baris tidak bergeser', () {
+      final book = buatTandaBukti(template(), [isi('UJICOBA SATU')],
+          desa: 'KALITORONG',
+          kecamatan: 'RANDUDONGKAL',
+          krt: 'KEPALA RT',
+          rt: 3,
+          rw: 3,
+          petugas: 'Petugas Uji',
+          penerima: 'Penerima Uji');
+      final sheet = book['Form Tanda Bukti'];
+      String baca(String ref) =>
+          '${sheet.cell(CellIndex.indexByString(ref)).value ?? ''}';
+      expect(baca('B2'), 'DESA KALITORONG');
+      expect(baca('E2'), 'KEC. RANDUDONGKAL');
+      expect(baca('D5'), 'KEPALA RT');
+      expect(baca('C6'), 'KALITORONG');
+      expect(baca('G6'), '03');
+      expect(baca('I6'), '03');
+      expect(baca('A10'), '1');
+      expect(baca('B10'), 'UJICOBA SATU');
+      expect(baca('C10'), '19-09-1968');
+      expect(baca('D10'), 'Kawin');
+      expect(baca('E10'), "'3327071909680001");
+      expect(baca('G10'), '√');
+      expect(baca('F26'), '( PETUGAS UJI )');
+      expect(baca('A26'), '( PENERIMA UJI )');
+      // Round-trip: the filled book must still decode cleanly.
+      expect(book.encode(), isNotEmpty);
+    });
+
+    test('lebih dari 12 baris menggeser footer tanpa menimpanya', () {
+      final book = buatTandaBukti(
+          template(), [for (var i = 1; i <= 14; i++) isi('WARGA $i')],
+          desa: 'KALITORONG',
+          kecamatan: 'RANDUDONGKAL',
+          krt: '',
+          rt: 3,
+          rw: 3,
+          petugas: 'Petugas',
+          penerima: 'Penerima');
+      final sheet = book['Form Tanda Bukti'];
+      String baca(String ref) =>
+          '${sheet.cell(CellIndex.indexByString(ref)).value ?? ''}';
+      expect(baca('A22'), '13');
+      expect(baca('B23'), 'WARGA 14');
+      // Footer sits two rows lower and still reads as a signature block.
+      expect(baca('F28'), '( PETUGAS )');
+      expect(baca('A28'), '( PENERIMA )');
     });
   });
 }

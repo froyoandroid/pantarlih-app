@@ -6,6 +6,7 @@ import 'common.dart';
 import 'referensi_screen.dart';
 import 'search_screen.dart';
 import 'survey_form.dart';
+import 'tanda_bukti_screen.dart';
 
 const _warnaKartu = <String, Color>{
   'kuning': Color(0xFFFFF4D6),
@@ -259,17 +260,14 @@ class _RtListScreenState extends State<RtListScreen> {
       final hasil = await s.store.promosikanBatch(s.rw, s.rt);
       if (!mounted) return;
       if (hasil.gagal.isEmpty) {
-        feedback(context,
-            '${hasil.berhasil} warga ditambahkan dari referensi');
+        feedback(context, '${hasil.berhasil} warga ditambahkan dari referensi');
       } else {
         await showDialog<void>(
             context: context,
             builder: (ctx) => AlertDialog(
                     title: Text(
                         '${hasil.berhasil} Dipromosikan, ${hasil.gagal.length} Dilewati'),
-                    content: SingleChildScrollView(
-                        child: Text(
-                            'Baris berikut dilewati karena datanya belum lengkap:\n${hasil.gagal.map((g) => '• $g').join('\n')}\n\nPeriksa lewat menu Belum Diinput untuk melengkapinya.')),
+                    content: SingleChildScrollView(child: Text('Baris berikut dilewati karena datanya belum lengkap:\n${hasil.gagal.map((g) => '• $g').join('\n')}\n\nPeriksa lewat menu Belum Diinput untuk melengkapinya.')),
                     actions: [
                       FilledButton(
                           onPressed: () => Navigator.pop(ctx),
@@ -322,11 +320,20 @@ class _RtListScreenState extends State<RtListScreen> {
               onSelected: (value) {
                 if (value == 'sisa') _bukaSisa();
                 if (value == 'promosi') _promosikanBatch();
+                if (value == 'tanda_bukti') {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              TandaBuktiScreen(session: widget.session)));
+                }
               },
               itemBuilder: (ctx) => const [
                     PopupMenuItem(value: 'sisa', child: Text('Belum Diinput')),
                     PopupMenuItem(
                         value: 'promosi', child: Text('Promosikan Referensi')),
+                    PopupMenuItem(
+                        value: 'tanda_bukti', child: Text('Tanda Bukti')),
                   ]),
         ],
         child: loading

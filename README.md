@@ -305,6 +305,7 @@ Tabel berkas ke judul layar (diuji otomatis oleh `test/ui_conventions_test.dart`
 | `lib/ui/admin_screen.dart` | Ekspor & Pemulihan |
 | `lib/ui/journal_screen.dart` | Jurnal (plus rincian hari dan rincian catatan) |
 | `lib/ui/snapshot_screen.dart` | Snapshot (plus Isi Snapshot dan Bandingkan Snapshot) |
+| `lib/ui/tanda_bukti_screen.dart` | Tanda Bukti |
 
 Tanggung jawab berkas:
 

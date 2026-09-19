@@ -717,3 +717,88 @@ class ExportService {
     }
   }
 }
+
+/// Isi manual tanda bukti. Tiga field ini sengaja tidak masuk database:
+/// status perkawinan tidak ada di skema (produksi sedang berjalan, tanpa
+/// migrasi), nama petugas dan penerima hanya relevan untuk cetak. Ketiganya
+/// ditanyakan di layar isian tepat sebelum file dibuat.
+class TandaBuktiIsi {
+  const TandaBuktiIsi({
+    required this.row,
+    required this.statusPerkawinan,
+    required this.ektp,
+    required this.suket,
+    required this.belumRekaman,
+  });
+  final RecordMap row;
+  final String statusPerkawinan;
+  final bool ektp;
+  final bool suket;
+  final bool belumRekaman;
+}
+
+/// Fills the official template: DESA/KEC on the header, KRT/RT/RW labels,
+/// voter rows starting at row 10, place+date and both signature names. The
+/// template ships exactly 12 data rows; a longer pick list inserts extra
+/// rows inside the form.
+Excel buatTandaBukti(
+  List<int> template,
+  List<TandaBuktiIsi> baris, {
+  required String desa,
+  required String kecamatan,
+  required String krt,
+  required int rt,
+  required int rw,
+  required String petugas,
+  required String penerima,
+}) {
+  final book = Excel.decodeBytes(template);
+  final sheet = book['Form Tanda Bukti'];
+  void set(String ref, String value) {
+    final cell = sheet.cell(CellIndex.indexByString(ref));
+    cell.value = value.isEmpty ? null : TextCellValue(value);
+  }
+
+  set('B2', 'DESA $desa');
+  set('E2', 'KEC. $kecamatan');
+  set('D5', krt);
+  set('C6', desa);
+  set('G6', intValue(rt).toString().padLeft(2, '0'));
+  set('I6', intValue(rw).toString().padLeft(2, '0'));
+  if (baris.length > 12) {
+    sheet.insertRowIterables(
+        List.filled(baris.length - 12, null), 21,
+        startingColumn: 0);
+  }
+  for (var i = 0; i < baris.length; i++) {
+    final row = baris[i];
+    final w = row.row;
+    final r = 10 + i;
+    set('A$r', '${i + 1}');
+    set('B$r', teks(w['nama']));
+    set('C$r', tanggalTampil(w['tgl_lahir']));
+    set('D$r', row.statusPerkawinan);
+    set('E$r', "'${teks(w['nik'])}");
+    set('F$r', teks(w['jenis_kelamin']));
+    set('G$r', row.ektp ? '√' : '');
+    set('H$r', row.suket ? '√' : '');
+    set('I$r', row.belumRekaman ? '√' : '');
+  }
+  final footTgl = 21 + baris.length - 12;
+  final footPetugas = 22 + baris.length - 12;
+  final footNama = 26 + baris.length - 12;
+  if (baris.length > 12) {
+    // insertRowIterables shifted the footer; rewrite it at its new seat.
+    set('A$footTgl', 'Yang menerima,');
+    set('F$footTgl', '$desa, ${tanggalPanjang()}');
+    set('F$footPetugas', 'Petugas,');
+    set('A$footNama', '( ${penerima.toUpperCase()} )');
+    set('F$footNama', '( ${petugas.toUpperCase()} )');
+  } else {
+    set('F21', '$desa, ${tanggalPanjang()}');
+    set('A26', '( ${penerima.toUpperCase()} )');
+    set('F26', '( ${petugas.toUpperCase()} )');
+  }
+  book.setDefaultSheet('Form Tanda Bukti');
+  return book;
+}
