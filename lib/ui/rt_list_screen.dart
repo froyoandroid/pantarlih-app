@@ -41,6 +41,9 @@ class _RtListScreenState extends State<RtListScreen> {
   String? filterKeterangan;
   int? sorot;
 
+  Map<String, String> get keteranganKustom =>
+      widget.session.keteranganKustom;
+
   @override
   void initState() {
     super.initState();
@@ -305,7 +308,8 @@ class _RtListScreenState extends State<RtListScreen> {
                 '${r['nama']}'.toLowerCase().contains(kunci) ||
                 teks(r['nik']).contains(kunci);
             final cocokKeterangan = filterKeterangan == null ||
-                chipKeterangan(teks(r['keterangan'])) == filterKeterangan;
+                chipKeterangan(teks(r['keterangan']), keteranganKustom) ==
+                    filterKeterangan;
             return cocokTeks && cocokKeterangan;
           }).toList()
         : rows;
@@ -377,7 +381,8 @@ class _RtListScreenState extends State<RtListScreen> {
                                     Wrap(spacing: 8, runSpacing: 4, children: [
                                   for (final code in [
                                     keteranganNormal,
-                                    ...keteranganKode.keys
+                                    ...keteranganKode.keys,
+                                    ...keteranganKustom.keys
                                   ])
                                     ChoiceChip(
                                         label: Text(code == keteranganNormal
@@ -418,10 +423,11 @@ class _RtListScreenState extends State<RtListScreen> {
                                       final nik = teks(row['nik']);
                                       final tgl =
                                           tanggalTampil(row['tgl_lahir']);
-                                      final catatan =
-                                          keteranganTampil(row['keterangan']);
+                                      final catatan = keteranganTampil(
+                                          row['keterangan'], keteranganKustom);
                                       final kodeKet = kodeKeterangan(
-                                          teks(row['keterangan']));
+                                          teks(row['keterangan']),
+                                          keteranganKustom);
                                       final warnaKode = teks(row['warna']);
                                       // Unknown color codes (legacy rows) get
                                       // a distinct shade instead of masquerading

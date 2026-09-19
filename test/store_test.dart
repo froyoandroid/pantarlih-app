@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/core/keterangan.dart';
 import 'package:tiliksuara/core/nama.dart';
 import 'package:tiliksuara/data/migrate.dart';
 import 'package:tiliksuara/data/schema.dart';
@@ -1867,6 +1868,48 @@ void main() {
           .query('log', where: 'tabel = ?', whereArgs: ['setelan']);
       expect(
           log.where((r) => '${r['payload']}'.contains('draf_form')), isEmpty);
+    });
+  });
+
+  group('keterangan kustom', () {
+    test('parse dan tulis bolak-balik, kode bawaan menang', () {
+      final peta =
+          parseKeteranganKustom('R=Rukoh\nH=Hilang\nTMS=Salah\nrusak\n=kosong');
+      expect(peta, {'R': 'Rukoh', 'H': 'Hilang'});
+      expect(tulisKeteranganKustom(peta), 'R=Rukoh\nH=Hilang');
+      expect(gabungKeterangan('R=Rukoh').keys.toList(),
+          ['TMS', 'PD', 'B', 'MD', 'R']);
+    });
+
+    test('chip dan arti mengenali kode buatan', () {
+      final kustom = parseKeteranganKustom('R=Rukoh');
+      expect(chipKeterangan('R', kustom), 'R');
+      expect(chipKeterangan('r', kustom), 'R');
+      expect(kodeKeterangan('R', kustom), 'R');
+      expect(keteranganArti('R', kustom), 'Rukoh');
+      // Tanpa kustom, R tetap masuk Lainnya.
+      expect(chipKeterangan('R'), keteranganLainnya);
+      expect(keteranganTampil('R', kustom), 'R');
+    });
+
+    test('setelan keterangan tersimpan tanpa jurnal baru', () async {
+      // store dan root dari setUp; jurnal adalah berkas jsonl per tanggal.
+      final jurnal = Directory('${root.path}/journal');
+      Future<int> barisJurnal() async {
+        if (!jurnal.existsSync()) return 0;
+        var n = 0;
+        await for (final f in jurnal.list()) {
+          n += (await File(f.path).readAsLines()).length;
+        }
+        return n;
+      }
+
+      final awal = await barisJurnal();
+      await store.saveKeteranganKustom('R=Rukoh\nH=Hilang');
+      expect(await store.keteranganKustom(), 'R=Rukoh\nH=Hilang');
+      await store.saveKeteranganKustom('R=Rukoh');
+      expect(await store.keteranganKustom(), 'R=Rukoh');
+      expect(await barisJurnal(), awal);
     });
   });
 
