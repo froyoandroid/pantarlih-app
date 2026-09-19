@@ -245,13 +245,38 @@ class _RtListScreenState extends State<RtListScreen> {
         feedback(context, 'Semua referensi RT ini sudah diinput');
         return;
       }
+      final layak = sisa.where((r) => s.store.alasanPromosi(r).isEmpty).length;
+      if (layak == 0) {
+        feedback(context,
+            'Tidak ada yang memenuhi syarat promosi. Periksa di Belum Diinput.',
+            error: true);
+        return;
+      }
       final setuju = await confirm(context, 'Promosikan Referensi',
-          '${sisa.length} baris referensi RT ini belum diinput. Semuanya akan disimpan sebagai data warga di akhir daftar.',
+          '$layak dari ${sisa.length} baris referensi RT ini memenuhi syarat dan akan disimpan sebagai data warga di akhir daftar.',
           action: 'Promosikan');
       if (!setuju || !mounted) return;
-      final jumlah = await s.store.promosikanBatch(s.rw, s.rt);
+      final hasil = await s.store.promosikanBatch(s.rw, s.rt);
       if (!mounted) return;
-      feedback(context, '$jumlah warga ditambahkan dari referensi');
+      if (hasil.gagal.isEmpty) {
+        feedback(context,
+            '${hasil.berhasil} warga ditambahkan dari referensi');
+      } else {
+        await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+                    title: Text(
+                        '${hasil.berhasil} Dipromosikan, ${hasil.gagal.length} Dilewati'),
+                    content: SingleChildScrollView(
+                        child: Text(
+                            'Baris berikut dilewati karena datanya belum lengkap:\n${hasil.gagal.map((g) => '• $g').join('\n')}\n\nPeriksa lewat menu Belum Diinput untuk melengkapinya.')),
+                    actions: [
+                      FilledButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Tutup'))
+                    ]));
+      }
+      if (!mounted) return;
       await _load();
     } catch (e) {
       if (mounted) feedback(context, e, error: true);

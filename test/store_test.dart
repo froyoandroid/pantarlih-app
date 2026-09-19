@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:tiliksuara/core/format.dart';
+import 'package:tiliksuara/core/nama.dart';
 import 'package:tiliksuara/data/migrate.dart';
 import 'package:tiliksuara/data/schema.dart';
 import 'package:tiliksuara/data/spreadsheets.dart';
@@ -1729,23 +1730,47 @@ void main() {
   });
 
   group('promosi referensi', () {
-    test('promosikanReferensi copies the row through saveWarga', () async {
-      final ref = (await store.referensiFile('fixture.xlsx')).first;
+    test('promosikanReferensi copies a qualifying row through saveWarga',
+        () async {
+      await store.importRows([
+        {
+          'urut_asli': 80,
+          'nama': 'MUHAMAD LAYAK',
+          'nama_norm': normalisasiNama('MUHAMAD LAYAK'),
+          'nik_lama': '3327071909680001',
+          'jenis_kelamin': 'L',
+          'tempat_lahir': 'PEMALANG',
+          'tgl_lahir': '1968-09-19',
+          'desa': 'KALITORONG',
+          'rt': 3,
+          'rw': 3,
+          'sumber_file': 'layak.xlsx',
+        },
+      ], 'layak.xlsx');
+      final ref =
+          (await store.referensiFile('layak.xlsx')).single;
       final saved = await store.promosikanReferensi(ref['id'] as int);
-      expect(saved['nama'], ref['nama']);
-      expect(saved['nik'], ref['nik_lama']);
-      expect(saved['tgl_lahir'], ref['tgl_lahir']);
+      expect(saved['nama'], 'MUHAMAD LAYAK');
+      expect(saved['nik'], '3327071909680001');
+      expect(saved['tgl_lahir'], '1968-09-19');
       expect(saved['rt'], 3);
       expect(saved['rw'], 3);
       // The reference row stays untouched as source evidence.
-      expect(await store.referensiFile('fixture.xlsx'), isNotEmpty);
+      expect(await store.referensiFile('layak.xlsx'), isNotEmpty);
     });
 
     test('referensiBelum drops rows once a matching warga exists', () async {
+      // A promoted row leaves the sisa list even though the reference row
+      // itself stays untouched.
       final sisaAwal = await store.referensiBelum(3, 3);
       expect(sisaAwal, isNotEmpty);
       final ref = sisaAwal.first;
-      await store.promosikanReferensi(ref['id'] as int);
+      await store.saveWarga({
+        ...fields(),
+        'nama': ref['nama'],
+        'nik': null,
+        'tgl_lahir': ref['tgl_lahir'],
+      });
       final sisa = await store.referensiBelum(3, 3);
       expect(sisa.length, sisaAwal.length - 1);
       expect(sisa.map((r) => r['id']), isNot(contains(ref['id'])));
@@ -1753,21 +1778,75 @@ void main() {
 
     test('promosikanBatch promotes every unmatched row in file order',
         () async {
+      // The fixture NIKs are masked, so no row qualifies: batch reports all
+      // as skipped with their reasons instead of promoting junk.
       final sisa = await store.referensiBelum(3, 3);
-      final jumlah = await store.promosikanBatch(3, 3);
-      expect(jumlah, sisa.length);
-      expect(await store.referensiBelum(3, 3), isEmpty);
+      final hasil = await store.promosikanBatch(3, 3);
+      expect(hasil.berhasil, 0);
+      expect(hasil.gagal, hasLength(sisa.length));
+      expect(hasil.gagal.first, contains('NIK belum lengkap'.toLowerCase()));
+      // Nothing was promoted, so the sisa list is unchanged.
+      expect(await store.referensiBelum(3, 3), hasLength(sisa.length));
+    });
+
+    test('promosikanBatch promotes qualifying rows and skips the rest',
+        () async {
+      await store.importRows([
+        {
+          'urut_asli': 90,
+          'nama': 'LAYAK PROMOSI',
+          'nama_norm': normalisasiNama('LAYAK PROMOSI'),
+          'nik_lama': '3327071909680001',
+          'jenis_kelamin': 'L',
+          'tempat_lahir': 'PEMALANG',
+          'tgl_lahir': '1968-09-19',
+          'desa': 'KALITORONG',
+          'rt': 3,
+          'rw': 3,
+          'sumber_file': 'layak.xlsx',
+        },
+      ], 'layak.xlsx');
+      final hasil = await store.promosikanBatch(3, 3);
+      expect(hasil.berhasil, 1);
+      expect(hasil.gagal, isNotEmpty);
       final warga = await store.wargaRt(3, 3);
-      expect(
-          warga.map((r) => r['nama']), containsAll(sisa.map((r) => r['nama'])));
-      // Batch rows land at the end, following the file's urut_asli order.
-      final namaUrut = [for (final r in warga) '${r['nama']}'];
-      var terakhir = -1;
-      for (final ref in sisa) {
-        final pos = namaUrut.indexOf('${ref['nama']}');
-        expect(pos, greaterThan(terakhir));
-        terakhir = pos;
-      }
+      expect(warga.map((r) => r['nama']), contains('LAYAK PROMOSI'));
+      // The promoted row leaves the sisa list, skipped rows stay.
+      final sisa = await store.referensiBelum(3, 3);
+      expect(sisa.map((r) => r['nama']), isNot(contains('LAYAK PROMOSI')));
+    });
+
+    test('promosikanReferensi refuses a masked NIK', () async {
+      final ref = (await store.referensiFile('fixture.xlsx')).first;
+      expect(store.alasanPromosi(ref), contains('NIK belum lengkap'));
+      expect(() => store.promosikanReferensi(ref['id'] as int),
+          throwsA(isA<AppException>()));
+    });
+
+    test('alasanPromosi flags NIK/birthdate and NIK/gender mismatch',
+        () async {
+      RecordMap dasar(String nik, String jk, String tgl) => {
+            'nama': 'UJI',
+            'nik_lama': nik,
+            'jenis_kelamin': jk,
+            'tgl_lahir': tgl,
+            'desa': 'KALITORONG',
+            'rt': 3,
+            'rw': 3,
+          };
+      expect(store.alasanPromosi(dasar('3327071909680001', 'L', '1968-09-19')),
+          isEmpty);
+      expect(store.alasanPromosi(dasar('3327071909680001', 'L', '1968-09-20')),
+          contains('NIK tidak cocok dengan tanggal lahir'));
+      // 590968 encodes a female birth day (19 + 40).
+      expect(store.alasanPromosi(dasar('3327075909680001', 'L', '1968-09-19')),
+          contains('NIK tidak cocok dengan jenis kelamin'));
+      expect(store.alasanPromosi(dasar('3327075909680001', 'P', '1968-09-19')),
+          isEmpty);
+      expect(store.alasanPromosi(dasar('', 'P', '1968-09-19')),
+          contains('NIK belum lengkap'));
+      expect(store.alasanPromosi(dasar('3327075909680001', 'P', '')),
+          contains('Tanggal lahir tidak ada'));
     });
 
     test('promosikanReferensi rejects an unknown reference id', () {
