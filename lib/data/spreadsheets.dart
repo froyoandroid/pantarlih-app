@@ -522,6 +522,35 @@ class ExportService {
     );
   }
 
+  (List<String>, List<List<Object?>>) _infoMasalah(
+      {required RecordMap? lokasi,
+      required int rw,
+      int? rt,
+      required int duplikatNik,
+      required int duplikatNama,
+      required int tanpaNik}) {
+    final kode =
+        intValue(lokasi?['manual']) == 1 ? '(manual)' : (lokasi?['kode'] ?? '');
+    return (
+      ['Label', 'Nilai'],
+      [
+        ['Provinsi', lokasi?['nama_prov'] ?? ''],
+        ['Kabupaten/Kota', lokasi?['nama_kab'] ?? ''],
+        ['Kecamatan', lokasi?['nama_kec'] ?? ''],
+        ['Desa/Kelurahan', lokasi?['nama_desa'] ?? ''],
+        ['Kode wilayah', kode],
+        ['RT', rt == null ? '' : rt.toString().padLeft(2, '0')],
+        ['RW', rw.toString().padLeft(2, '0')],
+        ['Duplikat NIK', duplikatNik],
+        ['Duplikat Nama', duplikatNama],
+        ['Tanpa NIK', tanpaNik],
+        ['Diekspor pada', waktuTampil(timestamp())],
+        ['Sumber kode wilayah', lokasi?['sumber_versi'] ?? ''],
+        ['Versi aplikasi', appVersion],
+      ]
+    );
+  }
+
   /// Writes the workbooks into a stamped subfolder of [tujuan], the public
   /// ekspor folder (or ekspor/otomatis for the RT-switch export). The
   /// private data root never receives exports.
@@ -639,47 +668,37 @@ class ExportService {
     final nomorDari =
         await _posisiPeta([...duplicateRows, ...duplicateNames, ...missing]);
     int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
-    // Problem files only exist when there is something to report: an empty
-    // DUPLIKAT_NIK workbook is noise, not a finding.
+    // Every finding lands in one MASALAH workbook, one sheet per category.
+    // A category sheet is only added when it has rows: an empty sheet is
+    // noise, not a finding. No findings at all means no file is written.
+    final problemSheets = <String, (List<String>, List<List<Object?>>)>{};
     if (duplicateRows.isNotEmpty) {
-      await write('${namaBerkasBagian(['DUPLIKAT_NIK', code, date])}.xlsx', {
-        'DUPLIKAT NIK': (
-          dpsHeaders,
-          [for (final row in duplicateRows) dpsRow(row, nomor(row))],
-        ),
-        'INFO': _info(
-            lokasi: lokasiRow,
-            rw: rw,
-            rt: rt,
-            jumlah: duplicateRows.length,
-            tanpaNik: 0),
-      });
+      problemSheets['DUPLIKAT NIK'] = (
+        dpsHeaders,
+        [for (final row in duplicateRows) dpsRow(row, nomor(row))],
+      );
     }
     if (duplicateNames.isNotEmpty) {
-      await write('${namaBerkasBagian(['DUPLIKAT_NAMA', code, date])}.xlsx', {
-        'DUPLIKAT NAMA': (
-          dpsHeaders,
-          [for (final row in duplicateNames) dpsRow(row, nomor(row))],
-        ),
-        'INFO': _info(
-            lokasi: lokasiRow,
-            rw: rw,
-            rt: rt,
-            jumlah: duplicateNames.length,
-            tanpaNik: 0),
-      });
+      problemSheets['DUPLIKAT NAMA'] = (
+        dpsHeaders,
+        [for (final row in duplicateNames) dpsRow(row, nomor(row))],
+      );
     }
     if (missing.isNotEmpty) {
-      await write('${namaBerkasBagian(['TANPA_NIK', code, date])}.xlsx', {
-        'TANPA NIK': (
-          dpsHeaders,
-          [for (final row in missing) dpsRow(row, nomor(row))],
-        ),
-        'INFO': _info(
+      problemSheets['TANPA NIK'] = (
+        dpsHeaders,
+        [for (final row in missing) dpsRow(row, nomor(row))],
+      );
+    }
+    if (problemSheets.isNotEmpty) {
+      await write('${namaBerkasBagian(['MASALAH', code, date])}.xlsx', {
+        ...problemSheets,
+        'INFO': _infoMasalah(
             lokasi: lokasiRow,
             rw: rw,
             rt: rt,
-            jumlah: missing.length,
+            duplikatNik: duplicateRows.length,
+            duplikatNama: duplicateNames.length,
             tanpaNik: missing.length),
       });
     }
