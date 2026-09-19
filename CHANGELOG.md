@@ -13,9 +13,8 @@
 
 - Kartu referensi di Cari Warga kembali hanya sebagai saran yang membuka formulir terisi. Promosi satu ketukan dipusatkan di layar Belum Diinput agar alur Tambah Warga tidak berubah.
 - README menandai kolom `grup_id` sebagai cadangan yang sengaja tidak dipakai.
-- Ekspor masalah kini satu berkas `MASALAH` dengan sheet terpisah untuk duplikat NIK, duplikat nama, dan tanpa NIK, menggantikan tiga berkas terpisah. Sheet hanya ada bila kategorinya berisi, dan berkas hanya dibuat bila ada temuan.
+- Ekspor temuan (duplikat NIK, duplikat nama, tanpa NIK) tidak lagi jadi berkas terpisah, melainkan sheet tambahan di dalam berkas DPS yang sama. Tiap sheet hanya muncul bila kategorinya berisi.
 
 ### Perbaikan
 
-- Berkas `MASALAH` hanya dibuat bila ada temuan, dan tiap sheet kategori hanya muncul bila kategorinya berisi.
 - Tombol Buka pada berkas Excel hasil ekspor di layar Ekspor & Pemulihan.

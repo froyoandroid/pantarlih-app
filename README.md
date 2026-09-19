@@ -55,21 +55,22 @@ flowchart TD
 4. Daftar Warga adalah layar utama pendataan. Tekan `Tambah` di sudut kanan atas atau tombol tambah pada celah baris untuk menyisipkan warga baru, tahan ikon urutan untuk mengubah posisi susunan, dan geser kartu ke kiri untuk menghapus. Penomoran pada ekspor Excel mengikuti urutan susunan ini.
 5. Cari Warga: ketik nama minimal 3 huruf. Bagian `Sudah Diinput` menampilkan data yang telah tersimpan. Bagian `Referensi` menampilkan saran dari berkas rujukan untuk mempercepat pengisian data baru. Tombol `Tambah Warga` selalu tersedia untuk input langsung. Mode pencarian tanggal lahir menampilkan seluruh kecocokan dengan memprioritaskan RT aktif.
 6. Formulir mengutamakan nama lengkap, NIK, jenis kelamin, serta tempat dan tanggal lahir. NIK boleh dikosongkan bila belum tersedia pada dokumen. Validasi format NIK (panjang 16 digit, kesesuaian tanggal lahir dan jenis kelamin, deteksi NIK terdaftar) hanya pengingat ketelitian dan tidak memblokir penyimpanan. Kolom keterangan mendukung kode cepat maupun catatan bebas, lihat tabel di bawah.
-7. Riwayat menampilkan 20 pencatatan terakhir. Jurnal mencatat setiap perubahan secara permanen per hari dan mendukung pengembalian versi sebelumnya serta pembatalan penghapusan warga. Hasil ekspor Excel selalu berupa beberapa berkas terpisah, lihat tabel berikutnya.
+7. Riwayat menampilkan 20 pencatatan terakhir. Jurnal mencatat setiap perubahan secara permanen per hari dan mendukung pengembalian versi sebelumnya serta pembatalan penghapusan warga. Hasil ekspor Excel berupa berkas DPS per RT (atau satu berkas gabungan), lihat tabel berikutnya.
 
 ## Hasil Ekspor Excel
 
-Menekan `Buat File Excel` menghasilkan berkas-berkas berikut di satu subfolder baru pada `ekspor/`. Semua temuan (duplikat NIK, duplikat nama, tanpa NIK) dikumpulkan dalam satu berkas `MASALAH` dengan sheet terpisah, bukan sheet di dalam berkas DPS.
+Menekan `Buat File Excel` menghasilkan berkas-berkas berikut di satu subfolder baru pada `ekspor/`. Temuan (duplikat NIK, duplikat nama, tanpa NIK) tidak lagi jadi berkas tersendiri, melainkan sheet tambahan di dalam berkas DPS yang sama.
 
 | Berkas | Sheet | Isi |
 | --- | --- | --- |
-| `DPS_<kode>_<desa>_RT<nn>_RW<mm>_<tanggal>.xlsx` | `RT <nn>`, `INFO` | Satu berkas per RT (bila opsi gabungan mati) |
-| `DPS_GABUNGAN_<kode>_RW<mm>_<tanggal>.xlsx` | Satu sheet per RT, `INFO` | Seluruh RT dalam satu berkas (bila opsi gabungan aktif) |
-| `MASALAH_<kode>_<tanggal>.xlsx` | `DUPLIKAT NIK`, `DUPLIKAT NAMA`, `TANPA NIK`, `INFO` | Semua temuan dalam satu berkas. Tiap kategori jadi satu sheet, dan sheet hanya ada bila kategorinya berisi. Berkas hanya dibuat bila ada minimal satu temuan. Kolom NO memakai nomor urut di RT masing-masing |
+| `DPS_<kode>_<desa>_RT<nn>_RW<mm>_<tanggal>.xlsx` | `RT <nn>`, sheet temuan bila ada, `INFO` | Satu berkas per RT (bila opsi gabungan mati) |
+| `DPS_GABUNGAN_<kode>_RW<mm>_<tanggal>.xlsx` | Satu sheet per RT, sheet temuan bila ada, `INFO` | Seluruh RT dalam satu berkas (bila opsi gabungan aktif) |
 
 Sheet data memakai sepuluh kolom: `NO`, `NAMA`, `NIK`, `JENIS KELAMIN`, `TEMPAT LAHIR`, `TANGGAL LAHIR`, `DESA`, `RT`, `RW`, `KETERANGAN`. Nomor `NO` mulai dari 1 di setiap RT. Sheet `INFO` memuat Provinsi, Kabupaten/Kota, Kecamatan, Desa/Kelurahan, Kode wilayah, RT, RW, Jumlah warga, Tanpa NIK, waktu ekspor, sumber kode wilayah, dan versi aplikasi. Nilai INFO dibaca dari snapshot tersimpan, bukan dari pack wilayah.
 
-Ekspor otomatis saat pindah RT menulis salinan DPS yang sama ke `ekspor/otomatis/` (10 terbaru) tanpa berkas duplikat.
+Sheet temuan (`DUPLIKAT NIK`, `DUPLIKAT NAMA`, `TANPA NIK`) hanya muncul bila kategorinya berisi. Nomor `NO` pada sheet temuan memakai nomor urut warga di RT masing-masing.
+
+Ekspor otomatis saat pindah RT menulis salinan DPS yang sama ke `ekspor/otomatis/` (10 terbaru) tanpa sheet temuan.
 
 ### Kode keterangan
 
