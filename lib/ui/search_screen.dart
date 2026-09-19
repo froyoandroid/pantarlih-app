@@ -189,18 +189,6 @@ class _SearchScreenState extends State<SearchScreen> {
     return [..._rank(aktif, q, 5), ..._rank(lain, q, 5)];
   }
 
-  Future<void> _promosikan(RecordMap row) async {
-    try {
-      await session.store.promosikanReferensi(row['id'] as int);
-      if (!mounted) return;
-      feedback(context, '${row['nama']} ditambahkan sebagai warga');
-      cacheSkor.clear();
-      await _load();
-    } catch (e) {
-      if (mounted) feedback(context, e, error: true);
-    }
-  }
-
   Future<void> _openForm({RecordMap? wargaRow, RecordMap? seed}) async {
     final saved = await Navigator.push<int>(
         context,
@@ -344,11 +332,6 @@ class _SearchScreenState extends State<SearchScreen> {
                                   labelColor: candidate.$1['rt'] != session.rt
                                       ? amber
                                       : null,
-                                  trailing: TextButton(
-                                      onPressed: () =>
-                                          _promosikan(candidate.$1),
-                                      child: const Text('Jadikan\nWarga',
-                                          textAlign: TextAlign.center)),
                                   onTap: () => _openForm(seed: candidate.$1)),
                           ],
                           Padding(
@@ -360,7 +343,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           const Padding(
                               padding: EdgeInsets.all(12),
                               child: Text(
-                                  'Saran mengisi data awal atau bisa langsung dijadikan warga. Data warga tersimpan sebagai data baru dan tidak terhubung ke referensi.',
+                                  'Saran hanya mengisi data awal. Setelah dipilih, data warga tersimpan sebagai data baru dan tidak terhubung ke referensi.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                       fontSize: 12, color: Colors.black54))),
