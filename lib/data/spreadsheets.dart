@@ -797,24 +797,26 @@ Excel buatTandaBukti(
   }
 
   void mergeRow(int row, int c0, int c1, String value, [CellStyle? style]) {
-    sheet.merge(
-        CellIndex.indexByColumnRow(columnIndex: c0, rowIndex: row),
+    sheet.merge(CellIndex.indexByColumnRow(columnIndex: c0, rowIndex: row),
         CellIndex.indexByColumnRow(columnIndex: c1, rowIndex: row));
     set(c0, row, value, style);
   }
 
-  // Header block.
+  final desaCaps = desa.toUpperCase();
+  final kecCaps = kecamatan.toUpperCase();
+  // Header block: alamat berdiri di baris sendiri di bawah nama KRT.
   mergeRow(0, 0, 8, 'PANITIA PEMILIHAN KEPALA DESA', kop);
-  mergeRow(1, 0, 8, 'DESA $desa, KEC. $kecamatan', kop);
+  mergeRow(1, 0, 8, 'DESA $desaCaps, KEC. $kecCaps', kop);
   sheet.setRowHeight(2, 26);
-  mergeRow(2, 0, 8, 'FORMULIR TANDA BUKTI SUDAH DIDAFTAR SEBAGAI PEMILIH',
-      judul);
+  mergeRow(
+      2, 0, 8, 'FORMULIR TANDA BUKTI SUDAH DIDAFTAR SEBAGAI PEMILIH', judul);
   sheet.setRowHeight(4, 20);
-  mergeRow(4, 0, 3, 'Nama Kepala Rumah Tangga : $krt');
-  mergeRow(4, 4, 8,
-      'Alamat : Desa $desa  RT ${intValue(rt).toString().padLeft(2, '0')} / RW ${intValue(rw).toString().padLeft(2, '0')}');
+  mergeRow(4, 0, 8, 'Nama Kepala Rumah Tangga : $krt');
+  sheet.setRowHeight(5, 20);
+  mergeRow(5, 0, 8,
+      'Alamat : Desa $desaCaps  RT ${intValue(rt).toString().padLeft(2, '0')} / RW ${intValue(rw).toString().padLeft(2, '0')}');
 
-  // Table header, two rows: row 5 top labels, row 6 the keterangan split.
+  // Table header, two rows: row 6 top labels, row 7 the keterangan split.
   const heads = [
     'No.',
     'Nama Pemilih',
@@ -823,23 +825,22 @@ Excel buatTandaBukti(
     'NIK',
     'L/P'
   ];
-  sheet.setRowHeight(5, 22);
+  sheet.setRowHeight(6, 22);
   for (var c = 0; c < heads.length; c++) {
-    set(c, 5, heads[c], header);
-    sheet.merge(
-        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 5),
-        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 6));
+    set(c, 6, heads[c], header);
+    sheet.merge(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 6),
+        CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 7));
   }
-  sheet.merge(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: 5),
-      CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: 5));
-  set(6, 5, 'Keterangan', header);
-  set(6, 6, 'E-KTP', header);
-  set(7, 6, 'Suket', header);
-  set(8, 6, 'Belum Rekaman', header);
+  sheet.merge(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: 6),
+      CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: 6));
+  set(6, 6, 'Keterangan', header);
+  set(6, 7, 'E-KTP', header);
+  set(7, 7, 'Suket', header);
+  set(8, 7, 'Belum Rekaman', header);
 
   // Data rows.
   for (var i = 0; i < baris.length; i++) {
-    final r = 7 + i;
+    final r = 8 + i;
     final b = baris[i];
     final w = b.row;
     set(0, r, '${i + 1}',
@@ -862,9 +863,9 @@ Excel buatTandaBukti(
 
   // Signature block: two blank lines after the table, labels, then names
   // after enough space for a wet signature.
-  final f0 = 7 + baris.length + 2;
+  final f0 = 8 + baris.length + 2;
   set(0, f0, 'Yang menerima,');
-  set(5, f0, '$desa, ${tanggalPanjang()}');
+  set(5, f0, '$desaCaps, ${tanggalPanjang()}');
   set(5, f0 + 1, 'Petugas,');
   set(0, f0 + 4, '( ${penerima.toUpperCase()} )', CellStyle(bold: true));
   set(5, f0 + 4, '( ${petugas.toUpperCase()} )', CellStyle(bold: true));
