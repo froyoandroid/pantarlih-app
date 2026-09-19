@@ -449,6 +449,7 @@ class _SurveyFormState extends State<SurveyForm> {
             )),
             const SizedBox(height: 18),
             TextField(
+                key: const ValueKey('f_nama'),
                 controller: name,
                 autofocus: widget.warga == null,
                 autocorrect: false,
@@ -460,6 +461,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 decoration: deco('Nama *')),
             const SizedBox(height: 14),
             TextField(
+                key: const ValueKey('f_nik'),
                 controller: nik,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.next,
@@ -481,6 +483,7 @@ class _SurveyFormState extends State<SurveyForm> {
                   .map((w) => Notice(w, warning: true)),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
+                key: const ValueKey('f_jk'),
                 value: gender, // ignore: deprecated_member_use
                 decoration: deco('Jenis Kelamin'),
                 items: const [
@@ -490,6 +493,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 onChanged: (value) => setState(() => gender = value)),
             const SizedBox(height: 14),
             TextField(
+                key: const ValueKey('f_tempat_lahir'),
                 controller: birthPlace,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -500,6 +504,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 decoration: deco('Tempat Lahir')),
             const SizedBox(height: 14),
             TextField(
+                key: const ValueKey('f_tgl_lahir'),
                 controller: birthDate,
                 textInputAction: TextInputAction.next,
                 onChanged: (_) => setState(() {}),
@@ -508,6 +513,7 @@ class _SurveyFormState extends State<SurveyForm> {
                 decoration: deco('Tanggal Lahir', hint: 'HH-BB-TTTT')),
             const SizedBox(height: 14),
             TextField(
+                key: const ValueKey('f_desa'),
                 controller: village,
                 autocorrect: false,
                 enableSuggestions: false,
@@ -519,6 +525,7 @@ class _SurveyFormState extends State<SurveyForm> {
             Row(children: [
               Expanded(
                   child: TextField(
+                      key: const ValueKey('f_rt'),
                       controller: rt,
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
@@ -526,6 +533,7 @@ class _SurveyFormState extends State<SurveyForm> {
               const SizedBox(width: 14),
               Expanded(
                   child: TextField(
+                      key: const ValueKey('f_rw'),
                       controller: rw,
                       onChanged: (_) => setState(() {}),
                       keyboardType: TextInputType.number,
