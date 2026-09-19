@@ -512,15 +512,16 @@ void main() {
         .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
     expect(files.any((f) => f.path.contains('PENDING')), isFalse);
     expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
-    expect(files.any((f) => f.path.contains('TANPA_NIK')), isTrue);
-    expect(files.any((f) => f.path.contains('DUPLIKAT_NIK')), isFalse);
-    final duplikatNama =
-        files.firstWhere((f) => f.path.contains('DUPLIKAT_NAMA'));
-    final duplikatBook = Excel.decodeBytes(await duplikatNama.readAsBytes());
-    final duplikatData =
-        duplikatBook.tables.entries.firstWhere((e) => e.key != 'INFO').value;
+    final masalah = files.firstWhere((f) => f.path.contains('MASALAH'));
+    final masalahBook = Excel.decodeBytes(await masalah.readAsBytes());
+    // Duplicate NIK never repeats here, so that sheet is absent. The two
+    // shared-name rows and the one warga without NIK each get a sheet.
+    expect(masalahBook.tables.containsKey('DUPLIKAT NIK'), isFalse);
+    expect(masalahBook.tables.containsKey('DUPLIKAT NAMA'), isTrue);
+    expect(masalahBook.tables.containsKey('TANPA NIK'), isTrue);
     // One header row plus the two rows sharing the duplicate name.
-    expect(duplikatData.rows.length - 1, 2);
+    expect(masalahBook.tables['DUPLIKAT NAMA']!.rows.length - 1, 2);
+    expect(masalahBook.tables['TANPA NIK']!.rows.length - 1, 1);
     final dps = files.firstWhere((f) {
       final n = f.path.split(Platform.pathSeparator).last;
       return n.startsWith('DPS_') &&
@@ -544,9 +545,7 @@ void main() {
     final names =
         files.map((f) => f.path.split(Platform.pathSeparator).last).toList();
     expect(names.any((n) => n.startsWith('DPS_')), isTrue);
-    expect(names.any((n) => n.contains('DUPLIKAT_NIK')), isFalse);
-    expect(names.any((n) => n.contains('DUPLIKAT_NAMA')), isFalse);
-    expect(names.any((n) => n.contains('TANPA_NIK')), isFalse);
+    expect(names.any((n) => n.contains('MASALAH')), isFalse);
   });
 
   test('insert before a row uses the gap before that row', () async {
@@ -683,8 +682,7 @@ void main() {
         .toList();
     expect(names.where((n) => n.contains('RT04')), hasLength(1));
     expect(names.where((n) => n.contains('RT03')), isEmpty);
-    expect(names.where((n) => n.contains('DUPLIKAT')), isEmpty);
-    expect(names.where((n) => n.contains('TANPA_NIK')), isEmpty);
+    expect(names.where((n) => n.contains('MASALAH')), isEmpty);
   });
 
   test('session changes create snapshot and automatic exports', () async {
