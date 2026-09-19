@@ -39,10 +39,12 @@ class _RtListScreenState extends State<RtListScreen> {
   bool loading = true;
   String filter = '';
   String? filterKeterangan;
+  // Display order only. Rows stay in canonical insert order (urut_sort ASC);
+  // this just reverses what is shown so the newest can sit on top.
+  bool urutTerbaru = false;
   int? sorot;
 
-  Map<String, String> get keteranganKustom =>
-      widget.session.keteranganKustom;
+  Map<String, String> get keteranganKustom => widget.session.keteranganKustom;
 
   @override
   void initState() {
@@ -213,8 +215,8 @@ class _RtListScreenState extends State<RtListScreen> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
-    if (filter.trim().isNotEmpty || filterKeterangan != null) {
-      return; // drag is locked while filtering
+    if (filter.trim().isNotEmpty || filterKeterangan != null || urutTerbaru) {
+      return; // drag is locked while filtering or showing newest-first
     }
     // onReorderItem delivers newIndex already adjusted for the removed row,
     // so convert back to the raw onReorder-style index for the helper.
@@ -302,7 +304,7 @@ class _RtListScreenState extends State<RtListScreen> {
     };
     final kunci = filter.trim().toLowerCase();
     final filterAktif = kunci.isNotEmpty || filterKeterangan != null;
-    final tampil = filterAktif
+    final tersaring = filterAktif
         ? rows.where((r) {
             final cocokTeks = kunci.isEmpty ||
                 '${r['nama']}'.toLowerCase().contains(kunci) ||
@@ -313,11 +315,21 @@ class _RtListScreenState extends State<RtListScreen> {
             return cocokTeks && cocokKeterangan;
           }).toList()
         : rows;
+    final tampil = urutTerbaru ? tersaring.reversed.toList() : tersaring;
+    final urutanTerkunci = filterAktif || urutTerbaru;
     return AppPage(
         session: widget.session,
         title: 'Daftar Warga',
         subtitle: widget.session.label,
         actions: [
+          IconButton(
+              icon: Icon(urutTerbaru
+                  ? Icons.arrow_downward
+                  : Icons.arrow_upward),
+              tooltip: urutTerbaru
+                  ? 'Urutan Terbaru ke Terlama'
+                  : 'Urutan Terlama ke Terbaru',
+              onPressed: () => setState(() => urutTerbaru = !urutTerbaru)),
           TextButton(
               onPressed: () => _openKetik(), child: const Text('Tambah')),
           PopupMenuButton<String>(
@@ -393,14 +405,16 @@ class _RtListScreenState extends State<RtListScreen> {
                                             filterKeterangan =
                                                 selected ? code : null)),
                                 ]))),
-                        if (filterAktif)
-                          const Padding(
-                              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        if (urutanTerkunci)
+                          Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                               child: Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                      'Urutan dikunci selama filter aktif.',
-                                      style: TextStyle(
+                                      urutTerbaru && !filterAktif
+                                          ? 'Urutan dikunci saat tampilan terbaru ke terlama.'
+                                          : 'Urutan dikunci selama filter aktif.',
+                                      style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.black54)))),
                         Expanded(
