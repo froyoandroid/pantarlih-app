@@ -156,7 +156,7 @@ class _AdminScreenState extends State<AdminScreen> {
             value: kop,
             onChanged: busy ? null : (v) => setState(() => kop = v)),
         const Notice(
-            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di berkas mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK dikumpulkan dalam satu berkas Masalah dengan sheet terpisah.'),
+            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di berkas mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK jadi sheet tambahan di dalam berkas DPS yang sama.'),
         FilledButton.icon(
             onPressed: busy
                 ? null

@@ -522,33 +522,37 @@ class ExportService {
     );
   }
 
-  (List<String>, List<List<Object?>>) _infoMasalah(
-      {required RecordMap? lokasi,
-      required int rw,
-      int? rt,
-      required int duplikatNik,
-      required int duplikatNama,
-      required int tanpaNik}) {
-    final kode =
-        intValue(lokasi?['manual']) == 1 ? '(manual)' : (lokasi?['kode'] ?? '');
-    return (
-      ['Label', 'Nilai'],
-      [
-        ['Provinsi', lokasi?['nama_prov'] ?? ''],
-        ['Kabupaten/Kota', lokasi?['nama_kab'] ?? ''],
-        ['Kecamatan', lokasi?['nama_kec'] ?? ''],
-        ['Desa/Kelurahan', lokasi?['nama_desa'] ?? ''],
-        ['Kode wilayah', kode],
-        ['RT', rt == null ? '' : rt.toString().padLeft(2, '0')],
-        ['RW', rw.toString().padLeft(2, '0')],
-        ['Duplikat NIK', duplikatNik],
-        ['Duplikat Nama', duplikatNama],
-        ['Tanpa NIK', tanpaNik],
-        ['Diekspor pada', waktuTampil(timestamp())],
-        ['Sumber kode wilayah', lokasi?['sumber_versi'] ?? ''],
-        ['Versi aplikasi', appVersion],
-      ]
-    );
+  /// Problem sheets (duplikat NIK, duplikat nama, tanpa NIK) for one (rw, rt)
+  /// scope, folded into the DPS workbook. A category sheet only exists when it
+  /// has rows: an empty sheet is noise, not a finding.
+  Future<Map<String, (List<String>, List<List<Object?>>)>> _problemSheets(
+      int rw, int? rt) async {
+    final duplicateRows = await store.duplicateRows(rw: rw, rt: rt);
+    final duplicateNames = await store.duplicateNameRows(rw: rw, rt: rt);
+    final missing = await store.tanpaNik(rw: rw, rt: rt);
+    final nomorDari =
+        await _posisiPeta([...duplicateRows, ...duplicateNames, ...missing]);
+    int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
+    final sheets = <String, (List<String>, List<List<Object?>>)>{};
+    if (duplicateRows.isNotEmpty) {
+      sheets['DUPLIKAT NIK'] = (
+        dpsHeaders,
+        [for (final row in duplicateRows) dpsRow(row, nomor(row))]
+      );
+    }
+    if (duplicateNames.isNotEmpty) {
+      sheets['DUPLIKAT NAMA'] = (
+        dpsHeaders,
+        [for (final row in duplicateNames) dpsRow(row, nomor(row))]
+      );
+    }
+    if (missing.isNotEmpty) {
+      sheets['TANPA NIK'] = (
+        dpsHeaders,
+        [for (final row in missing) dpsRow(row, nomor(row))]
+      );
+    }
+    return sheets;
   }
 
   /// Writes the workbooks into a stamped subfolder of [tujuan], the public
@@ -629,6 +633,8 @@ class ExportService {
       if (combined) {
         dpsSheets['RT $selectedRt'] = (dpsHeaders, rows);
       } else {
+        final problem = <String, (List<String>, List<List<Object?>>)>{};
+        if (!automatic) problem.addAll(await _problemSheets(rw, selectedRt));
         await write(
             '${namaBerkasBagian([
                   'DPS',
@@ -638,7 +644,7 @@ class ExportService {
                   'RW$rwPad',
                   date
                 ])}.xlsx',
-            {'RT $selectedRt': (dpsHeaders, rows), 'INFO': info},
+            {'RT $selectedRt': (dpsHeaders, rows), ...problem, 'INFO': info},
             kopRows: kopRows);
       }
     }
@@ -649,9 +655,11 @@ class ExportService {
           rt: null,
           jumlah: combinedRows,
           tanpaNik: combinedMissing);
+      final problem = <String, (List<String>, List<List<Object?>>)>{};
+      if (!automatic) problem.addAll(await _problemSheets(rw, rt));
       await write(
           '${namaBerkasBagian(['DPS_GABUNGAN', code, 'RW$rwPad', date])}.xlsx',
-          {...dpsSheets, 'INFO': info},
+          {...dpsSheets, ...problem, 'INFO': info},
           kopRows: kop && rts.isNotEmpty
               ? _kop(lokasiRow, rw, rts.first)
               : const []);
@@ -660,47 +668,6 @@ class ExportService {
       await store.recordExport(metadata, rw, rts);
       await _rotateAutoExports(tujuan);
       return files;
-    }
-    final duplicateRows = await store.duplicateRows(rw: rw, rt: rt);
-    final duplicateNames = await store.duplicateNameRows(rw: rw, rt: rt);
-    final missing = await store.tanpaNik(rw: rw, rt: rt);
-    // One wargaRt query per (rw, rt) group instead of one query per row.
-    final nomorDari =
-        await _posisiPeta([...duplicateRows, ...duplicateNames, ...missing]);
-    int nomor(RecordMap row) => nomorDari[row['id'] as int] ?? 0;
-    // Every finding lands in one MASALAH workbook, one sheet per category.
-    // A category sheet is only added when it has rows: an empty sheet is
-    // noise, not a finding. No findings at all means no file is written.
-    final problemSheets = <String, (List<String>, List<List<Object?>>)>{};
-    if (duplicateRows.isNotEmpty) {
-      problemSheets['DUPLIKAT NIK'] = (
-        dpsHeaders,
-        [for (final row in duplicateRows) dpsRow(row, nomor(row))],
-      );
-    }
-    if (duplicateNames.isNotEmpty) {
-      problemSheets['DUPLIKAT NAMA'] = (
-        dpsHeaders,
-        [for (final row in duplicateNames) dpsRow(row, nomor(row))],
-      );
-    }
-    if (missing.isNotEmpty) {
-      problemSheets['TANPA NIK'] = (
-        dpsHeaders,
-        [for (final row in missing) dpsRow(row, nomor(row))],
-      );
-    }
-    if (problemSheets.isNotEmpty) {
-      await write('${namaBerkasBagian(['MASALAH', code, date])}.xlsx', {
-        ...problemSheets,
-        'INFO': _infoMasalah(
-            lokasi: lokasiRow,
-            rw: rw,
-            rt: rt,
-            duplikatNik: duplicateRows.length,
-            duplikatNama: duplicateNames.length,
-            tanpaNik: missing.length),
-      });
     }
     await store.recordExport(metadata, rw, rts);
     return files;

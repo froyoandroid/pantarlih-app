@@ -502,7 +502,7 @@ void main() {
     await store.reorderWarga(third['id'] as int, null, first['id'] as int);
     expect((await store.wargaRt(3, 3)).first['nama'], 'ORANG TIGA');
     // Save a real duplicate name and one warga without NIK so the problem
-    // files are written (they are skipped when there is nothing to list).
+    // sheets are added (they are skipped when there is nothing to list).
     await store
         .saveWarga(fields(name: 'BUDI SANTOSO', nik: '3327071909680077'));
     await store
@@ -510,18 +510,10 @@ void main() {
     await store.saveWarga(fields(name: 'BELUM ADA NIK', nik: null));
     final files = await ExportService(store)
         .generate(tujuan: Directory('${root.path}/uji_ekspor'), rw: 3, rt: 3);
-    expect(files.any((f) => f.path.contains('PENDING')), isFalse);
-    expect(files.any((f) => f.path.contains('KONFLIK')), isFalse);
-    final masalah = files.firstWhere((f) => f.path.contains('MASALAH'));
-    final masalahBook = Excel.decodeBytes(await masalah.readAsBytes());
-    // Duplicate NIK never repeats here, so that sheet is absent. The two
-    // shared-name rows and the one warga without NIK each get a sheet.
-    expect(masalahBook.tables.containsKey('DUPLIKAT NIK'), isFalse);
-    expect(masalahBook.tables.containsKey('DUPLIKAT NAMA'), isTrue);
-    expect(masalahBook.tables.containsKey('TANPA NIK'), isTrue);
-    // One header row plus the two rows sharing the duplicate name.
-    expect(masalahBook.tables['DUPLIKAT NAMA']!.rows.length - 1, 2);
-    expect(masalahBook.tables['TANPA NIK']!.rows.length - 1, 1);
+    // No separate problem file: findings live as extra sheets in the DPS book.
+    expect(files.any((f) => f.path.contains('MASALAH')), isFalse);
+    expect(files.any((f) => f.path.contains('DUPLIKAT')), isFalse);
+    expect(files.any((f) => f.path.contains('TANPA_NIK')), isFalse);
     final dps = files.firstWhere((f) {
       final n = f.path.split(Platform.pathSeparator).last;
       return n.startsWith('DPS_') &&
@@ -530,7 +522,15 @@ void main() {
     });
     final book = Excel.decodeBytes(await dps.readAsBytes());
     expect(book.tables.containsKey('INFO'), isTrue);
-    final data = book.tables.entries.firstWhere((e) => e.key != 'INFO').value;
+    // Findings are extra sheets in the same DPS workbook. Duplicate NIK never
+    // repeats here, so that sheet is absent. The shared-name pair and the one
+    // warga without NIK each get a sheet.
+    expect(book.tables.containsKey('DUPLIKAT NIK'), isFalse);
+    expect(book.tables.containsKey('DUPLIKAT NAMA'), isTrue);
+    expect(book.tables.containsKey('TANPA NIK'), isTrue);
+    expect(book.tables['DUPLIKAT NAMA']!.rows.length - 1, 2);
+    expect(book.tables['TANPA NIK']!.rows.length - 1, 1);
+    final data = book.tables['RT 3']!;
     final rows = data.rows;
     expect(cellText(rows[0][0]), 'NO');
     expect(cellText(rows[1][1]), 'ORANG TIGA');
