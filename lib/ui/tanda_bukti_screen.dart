@@ -54,9 +54,7 @@ class _TandaBuktiScreenState extends State<TandaBuktiScreen> {
     await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => _TandaBuktiKonfig(
-                session: widget.session,
-                baris: [
+            builder: (_) => _TandaBuktiKonfig(session: widget.session, baris: [
                   for (final row in terpilih)
                     TandaBuktiIsi(
                         row: row,
@@ -86,15 +84,16 @@ class _TandaBuktiScreenState extends State<TandaBuktiScreen> {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
-                  Text('${dipilih.length} dari ${loaded.length} warga dipilih',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  const Text(
-                      'Centang warga yang masuk tanda bukti. Status perkawinan dan keterangan diisi di sini, tidak tersimpan ke database. Setelah selesai, tekan Lanjut di kanan atas.'),
-                  const SizedBox(height: 12),
-                  for (final row in loaded) _barisWarga(row),
-                ]));
+                    Text(
+                        '${dipilih.length} dari ${loaded.length} warga dipilih',
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    const Text(
+                        'Centang warga yang masuk tanda bukti. Status perkawinan dan keterangan diisi di sini, tidak tersimpan ke database. Setelah selesai, tekan Lanjut di kanan atas.'),
+                    const SizedBox(height: 12),
+                    for (final row in loaded) _barisWarga(row),
+                  ]));
   }
 
   Widget _barisWarga(RecordMap row) {
@@ -206,8 +205,7 @@ class _TandaBuktiKonfigState extends State<_TandaBuktiKonfig> {
       final folder = await s.folderPertukaran(minta: true);
       if (!mounted) return;
       if (folder == null) {
-        feedback(context,
-            'Izin berkas dibutuhkan untuk menyimpan tanda bukti',
+        feedback(context, 'Izin berkas dibutuhkan untuk menyimpan tanda bukti',
             error: true);
         return;
       }
@@ -247,8 +245,8 @@ class _TandaBuktiKonfigState extends State<_TandaBuktiKonfig> {
               const SizedBox(height: 8),
               TextField(
                   controller: petugas,
-                  decoration: const InputDecoration(
-                      labelText: 'Nama Petugas (wajib)')),
+                  decoration:
+                      const InputDecoration(labelText: 'Nama Petugas (wajib)')),
               const SizedBox(height: 8),
               TextField(
                   controller: penerima,

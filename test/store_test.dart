@@ -1871,8 +1871,7 @@ void main() {
   });
 
   group('tanda bukti', () {
-    TandaBuktiIsi isi(String nama, {String status = 'Kawin'}) =>
-        TandaBuktiIsi(
+    TandaBuktiIsi isi(String nama, {String status = 'Kawin'}) => TandaBuktiIsi(
             row: {
               'nama': nama,
               'tgl_lahir': '1968-09-19',
@@ -1901,19 +1900,19 @@ void main() {
       expect(baca(0, 0), 'PANITIA PEMILIHAN KEPALA DESA');
       expect(baca(0, 1), 'DESA KALITORONG, KEC. RANDUDONGKAL');
       expect(baca(0, 4), 'Nama Kepala Rumah Tangga : KEPALA RT');
-      expect(baca(4, 4), contains('RT 03 / RW 03'));
-      expect(baca(1, 5), 'Nama Pemilih');
-      expect(baca(0, 7), '1');
-      expect(baca(1, 7), 'UJICOBA SATU');
-      expect(baca(2, 7), '19-09-1968');
-      expect(baca(3, 7), 'Kawin');
-      expect(baca(4, 7), "'3327071909680001");
-      expect(baca(6, 7), '√');
+      expect(baca(0, 5), contains('Desa KALITORONG  RT 03 / RW 03'));
+      expect(baca(1, 6), 'Nama Pemilih');
+      expect(baca(0, 8), '1');
+      expect(baca(1, 8), 'UJICOBA SATU');
+      expect(baca(2, 8), '19-09-1968');
+      expect(baca(3, 8), 'Kawin');
+      expect(baca(4, 8), "'3327071909680001");
+      expect(baca(6, 8), '√');
       // Signature block: two blank rows after the single data row.
-      expect(baca(0, 10), 'Yang menerima,');
-      expect(baca(5, 11), 'Petugas,');
-      expect(baca(5, 14), '( PETUGAS UJI )');
-      expect(baca(0, 14), '( PENERIMA UJI )');
+      expect(baca(0, 11), 'Yang menerima,');
+      expect(baca(5, 12), 'Petugas,');
+      expect(baca(5, 15), '( PETUGAS UJI )');
+      expect(baca(0, 15), '( PENERIMA UJI )');
       // Round-trip: the generated book must still decode cleanly.
       expect(Excel.decodeBytes(book.encode()!).tables.keys,
           contains('Tanda Bukti'));
@@ -1924,11 +1923,11 @@ void main() {
       final sheet = book['Tanda Bukti'];
       String baca(int col, int row) =>
           '${sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: row)).value ?? ''}';
-      expect(baca(0, 7), '1');
-      expect(baca(0, 20), '14');
-      expect(baca(1, 20), 'WARGA 14');
-      expect(baca(0, 23), 'Yang menerima,');
-      expect(baca(5, 27), '( PETUGAS UJI )');
+      expect(baca(0, 8), '1');
+      expect(baca(0, 21), '14');
+      expect(baca(1, 21), 'WARGA 14');
+      expect(baca(0, 24), 'Yang menerima,');
+      expect(baca(5, 28), '( PETUGAS UJI )');
     });
   });
 }
