@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../data/spreadsheets.dart';
+import '../data/storage.dart' show bukaBerkas;
 import 'common.dart';
 
 /// Dua halaman: pilih warga dulu, lalu konfigurasi cetak. Kolom yang tidak
@@ -176,6 +177,7 @@ class _TandaBuktiKonfigState extends State<_TandaBuktiKonfig> {
   final krt = TextEditingController();
   final petugas = TextEditingController();
   final penerima = TextEditingController();
+  File? hasil;
 
   @override
   void dispose() {
@@ -215,8 +217,8 @@ class _TandaBuktiKonfigState extends State<_TandaBuktiKonfig> {
           '${folder.ekspor.path}/TANDA_BUKTI_${formatRt(s.rt).replaceAll(' ', '')}_RW${intValue(s.rw).toString().padLeft(2, '0')}_${fileStamp()}.xlsx');
       await file.writeAsBytes(encoded, flush: true);
       if (!mounted) return;
+      setState(() => hasil = file);
       feedback(context, 'Tanda bukti tersimpan di ${file.path}');
-      Navigator.pop(context);
     } catch (e) {
       if (mounted) feedback(context, e, error: true);
     }
@@ -257,6 +259,18 @@ class _TandaBuktiKonfigState extends State<_TandaBuktiKonfig> {
                   onPressed: _buat,
                   icon: const Icon(Icons.receipt_long),
                   label: const Text('Buat Tanda Bukti')),
+              if (hasil != null) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                    onPressed: () async {
+                      final pesan = await bukaBerkas(hasil!.path);
+                      if (pesan != null && context.mounted) {
+                        feedback(context, pesan, error: true);
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Buka Tanda Bukti')),
+              ],
             ]));
   }
 }
