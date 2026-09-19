@@ -1,7 +1,7 @@
 name: tiliksuara
 description: Aplikasi pendataan DPS TilikSuara, offline-first.
 publish_to: none
-version: 0.5.8
+version: 0.6.0
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
