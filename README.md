@@ -2,7 +2,7 @@
 
 Aplikasi Flutter untuk Android, satu pengguna dan satu perangkat, sepenuhnya offline. Alat bantu pencatatan data pemilih: mencatat sesuai dokumen kependudukan asli, didukung pencarian pintar dan saran data referensi.
 
-Versi 0.5.8 · Android 7.0+ · tanpa izin internet (dihapus eksplisit di manifest, dapat diverifikasi).
+Versi 0.6.0 · Android 7.0+ · tanpa izin internet (dihapus eksplisit di manifest, dapat diverifikasi).
 
 ## Sekilas
 
