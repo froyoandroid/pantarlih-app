@@ -40,6 +40,7 @@ class _SurveyFormState extends State<SurveyForm> {
       note;
   String? gender;
   String? ketChip;
+  Map<String, String> get _kustom => widget.session.keteranganKustom;
   final noteFocus = FocusNode(skipTraversal: true);
   bool saving = false;
 
@@ -191,7 +192,7 @@ class _SurveyFormState extends State<SurveyForm> {
         text: teks(edit?['rw'] ?? seed?['rw'] ?? widget.session.rw));
     final rawNote = pilih([edit?['keterangan']]).toUpperCase();
     note = TextEditingController(text: rawNote);
-    ketChip = chipKeterangan(rawNote);
+    ketChip = chipKeterangan(rawNote, _kustom);
     gender = (edit?['jenis_kelamin'] ?? seed?['jenis_kelamin']) as String?;
     if (_drafAktif) {
       for (final c in [
@@ -226,7 +227,7 @@ class _SurveyFormState extends State<SurveyForm> {
         return;
       }
       if (ketChip == keteranganLainnya) {
-        if (kodeKeterangan(note.text) != null) note.clear();
+        if (kodeKeterangan(note.text, _kustom) != null) note.clear();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) noteFocus.requestFocus();
         });
@@ -542,7 +543,10 @@ class _SurveyFormState extends State<SurveyForm> {
                             selected: ketChip == keteranganNormal,
                             onSelected: (_) =>
                                 _pilihKeterangan(keteranganNormal)),
-                        for (final code in keteranganKode.keys)
+                        for (final code in [
+                          ...keteranganKode.keys,
+                          ..._kustom.keys
+                        ])
                           ChoiceChip(
                               label: Text(code),
                               selected: ketChip == code,
@@ -554,9 +558,9 @@ class _SurveyFormState extends State<SurveyForm> {
                             onSelected: (on) => _pilihKeterangan(
                                 on ? keteranganLainnya : keteranganNormal)),
                       ]),
-                      if (keteranganArti(ketChip) != null) ...[
+                      if (keteranganArti(ketChip, _kustom) != null) ...[
                         const SizedBox(height: 8),
-                        Text(keteranganArti(ketChip)!,
+                        Text(keteranganArti(ketChip, _kustom)!,
                             style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade700,

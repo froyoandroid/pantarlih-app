@@ -1057,6 +1057,20 @@ class AppStore extends ChangeNotifier {
   Future<void> clearDraft() =>
       db.delete('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
 
+  /// Custom keterangan codes, one "KODE=Arti;..." string in setelan. Direct
+  /// write like drafts: re-adding a chip is trivial after a journal rebuild,
+  /// and the warga rows holding the code never disappear.
+  Future<String> keteranganKustom() async {
+    final rows = await db.query('setelan',
+        where: 'kunci = ?', whereArgs: [kunciKeteranganKustom]);
+    if (rows.isEmpty) return '';
+    return teks(rows.first['nilai']);
+  }
+
+  Future<void> saveKeteranganKustom(String nilai) =>
+      db.insert('setelan', {'kunci': kunciKeteranganKustom, 'nilai': nilai},
+          conflictAlgorithm: ConflictAlgorithm.replace);
+
   /// Source files behind the stored reference rows, newest import first.
   /// One row per file with its row count and last import time, so the UI can
   /// answer "referensi dari file mana yang sedang dipakai".

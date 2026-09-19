@@ -306,6 +306,7 @@ Tabel berkas ke judul layar (diuji otomatis oleh `test/ui_conventions_test.dart`
 | `lib/ui/journal_screen.dart` | Jurnal (plus rincian hari dan rincian catatan) |
 | `lib/ui/snapshot_screen.dart` | Snapshot (plus Isi Snapshot dan Bandingkan Snapshot) |
 | `lib/ui/tanda_bukti_screen.dart` | Tanda Bukti |
+| `lib/ui/pengaturan_screen.dart` | Pengaturan |
 
 Tanggung jawab berkas:
 

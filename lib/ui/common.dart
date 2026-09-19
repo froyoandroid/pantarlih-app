@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../core/app_info.dart';
 import '../core/format.dart';
+import '../core/keterangan.dart';
 import '../data/exchange.dart';
 import '../data/storage.dart';
 import '../data/store.dart';
@@ -48,6 +49,11 @@ class Session extends ChangeNotifier {
   String? kodeWilayah;
   Lokasi? lokasi;
   List<RtRw> workspace = [];
+
+  /// Parsed custom keterangan chips, cached here so forms and filters render
+  /// what they receive instead of querying the store - an extra store query
+  /// inside a form's initState breaks widget tests under fake_async.
+  Map<String, String> keteranganKustom = {};
   String get label => formatRtRw(rt, rw);
   String get lokasiLabel {
     if (kodeWilayah == null || kodeWilayah!.isEmpty) {
@@ -80,6 +86,7 @@ class Session extends ChangeNotifier {
     // exist yet.
     if (village.isEmpty && lokasi != null) village = lokasi!.namaDesa;
     workspace = RtRw.decode(values['ruang_kerja'] ?? '');
+    keteranganKustom = parseKeteranganKustom(await store.keteranganKustom());
     notifyListeners();
   }
 
@@ -108,6 +115,14 @@ class Session extends ChangeNotifier {
   Future<void> saveLokasi(Lokasi next) async {
     await store.setLokasi(next.toRow());
     await load();
+  }
+
+  /// Persists custom keterangan chips and refreshes the cached map so open
+  /// screens pick up the change through the usual listener.
+  Future<void> saveKeteranganKustom(Map<String, String> peta) async {
+    await store.saveKeteranganKustom(tulisKeteranganKustom(peta));
+    keteranganKustom = Map<String, String>.of(peta);
+    notifyListeners();
   }
 
   /// Public exchange folder for this desa. [minta] true prompts for the
