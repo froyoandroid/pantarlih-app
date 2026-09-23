@@ -171,7 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
         session: widget.session,
         title: 'Beranda',
         subtitle: tanggalPanjang(),
-        showVersion: true,
         // The two daily actions live in a sticky bar, so they are under the
         // thumb no matter how long the workspace card grows.
         bottom: Row(children: [

@@ -204,7 +204,7 @@ class _AdminScreenState extends State<AdminScreen> {
         const Text('Wilayah',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         Notice(widget.session.wilayah.available
-            ? '${pack['kepmendagri'] ?? '—'}\n${pack['jumlah_total'] ?? '—'} baris · SHA ${pack['sha_sumber'] ?? '—'}'
+            ? '${pack['kepmendagri'] ?? '—'}\n${pack['jumlah_total'] ?? '—'} wilayah tersedia untuk dipilih'
             : 'Paket wilayah tidak terbaca'
                 '${widget.session.wilayah.alasanGagal == null ? '' : ': ${widget.session.wilayah.alasanGagal!.replaceAll(';', ',')}'}.'
                 ' Mode manual tetap berfungsi.'),

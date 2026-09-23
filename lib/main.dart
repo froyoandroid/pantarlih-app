@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:mcp_toolkit/mcp_toolkit.dart';
 
 import 'core/format.dart';
+import 'data/errors.dart';
 import 'data/storage.dart';
 import 'data/store.dart';
 import 'data/wilayah.dart';
@@ -24,7 +25,7 @@ void main() {
         ..initializeFlutterToolkit();
     }
     FlutterError.onError = (details) {
-      FlutterError.presentError(details);
+      if (kDebugMode) FlutterError.presentError(details);
       _catatCrash(details.exception, details.stack);
     };
     runApp(const PantarlihApp());
@@ -110,14 +111,23 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _bukaSesi() async {
-    final cek = widget.introSudah ?? introSudahDilewati;
-    final pernah = await cek();
-    if (!mounted) return;
-    setState(() {
-      cekSesi = false;
-      langsungBuka = pernah;
-    });
-    if (pernah) await start();
+    try {
+      final cek = widget.introSudah ?? introSudahDilewati;
+      final pernah = await cek();
+      if (!mounted) return;
+      setState(() {
+        cekSesi = false;
+        langsungBuka = pernah;
+      });
+      if (pernah) await start();
+    } catch (e, stack) {
+      _catatCrash(e, stack);
+      if (!mounted) return;
+      setState(() {
+        cekSesi = false;
+        error = pesanKesalahan(e);
+      });
+    }
   }
 
   Future<void> start({bool recover = false}) async {
@@ -150,10 +160,11 @@ class _StartupScreenState extends State<StartupScreen> {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => home));
       }
-    } catch (e) {
+    } catch (e, stack) {
+      _catatCrash(e, stack);
       if (mounted) {
         setState(() {
-          error = '$e';
+          error = pesanKesalahan(e);
           busy = false;
         });
       }
@@ -227,14 +238,13 @@ class _StartupScreenState extends State<StartupScreen> {
                                         : () async {
                                             if (await confirm(
                                                 context,
-                                                'Pulihkan database?',
-                                                'Database lama dipertahankan di folder recovered. Jurnal akan diputar ulang.',
+                                                'Pulihkan Data?',
+                                                'Data akan dipulihkan dari riwayat pencatatan. Salinan data saat ini tetap disimpan di dalam aplikasi.',
                                                 action: 'Pulihkan')) {
                                               await start(recover: true);
                                             }
                                           },
-                                    child:
-                                        const Text('Bangun ulang dari jurnal')),
+                                    child: const Text('Pulihkan Data')),
                             ]))))));
   }
 }

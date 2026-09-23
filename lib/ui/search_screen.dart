@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
 import '../core/nik.dart';
+import '../data/errors.dart';
 import 'common.dart';
 import 'survey_form.dart';
 
@@ -72,7 +73,7 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          error = '$e';
+          error = pesanKesalahan(e);
           loading = false;
         });
       }

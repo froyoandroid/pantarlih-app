@@ -138,8 +138,8 @@ class WilayahRepo {
           options: OpenDatabaseOptions(readOnly: true, singleInstance: true));
       return WilayahRepo._(db, dest.path);
     } catch (e, st) {
-      debugPrint('WilayahRepo gagal dibuka: $e\n$st');
-      return WilayahRepo.unavailable('$e');
+      if (kDebugMode) debugPrint('WilayahRepo gagal dibuka: $e\n$st');
+      return WilayahRepo.unavailable('Data wilayah belum bisa dibaca');
     }
   }
 

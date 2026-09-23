@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import '../core/app_info.dart';
 import '../core/format.dart';
 import '../core/keterangan.dart';
 import '../data/exchange.dart';
+import '../data/errors.dart';
 import '../data/storage.dart';
 import '../data/store.dart';
 import '../data/spreadsheets.dart';
@@ -221,8 +221,7 @@ class AppPage extends StatelessWidget {
       required this.child,
       this.bottom,
       this.actions,
-      this.subtitle,
-      this.showVersion = false});
+      this.subtitle});
   final Session session;
   final String title;
   final Widget child;
@@ -233,8 +232,6 @@ class AppPage extends StatelessWidget {
   /// long-form date on Beranda.
   final String? subtitle;
 
-  /// Opt-in version chip in the app bar. Only Beranda shows it.
-  final bool showVersion;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
       listenable: session,
@@ -256,15 +253,6 @@ class AppPage extends StatelessWidget {
                     ]),
                 actions: [
                   if (actions != null) ...actions!,
-                  if (showVersion)
-                    Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Center(
-                            child: Text('v$appVersion',
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.black54,
-                                    fontWeight: FontWeight.w600)))),
                 ]),
             body: SafeArea(
                 child: Align(
@@ -358,10 +346,9 @@ void feedback(BuildContext context, Object message, {bool error = false}) {
 /// format exceptions, stack detail) is masked and logged to a private file so
 /// coding internals never reach the UI.
 String _pesanAman(Object message) {
-  if (message is AppException) return message.message;
   if (message is String) return message;
   _catatDetailUi(message);
-  return 'Terjadi kesalahan. Coba lagi.';
+  return pesanKesalahan(message);
 }
 
 /// Append a masked error to a private `recovered/error_<stamp>.log`. Never
