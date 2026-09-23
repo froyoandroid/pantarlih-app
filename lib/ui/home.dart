@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_info.dart';
 import '../core/format.dart';
 import 'admin_screen.dart';
 import 'common.dart';
@@ -171,6 +172,16 @@ class _HomeScreenState extends State<HomeScreen> {
         session: widget.session,
         title: 'Beranda',
         subtitle: tanggalPanjang(),
+        actions: const [
+          Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Center(
+                  child: Text(appVersionLabel,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w600)))),
+        ],
         // The two daily actions live in a sticky bar, so they are under the
         // thumb no matter how long the workspace card grows.
         bottom: Row(children: [
