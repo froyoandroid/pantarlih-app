@@ -31,8 +31,6 @@ data-exel/
 *.db-wal
 *.jsonl
 !assets/wilayah.db
-!test/fixtures/*.jsonl
-!test/fixtures/*.db
 
 # State tooling agen lokal, bukan data aplikasi dan bukan riwayat proyek.
 .flutter_mcp/

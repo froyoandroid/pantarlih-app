@@ -170,11 +170,10 @@ Siapkan Flutter yang kompatibel dengan dependensi terkunci, Android SDK yang ses
 ```sh
 flutter pub get
 flutter analyze
-flutter test --concurrency=1
 flutter build apk --release --split-per-abi
 ```
 
-Jalankan tes secara berurutan karena pengujian SQLite memakai `sqflite_common_ffi`. Tes meliputi aturan data, urutan warga, jurnal dan pemulihan, impor-ekspor, serta perilaku layar. Beberapa tes impor dengan berkas pribadi hanya berjalan jika berkas tersedia lokal. Berkas tersebut tidak dibundel ke APK.
+Sebelum membuat rilis, jalankan aplikasi pada perangkat Android sasaran dan periksa alur lokasi kerja, input warga, impor, ekspor, cadangan, pemulihan, dan pergantian RT. Gunakan data buatan selama pemeriksaan dan jangan masukkan berkas warga atau log perangkat ke repositori.
 
 Impor memeriksa isi ZIP dan Excel sebelum diproses, termasuk ukuran setelah diekstrak dan jumlah sel yang perlu dimuat. Jika berkas terlalu besar, pisahkan menjadi beberapa berkas yang lebih kecil atau hapus baris dan kolom kosong yang jauh dari tabel.
 

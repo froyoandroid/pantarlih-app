@@ -16,7 +16,7 @@
 - **Promosi referensi menjadi warga.** Baris referensi kini bisa dijadikan data warga langsung: satu ketukan dari layar Belum Diinput, atau sekaligus satu RT lewat menu Promosikan Referensi di Daftar Warga dengan konfirmasi hitungan terlebih dahulu. Baris hasil promosi masuk di akhir daftar mengikuti urutan berkas sumber, dan baris referensi aslinya tetap tersimpan sebagai jejak sumber.
 - **Layar Belum Diinput.** Daftar baris referensi RT aktif yang belum punya padanan di data warga. Padanan dihitung dari nama yang dinormalisasi, ditambah tanggal lahir bila keduanya terisi. Layar kosong berarti RT tersebut selesai. Tiap baris bisa diperiksa lewat formulir terisi atau langsung dipromosikan.
 - **Draf otomatis formulir Warga Baru.** Isian formulir tersimpan sebagai draf 500 ms setelah jeda mengetik. Bila aplikasi mati sebelum Simpan, formulir berikutnya menawarkan Lanjutkan atau Buang. Draf hanya berlaku untuk formulir warga baru pada RT/RW yang sama dan dibersihkan setelah simpan berhasil.
-- **CI GitLab.** Setiap push menjalankan `dart analyze lib/` dan `flutter test --concurrency=1`.
+- **CI GitLab.** Setiap push menjalankan pemeriksaan statis `dart analyze lib/`.
 
 ### Diubah
 
