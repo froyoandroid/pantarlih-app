@@ -512,11 +512,15 @@ class AppStore extends ChangeNotifier {
       // event journaled before per-file delete existed, which always meant
       // clear everything.
       final ids = data['ids'];
-      if (ids is List && ids.isNotEmpty) {
-        final placeholders = List.filled(ids.length, '?').join(',');
-        await txn.delete('referensi',
-            where: 'id IN ($placeholders)',
-            whereArgs: [for (final id in ids) intValue(id)]);
+      if (ids is List) {
+        // A queued removal can find that its file was already removed.
+        // An explicitly empty scope must never become a global deletion.
+        if (ids.isNotEmpty) {
+          final placeholders = List.filled(ids.length, '?').join(',');
+          await txn.delete('referensi',
+              where: 'id IN ($placeholders)',
+              whereArgs: [for (final id in ids) intValue(id)]);
+        }
       } else {
         await txn.delete('referensi');
       }
