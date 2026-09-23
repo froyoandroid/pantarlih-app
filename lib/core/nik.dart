@@ -1,3 +1,11 @@
+/// Only the visible prefix is reusable. Joining digits on either side of a
+/// mask would invent a different NIK.
+String awalanNikReferensi(Object? value) =>
+    RegExp(r'^\d{1,16}').stringMatch(value?.toString().trim() ?? '') ?? '';
+
+String statusIsianNik(String nik) =>
+    nik.trim().isEmpty ? 'NIK belum diisi' : 'NIK sudah diisi';
+
 /// Empty is clean. Length and date/JK mismatches are warnings and never block save.
 ///
 /// [prefixWilayah] is the 6-digit kecamatan code of the *current* work
