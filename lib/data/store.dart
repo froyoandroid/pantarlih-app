@@ -126,6 +126,7 @@ class AppStore extends ChangeNotifier {
     }
     // Fase 1: open the file. Only here does journal recovery make sense.
     try {
+      await _pulihkanPenggantianCadangan();
       await _snapshotBeforeUpgrade(dbPath);
       db = await _openDatabase(dbPath);
     } catch (e) {
@@ -1212,11 +1213,13 @@ class AppStore extends ChangeNotifier {
   Future<RecoveryReport> _replay(Database target,
       {bool honorDismiss = true,
       bool useCheckpoint = true,
-      bool tulisLaporan = true}) async {
+      bool tulisLaporan = true,
+      bool requireCompleteJournal = false}) async {
     final report = RecoveryReport();
     final errors = <String>[];
     final knownRows = await target.query('log', columns: ['id']);
     final known = knownRows.map((r) => r['id']).toSet();
+    final missing = requireCompleteJournal ? known.toSet() : <Object?>{};
     // Journal files older than the checkpoint date hold only already-applied
     // events (event ids grow with their timestamps), so open() skips whole
     // files instead of re-decoding tens of thousands of lines per launch.
@@ -1224,7 +1227,7 @@ class AppStore extends ChangeNotifier {
     // so a lost or damaged database automatically has none.
     var checkpointId = 0;
     var checkpointTanggal = '';
-    if (useCheckpoint) {
+    if (useCheckpoint && !requireCompleteJournal) {
       (checkpointId, checkpointTanggal) = await _checkpointBaca(target);
     }
     final files = await Directory('${root.path}/journal')
@@ -1266,6 +1269,7 @@ class AppStore extends ChangeNotifier {
             throw AppException('ID jurnal tidak valid');
           }
           final id = event['event_id'] as int;
+          missing.remove(id);
           if (lewati.any((r) => id > r.$1 && id < r.$2)) {
             report.dilewati++;
             continue;
@@ -1284,6 +1288,10 @@ class AppStore extends ChangeNotifier {
           errors.add('${file.path}:$number: $e');
         }
       }
+    }
+    if (missing.isNotEmpty) {
+      report.failed += missing.length;
+      errors.add('${missing.length} catatan perubahan tidak ada di jurnal.');
     }
     if (errors.isEmpty) return report;
     report.details = errors;
@@ -1585,60 +1593,192 @@ class AppStore extends ChangeNotifier {
     });
   }
 
-  /// Swaps in a database and journal extracted from a cadangan bundle. The
-  /// current pair is moved to recovered/ first, then the new database is
-  /// validated, opened and brought up to date by replaying the new journal.
+  File get _penandaCadangan =>
+      File('${root.path}/recovered/penggantian_cadangan.json');
+
+  /// A database and its journal are one unit. A durable marker lets open()
+  /// finish rollback after termination between the two filesystem moves.
+  /// Copies preserve the old pair so rollback can itself be retried safely.
+  Future<void> _pulihkanPenggantianCadangan() async {
+    final marker = _penandaCadangan;
+    if (!await marker.exists()) return;
+    final data = jsonDecode(await marker.readAsString()) as Map;
+    final stamp = '${data['stamp']}';
+    if (!RegExp(r'^\d+$').hasMatch(stamp)) {
+      throw AppException('Pemulihan cadangan belum selesai.');
+    }
+    final backup = '${root.path}/recovered/db_sebelum_cadangan_$stamp.db';
+    if (await File(backup).exists() || data['ada_database'] == false) {
+      for (final suffix in ['', '-wal', '-shm']) {
+        final live = File('$dbPath$suffix');
+        if (await live.exists()) await live.delete();
+        final old = File('$backup$suffix');
+        if (await old.exists()) await old.copy(live.path);
+      }
+    }
+    final oldJournal =
+        Directory('${root.path}/recovered/journal_sebelum_cadangan_$stamp');
+    if (await oldJournal.exists() || data['ada_jurnal'] == false) {
+      final journal = Directory('${root.path}/journal');
+      if (await journal.exists()) await journal.delete(recursive: true);
+      await journal.create(recursive: true);
+      if (await oldJournal.exists()) {
+        await for (final entry in oldJournal.list(followLinks: false)) {
+          if (entry is File) {
+            await entry.copy('${journal.path}/${entry.uri.pathSegments.last}');
+          }
+        }
+      }
+    }
+    await marker.delete();
+  }
+
+  Future<void> _periksaSkemaCadangan() async {
+    final check = await db.rawQuery('PRAGMA quick_check');
+    if (check.any((row) => row.values.first != 'ok')) {
+      throw AppException('Data dalam cadangan rusak.');
+    }
+    // SQLite integrity alone does not identify an application database.
+    // Check every table/view used by the app after running its migrations.
+    final required = <String, List<String>>{
+      'warga': wargaColumns,
+      'referensi': referensiColumns,
+      'lokasi': lokasiColumns,
+      'urutan_id': ['tabel', 'terakhir'],
+      'setelan': ['kunci', 'nilai'],
+      'log': ['id', 'ts', 'op', 'tabel', 'row_id', 'payload', 'schema_v'],
+      'v_duplikat_nik': ['nik', 'jumlah'],
+      'v_duplikat_nama': ['nama_norm', 'rw', 'rt', 'jumlah'],
+    };
+    for (final entry in required.entries) {
+      await db.rawQuery(
+          'SELECT ${entry.value.join(', ')} FROM ${entry.key} LIMIT 0');
+    }
+  }
+
+  /// Validate and replay a separate copy before replacing either live file.
+  /// Failed activation restores the old pair, including after a process exit.
   Future<RecoveryReport> gantiDariCadangan(
           File dbBaru, Directory journalBaru) =>
       exclusive(() async {
-        final uji = await _bukaBacaSaja(dbBaru);
-        try {
-          final check = await uji.rawQuery('PRAGMA quick_check');
-          if (check.any((row) => row.values.first != 'ok')) {
-            throw AppException('Database di dalam cadangan rusak.');
-          }
-          final versi = await uji.rawQuery('PRAGMA user_version');
-          if (intValue(versi.first.values.first) > schemaV) {
-            throw AppException(
-                'Cadangan berasal dari versi aplikasi yang lebih baru.');
-          }
-          await uji.rawQuery('SELECT COUNT(*) FROM warga');
-        } catch (e) {
-          if (e is AppException) rethrow;
-          throw AppException('Database di dalam cadangan tidak dapat dibaca.');
-        } finally {
-          await uji.close();
-        }
         final stamp = fileStamp();
+        final staging = await Directory('${root.path}/recovered')
+            .createTemp('uji_cadangan_');
+        final candidate = AppStore(staging,
+            factory: factory, schemaV: schemaV, upgrades: upgrades);
+        RecoveryReport report;
         try {
-          await db.close();
-        } catch (_) {/* Startup may have failed to open the database. */}
-        final backup = '${root.path}/recovered/db_sebelum_cadangan_$stamp.db';
-        if (await File(dbPath).exists()) await File(dbPath).rename(backup);
-        for (final suffix in ['-wal', '-shm']) {
-          final sidecar = File('$dbPath$suffix');
-          if (await sidecar.exists()) await sidecar.rename('$backup$suffix');
-        }
-        final journal = Directory('${root.path}/journal');
-        final journalLama =
-            Directory('${root.path}/recovered/journal_sebelum_cadangan_$stamp');
-        if (await journal.exists()) await journal.rename(journalLama.path);
-        await journal.create(recursive: true);
-        await for (final entity in journalBaru.list()) {
-          if (entity is File) {
-            await entity
-                .copy('${journal.path}/${entity.uri.pathSegments.last}');
+          final incomingJournal = Directory('${staging.path}/journal');
+          await incomingJournal.create();
+          await Directory('${staging.path}/recovered').create();
+          await dbBaru.copy(candidate.dbPath);
+          await for (final entity in journalBaru.list(followLinks: false)) {
+            if (entity is File) {
+              await entity.copy(
+                  '${incomingJournal.path}/${entity.uri.pathSegments.last}');
+            }
           }
+          try {
+            final version = await candidate._userVersion(candidate.dbPath);
+            if (version != null && version > schemaV) {
+              throw AppException(
+                  'Cadangan berasal dari versi aplikasi yang lebih baru.');
+            }
+            candidate.db = await candidate._openDatabase(candidate.dbPath);
+            await candidate._periksaSkemaCadangan();
+            await candidate._muatKolom();
+            report = await candidate._replay(candidate.db,
+                honorDismiss: false,
+                useCheckpoint: false,
+                tulisLaporan: false,
+                requireCompleteJournal: true);
+            if (report.failed > 0) {
+              throw AppException(
+                  'Riwayat dalam cadangan tidak lengkap atau rusak. '
+                  'Pilih cadangan lain. Data saat ini tetap tersimpan.');
+            }
+            await candidate._perbaruiCheckpoint();
+          } catch (e) {
+            _catatDetail('validasi-cadangan', e);
+            if (e is AppException) rethrow;
+            throw AppException('Cadangan tidak dapat dibaca. '
+                'Pilih cadangan lain. Data saat ini tetap tersimpan.');
+          } finally {
+            await candidate.close();
+          }
+
+          final journal = Directory('${root.path}/journal');
+          final backup = '${root.path}/recovered/db_sebelum_cadangan_$stamp.db';
+          final journalLama = Directory(
+              '${root.path}/recovered/journal_sebelum_cadangan_$stamp');
+          final marker = _penandaCadangan;
+          try {
+            try {
+              await db.close();
+            } catch (_) {/* Startup may have failed to open the database. */}
+            final hadDatabase = await File(dbPath).exists();
+            final hadJournal = await journal.exists();
+            // Finish the complete rollback copy before creating the marker
+            // or touching the originals, including any uncheckpointed WAL.
+            for (final suffix in ['', '-wal', '-shm']) {
+              final source = File('$dbPath$suffix');
+              if (await source.exists()) await source.copy('$backup$suffix');
+            }
+            if (hadJournal) {
+              await journalLama.create();
+              await for (final entry in journal.list(followLinks: false)) {
+                if (entry is File) {
+                  await entry.copy(
+                      '${journalLama.path}/${entry.uri.pathSegments.last}');
+                }
+              }
+            }
+            final markerTemp = File('${marker.path}.tmp');
+            await markerTemp.writeAsString(
+                jsonEncode({
+                  'stamp': stamp,
+                  'ada_database': hadDatabase,
+                  'ada_jurnal': hadJournal,
+                }),
+                flush: true);
+            await markerTemp.rename(marker.path);
+            for (final suffix in ['', '-wal', '-shm']) {
+              final live = File('$dbPath$suffix');
+              if (await live.exists()) await live.delete();
+            }
+            await File(candidate.dbPath).rename(dbPath);
+            if (await journal.exists()) await journal.delete(recursive: true);
+            await incomingJournal.rename(journal.path);
+            db = await _openDatabase(dbPath);
+            await _muatKolom();
+            await marker.delete();
+          } catch (e) {
+            _catatDetail('penggantian-cadangan', e);
+            try {
+              try {
+                await db.close();
+              } catch (_) {}
+              await _pulihkanPenggantianCadangan();
+              db = await _openDatabase(dbPath);
+              await _muatKolom();
+            } catch (rollbackError) {
+              _recoveryRequired = true;
+              _catatDetail('pengembalian-cadangan', rollbackError);
+              throw AppException('Pemulihan belum selesai. '
+                  'Buka ulang aplikasi untuk mengembalikan data sebelumnya.');
+            }
+            throw AppException('Cadangan belum berhasil dipulihkan. '
+                'Data sebelumnya tetap tersimpan. Coba lagi.');
+          }
+          report.previousDatabase = backup;
+          _recoveryRequired = false;
+          startupRecovery = report;
+          notifyListeners();
+          return report;
+        } finally {
+          await candidate.close();
+          if (await staging.exists()) await staging.delete(recursive: true);
         }
-        await dbBaru.copy(dbPath);
-        db = await _openDatabase(dbPath);
-        await _muatKolom();
-        final report = await _replay(db, honorDismiss: false);
-        if (report.failed == 0) await _perbaruiCheckpoint();
-        report.previousDatabase = backup;
-        _recoveryRequired = false;
-        notifyListeners();
-        return report;
       });
 
   Future<void> close() async {
