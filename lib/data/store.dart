@@ -423,15 +423,18 @@ class AppStore extends ChangeNotifier {
 
   Future<RecordMap> _commit(String op, String table,
           Future<RecordMap> Function(Transaction txn, String ts) prepare,
-          {List<RecordMap> Function(RecordMap payload)? extras}) =>
-      exclusive(() => _commitNow(op, table, prepare, extras: extras));
+          {List<RecordMap> Function(RecordMap payload)? extras,
+          String? draftId}) =>
+      exclusive(() =>
+          _commitNow(op, table, prepare, extras: extras, draftId: draftId));
 
   /// The body of [_commit] for callers that already hold the exclusive
   /// slot (restoreSnapshot, the startup checkpoint). Nesting exclusive()
   /// would wait on itself forever.
   Future<RecordMap> _commitNow(String op, String table,
       Future<RecordMap> Function(Transaction txn, String ts) prepare,
-      {List<RecordMap> Function(RecordMap payload)? extras}) async {
+      {List<RecordMap> Function(RecordMap payload)? extras,
+      String? draftId}) async {
     if (_recoveryRequired) {
       throw AppException('Pulihkan data dari jurnal sebelum melanjutkan.');
     }
@@ -449,6 +452,7 @@ class AppStore extends ChangeNotifier {
             'tabel': table,
             'row_id': payload['id'] ?? payload['row_id'],
             'data': payload,
+            if (draftId != null && draftId.isNotEmpty) 'draf_id': draftId,
           }
         ];
         for (final event in events) {
@@ -559,6 +563,9 @@ class AppStore extends ChangeNotifier {
         }
       } else {
         throw AppException('Operasi warga tidak dikenal: $op');
+      }
+      if (op == 'INSERT' || op == 'UPDATE') {
+        await _hapusDrafSesuai(txn, event['draf_id']);
       }
     } else if (table == 'lokasi' && (op == 'INSERT' || op == 'UPDATE')) {
       await txn.insert('lokasi', _full(lokasiColumns, data),
@@ -762,7 +769,7 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<RecordMap> saveWarga(RecordMap fields,
-      {int? id, int? afterId, int? beforeId}) async {
+      {int? id, int? afterId, int? beforeId, String? draftId}) async {
     _validateWarga(fields);
     final extras = <RecordMap>[];
     return _commit(id == null ? 'INSERT' : 'UPDATE', 'warga', (txn, ts) async {
@@ -789,7 +796,7 @@ class AppStore extends ChangeNotifier {
       }
       return _wargaRecord(
           fields, id, urut, ts, before['dibuat_pada'] as String);
-    }, extras: (_) => extras);
+    }, extras: (_) => extras, draftId: draftId);
   }
 
   Future<void> deleteWarga(int id) async {
@@ -1067,6 +1074,25 @@ class AppStore extends ChangeNotifier {
   Future<void> saveDraft(String json) =>
       db.insert('setelan', {'kunci': 'draf_form', 'nilai': json},
           conflictAlgorithm: ConflictAlgorithm.replace);
+
+  /// A saved resident and its owned draft are committed together. The ID
+  /// travels with the journal event so crash recovery makes the same change,
+  /// while a newer form's draft and legacy drafts remain untouched.
+  Future<void> _hapusDrafSesuai(DatabaseExecutor txn, Object? draftId) async {
+    if (draftId is! String || draftId.isEmpty) return;
+    final rows = await txn.query('setelan',
+        columns: ['nilai'], where: 'kunci = ?', whereArgs: ['draf_form']);
+    if (rows.isEmpty || rows.single['nilai'] is! String) return;
+    final Object? draft;
+    try {
+      draft = jsonDecode(rows.single['nilai'] as String);
+    } on FormatException {
+      return;
+    }
+    if (draft is Map && draft['draf_id'] == draftId) {
+      await txn.delete('setelan', where: 'kunci = ?', whereArgs: ['draf_form']);
+    }
+  }
 
   Future<String?> loadDraft() async {
     final rows =

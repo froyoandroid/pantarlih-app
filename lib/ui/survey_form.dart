@@ -52,6 +52,7 @@ class _SurveyFormState extends State<SurveyForm> {
   Future<void> _draftWrite = Future<void>.value();
   bool _draftReady = false;
   late final bool _drafAktif;
+  String _draftId = fileStamp();
 
   void _jadwalkanDraf(String _) {
     if (!_drafAktif || !_draftReady || saving) return;
@@ -62,6 +63,7 @@ class _SurveyFormState extends State<SurveyForm> {
   }
 
   Map<String, Object?> _isiDraf() => {
+        'draf_id': _draftId,
         'rt': widget.session.rt,
         'rw': widget.session.rw,
         'nama': name.text,
@@ -93,19 +95,6 @@ class _SurveyFormState extends State<SurveyForm> {
       }
     });
     await _draftWrite;
-  }
-
-  Future<void> _selesaikanDraf(AppStore store) async {
-    if (!_drafAktif) return;
-    _draftReady = false;
-    _draftTimer?.cancel();
-    await _draftWrite;
-    try {
-      await store.clearDraft();
-    } catch (_) {
-      // The resident is already committed. A transient cleanup failure must
-      // not offer to save the same resident again.
-    }
   }
 
   Future<void> _tawarkanDraf() async {
@@ -148,6 +137,8 @@ class _SurveyFormState extends State<SurveyForm> {
                 ]));
     if (!mounted) return;
     if (lanjut ?? false) {
+      final draftId = teks(draf['draf_id']);
+      if (draftId.isNotEmpty) _draftId = draftId;
       setState(() {
         name.text = teks(draf['nama']);
         nik.text = teks(draf['nik']);
@@ -276,6 +267,7 @@ class _SurveyFormState extends State<SurveyForm> {
     if (saving) return;
     final store = widget.session.store;
     _draftTimer?.cancel();
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => saving = true);
     try {
       if (name.text.trim().isEmpty) throw AppException('Nama wajib diisi');
@@ -385,10 +377,22 @@ class _SurveyFormState extends State<SurveyForm> {
           return;
         }
       }
-      final saved = await widget.session.store.saveWarga(data,
-          id: wargaId, afterId: widget.afterId, beforeId: widget.beforeId);
-      await _selesaikanDraf(store);
+      // Persist this form's ownership before committing. The store clears
+      // only this draft in the same transaction as the resident, including
+      // journal replay after interruption. Another form's draft is untouched.
       if (!mounted) return;
+      final id = wargaId;
+      final afterId = widget.afterId;
+      final beforeId = widget.beforeId;
+      if (_drafAktif) await _simpanDraf();
+      final saved = await store.saveWarga(data,
+          id: id,
+          afterId: afterId,
+          beforeId: beforeId,
+          draftId: _drafAktif ? _draftId : null);
+      _draftReady = false;
+      if (!mounted) return;
+      setState(() => saving = false);
       final namaLabel =
           name.text.trim().isEmpty ? 'Data warga' : 'Data ${name.text.trim()}';
       feedback(
@@ -427,200 +431,206 @@ class _SurveyFormState extends State<SurveyForm> {
       InputDecoration(labelText: label, hintText: hint, helperText: helper);
 
   @override
-  Widget build(BuildContext context) => AppPage(
-      session: widget.session,
-      title: wargaId == null ? 'Warga Baru' : 'Ubah Data Warga',
-      bottom: Row(children: [
-        Expanded(
-            child: FilledButton.icon(
-                onPressed: saving ? null : save,
-                icon: saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Simpan'))),
-        const SizedBox(width: 10),
-        Expanded(
-            child: OutlinedButton(
-                onPressed: saving ? null : () => save(lanjut: true),
-                child: const Text('Simpan & Lanjut'))),
-      ]),
-      child: AbsorbPointer(
-          absorbing: saving,
-          child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              children: [
-                if (wargaId == null)
-                  Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                          'Orang ke-${widget.chainCount} sejak masuk form',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w600))),
-                const Text(
-                    'Periksa dan isi sesuai dokumen kependudukan. Aplikasi tidak menilai kelayakan hak pilih warga.',
-                    style: TextStyle(color: Colors.black54)),
-                const SizedBox(height: 12),
-                Card(
-                    child: ListTile(
-                  dense: true,
-                  title: const Text('Kelengkapan Data'),
-                  subtitle: Text(statusIsianNik(nik.text)),
-                  trailing: Text('${_persenKelengkapan.round()}%',
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: forest)),
-                )),
-                const SizedBox(height: 18),
-                TextField(
-                    key: const ValueKey('f_nama'),
-                    controller: name,
-                    autofocus: widget.warga == null,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [HurufKapitalFormatter()],
-                    onChanged: (_) => setState(() {}),
-                    decoration: deco('Nama *')),
-                const SizedBox(height: 14),
-                TextField(
-                    key: const ValueKey('f_nik'),
-                    controller: nik,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.next,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(16)
+  Widget build(BuildContext context) => PopScope(
+      canPop: !saving,
+      child: AppPage(
+          session: widget.session,
+          title: wargaId == null ? 'Warga Baru' : 'Ubah Data Warga',
+          bottom: Row(children: [
+            Expanded(
+                child: FilledButton.icon(
+                    onPressed: saving ? null : save,
+                    icon: saving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('Simpan'))),
+            const SizedBox(width: 10),
+            Expanded(
+                child: OutlinedButton(
+                    onPressed: saving ? null : () => save(lanjut: true),
+                    child: const Text('Simpan & Lanjut'))),
+          ]),
+          child: AbsorbPointer(
+              absorbing: saving,
+              child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  children: [
+                    if (wargaId == null)
+                      Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                              'Orang ke-${widget.chainCount} sejak masuk form',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w600))),
+                    const Text(
+                        'Periksa dan isi sesuai dokumen kependudukan. Aplikasi tidak menilai kelayakan hak pilih warga.',
+                        style: TextStyle(color: Colors.black54)),
+                    const SizedBox(height: 12),
+                    Card(
+                        child: ListTile(
+                      dense: true,
+                      title: const Text('Kelengkapan Data'),
+                      subtitle: Text(statusIsianNik(nik.text)),
+                      trailing: Text('${_persenKelengkapan.round()}%',
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: forest)),
+                    )),
+                    const SizedBox(height: 18),
+                    TextField(
+                        key: const ValueKey('f_nama'),
+                        controller: name,
+                        autofocus: widget.warga == null,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [HurufKapitalFormatter()],
+                        onChanged: (_) => setState(() {}),
+                        decoration: deco('Nama *')),
+                    const SizedBox(height: 14),
+                    TextField(
+                        key: const ValueKey('f_nik'),
+                        controller: nik,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.next,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(16)
+                        ],
+                        onChanged: (_) => setState(() {}),
+                        style: const TextStyle(fontSize: 20, letterSpacing: 2),
+                        decoration: deco('NIK',
+                            helper:
+                                '16 digit angka sesuai KTP atau KK. Boleh dikosongkan bila belum ada')),
+                    if (nik.text.isNotEmpty)
+                      ...periksaNik(
+                              nik.text,
+                              DateTime.tryParse(
+                                  parseTanggal(birthDate.text) ?? ''),
+                              gender,
+                              prefixWilayah: widget.session.lokasi?.nikPrefix)
+                          .map((w) => Notice(w, warning: true)),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                        key: const ValueKey('f_jk'),
+                        value: gender, // ignore: deprecated_member_use
+                        decoration: deco('Jenis Kelamin'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'L', child: Text('Laki-laki')),
+                          DropdownMenuItem(
+                              value: 'P', child: Text('Perempuan')),
+                        ],
+                        onChanged: (value) {
+                          setState(() => gender = value);
+                          _jadwalkanDraf('');
+                        }),
+                    const SizedBox(height: 14),
+                    TextField(
+                        key: const ValueKey('f_tempat_lahir'),
+                        controller: birthPlace,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [HurufKapitalFormatter()],
+                        onChanged: (_) => setState(() {}),
+                        decoration: deco('Tempat Lahir')),
+                    const SizedBox(height: 14),
+                    TextField(
+                        key: const ValueKey('f_tgl_lahir'),
+                        controller: birthDate,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) => setState(() {}),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [TanggalInputFormatter()],
+                        decoration: deco('Tanggal Lahir', hint: 'HH-BB-TTTT')),
+                    const SizedBox(height: 14),
+                    TextField(
+                        key: const ValueKey('f_desa'),
+                        controller: village,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [HurufKapitalFormatter()],
+                        onChanged: (_) => setState(() {}),
+                        decoration: deco('Desa / Dusun')),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(
+                          child: TextField(
+                              key: const ValueKey('f_rt'),
+                              controller: rt,
+                              onChanged: (_) => setState(() {}),
+                              keyboardType: TextInputType.number,
+                              decoration: deco('RT *'))),
+                      const SizedBox(width: 14),
+                      Expanded(
+                          child: TextField(
+                              key: const ValueKey('f_rw'),
+                              controller: rw,
+                              onChanged: (_) => setState(() {}),
+                              keyboardType: TextInputType.number,
+                              decoration: deco('RW *')))
+                    ]),
+                    const SizedBox(height: 14),
+                    InputDecorator(
+                        decoration: deco('Keterangan (opsional)'),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(spacing: 8, runSpacing: 8, children: [
+                                ChoiceChip(
+                                    label: const Text('Normal'),
+                                    selected: ketChip == keteranganNormal,
+                                    onSelected: (_) =>
+                                        _pilihKeterangan(keteranganNormal)),
+                                for (final code in [
+                                  ...keteranganKode.keys,
+                                  ..._kustom.keys
+                                ])
+                                  ChoiceChip(
+                                      label: Text(code),
+                                      selected: ketChip == code,
+                                      onSelected: (on) => _pilihKeterangan(
+                                          on ? code : keteranganNormal)),
+                                ChoiceChip(
+                                    label: const Text('Lainnya'),
+                                    selected: ketChip == keteranganLainnya,
+                                    onSelected: (on) => _pilihKeterangan(on
+                                        ? keteranganLainnya
+                                        : keteranganNormal)),
+                              ]),
+                              if (keteranganArti(ketChip, _kustom) != null) ...[
+                                const SizedBox(height: 8),
+                                Text(keteranganArti(ketChip, _kustom)!,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade700,
+                                        height: 1.4)),
+                              ],
+                            ])),
+                    if (ketChip == keteranganLainnya) ...[
+                      const SizedBox(height: 14),
+                      TextField(
+                          controller: note,
+                          focusNode: noteFocus,
+                          maxLines: 3,
+                          inputFormatters: [HurufKapitalFormatter()],
+                          decoration: deco('Lainnya',
+                              hint:
+                                  'Tulis keterangan. Tidak dipakai untuk penilaian atau pencarian')),
                     ],
-                    onChanged: (_) => setState(() {}),
-                    style: const TextStyle(fontSize: 20, letterSpacing: 2),
-                    decoration: deco('NIK',
-                        helper:
-                            '16 digit angka sesuai KTP atau KK. Boleh dikosongkan bila belum ada')),
-                if (nik.text.isNotEmpty)
-                  ...periksaNik(
-                          nik.text,
-                          DateTime.tryParse(parseTanggal(birthDate.text) ?? ''),
-                          gender,
-                          prefixWilayah: widget.session.lokasi?.nikPrefix)
-                      .map((w) => Notice(w, warning: true)),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                    key: const ValueKey('f_jk'),
-                    value: gender, // ignore: deprecated_member_use
-                    decoration: deco('Jenis Kelamin'),
-                    items: const [
-                      DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
-                      DropdownMenuItem(value: 'P', child: Text('Perempuan')),
-                    ],
-                    onChanged: (value) {
-                      setState(() => gender = value);
-                      _jadwalkanDraf('');
-                    }),
-                const SizedBox(height: 14),
-                TextField(
-                    key: const ValueKey('f_tempat_lahir'),
-                    controller: birthPlace,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [HurufKapitalFormatter()],
-                    onChanged: (_) => setState(() {}),
-                    decoration: deco('Tempat Lahir')),
-                const SizedBox(height: 14),
-                TextField(
-                    key: const ValueKey('f_tgl_lahir'),
-                    controller: birthDate,
-                    textInputAction: TextInputAction.next,
-                    onChanged: (_) => setState(() {}),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [TanggalInputFormatter()],
-                    decoration: deco('Tanggal Lahir', hint: 'HH-BB-TTTT')),
-                const SizedBox(height: 14),
-                TextField(
-                    key: const ValueKey('f_desa'),
-                    controller: village,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [HurufKapitalFormatter()],
-                    onChanged: (_) => setState(() {}),
-                    decoration: deco('Desa / Dusun')),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(
-                      child: TextField(
-                          key: const ValueKey('f_rt'),
-                          controller: rt,
-                          onChanged: (_) => setState(() {}),
-                          keyboardType: TextInputType.number,
-                          decoration: deco('RT *'))),
-                  const SizedBox(width: 14),
-                  Expanded(
-                      child: TextField(
-                          key: const ValueKey('f_rw'),
-                          controller: rw,
-                          onChanged: (_) => setState(() {}),
-                          keyboardType: TextInputType.number,
-                          decoration: deco('RW *')))
-                ]),
-                const SizedBox(height: 14),
-                InputDecorator(
-                    decoration: deco('Keterangan (opsional)'),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(spacing: 8, runSpacing: 8, children: [
-                            ChoiceChip(
-                                label: const Text('Normal'),
-                                selected: ketChip == keteranganNormal,
-                                onSelected: (_) =>
-                                    _pilihKeterangan(keteranganNormal)),
-                            for (final code in [
-                              ...keteranganKode.keys,
-                              ..._kustom.keys
-                            ])
-                              ChoiceChip(
-                                  label: Text(code),
-                                  selected: ketChip == code,
-                                  onSelected: (on) => _pilihKeterangan(
-                                      on ? code : keteranganNormal)),
-                            ChoiceChip(
-                                label: const Text('Lainnya'),
-                                selected: ketChip == keteranganLainnya,
-                                onSelected: (on) => _pilihKeterangan(
-                                    on ? keteranganLainnya : keteranganNormal)),
-                          ]),
-                          if (keteranganArti(ketChip, _kustom) != null) ...[
-                            const SizedBox(height: 8),
-                            Text(keteranganArti(ketChip, _kustom)!,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade700,
-                                    height: 1.4)),
-                          ],
-                        ])),
-                if (ketChip == keteranganLainnya) ...[
-                  const SizedBox(height: 14),
-                  TextField(
-                      controller: note,
-                      focusNode: noteFocus,
-                      maxLines: 3,
-                      inputFormatters: [HurufKapitalFormatter()],
-                      decoration: deco('Lainnya',
-                          hint:
-                              'Tulis keterangan. Tidak dipakai untuk penilaian atau pencarian')),
-                ],
-                const SizedBox(height: 18),
-                const Notice(
-                    'NIK boleh dikosongkan dan data tetap dapat disimpan. Peringatan format NIK hanya sebagai pengingat ketelitian.'),
-              ])));
+                    const SizedBox(height: 18),
+                    const Notice(
+                        'NIK boleh dikosongkan dan data tetap dapat disimpan. Peringatan format NIK hanya sebagai pengingat ketelitian.'),
+                  ]))));
 }
