@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 — 23 September 2026
+
+- Versi aplikasi kembali ditampilkan di pojok kanan atas Beranda.
+- Pemulihan cadangan dan snapshot lebih aman, termasuk saat proses terputus atau terjadi kegagalan penyimpanan.
+- Impor ZIP dan Excel dibatasi agar berkas yang rusak atau terlalu besar tidak menghabiskan memori perangkat.
+- Penyimpanan warga dan pembersihan draf dilakukan dalam satu transaksi. NIK referensi yang tersamar atau terlalu panjang tetap diperiksa tanpa menyambungkan atau memotong angka.
+- Perbaikan penghapusan referensi, pembatasan pergantian desa, perlindungan cadangan Android, serta pesan pemulihan yang lebih jelas.
+- README dilengkapi alur penggunaan, model data, dan rencana pengembangan.
+
 ## 0.6.0 — 19 September 2026
 
 ### Ditambahkan
