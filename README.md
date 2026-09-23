@@ -1,377 +1,143 @@
-# TilikSuara · Pendataan DPS Offline
+# TilikSuara
 
-Aplikasi Flutter untuk Android, satu pengguna dan satu perangkat, sepenuhnya offline. Alat bantu pencatatan data pemilih: mencatat sesuai dokumen kependudukan asli, didukung pencarian pintar dan saran data referensi.
+**Pendataan pemilih dari lapangan, tetap berjalan tanpa internet.**
 
-Versi 0.6.0 · Android 7.0+ · tanpa izin internet (dihapus eksplisit di manifest, dapat diverifikasi).
+TilikSuara membantu petugas mencatat data warga untuk Daftar Pemilih Sementara (DPS), memeriksa isian, dan menyiapkan rekap Excel. Dirancang untuk satu petugas di satu perangkat Android, dengan data yang tersimpan di ponsel.
 
-## Sekilas
+**Android 7.0+ · Tanpa akun · Sepenuhnya offline · Lisensi MIT**
 
-```mermaid
-flowchart TD
-    A([Buka aplikasi]) --> B{Lokasi kerja<br/>sudah diatur?}
-    B -- Belum --> C[Pilih Provinsi → Kabupaten<br/>→ Kecamatan → Desa<br/>atau ketik manual]
-    B -- Sudah --> D
-    C --> D[Beranda<br/>ringkasan warga per RT]
+[Mulai Menggunakan](#mulai-menggunakan) · [Fitur](#fitur) · [Ekspor](#ekspor-dan-tanda-bukti) · [Privasi](#privasi-dan-penyimpanan) · [Pengembangan](#pengembangan)
 
-    D --> E[Pilih RT / RW aktif]
-    E --> F[Daftar Warga]
+## Fitur
 
-    F --> G[Cari Warga<br/>ketik minimal 3 huruf]
-    G --> H{Ada saran?}
-    H -- Sudah Diinput --> I[Buka data yang ada]
-    H -- Referensi --> J[Isi awal dari berkas rujukan]
-    H -- Tidak ada --> K[Warga Baru, form kosong]
-
-    I --> L[Form warga]
-    J --> L
-    K --> L
-    L --> M[Simpan]
-    M --> F
-
-    F --> N{Pindah RT?}
-    N -- Ya --> O[Snapshot otomatis<br/>cadangan zip + Excel otomatis<br/>bila izin berkas ada]
-    O --> E
-    N -- Selesai --> P[Ekspor Excel DPS]
-    P --> Q([Berkas di folder Documents])
-
-    style A fill:#194B3C,color:#fff
-    style Q fill:#194B3C,color:#fff
-    style O fill:#FFF4D6
-```
-
-## Yang Tidak Dilakukan Aplikasi Ini
-
-- Tidak menghitung umur dan tidak menentukan kelayakan hak pilih warga.
-- Tidak memakai kamera dan tidak memfoto dokumen kependudukan.
-- Tidak menyentuh jaringan dalam bentuk apa pun dan menonaktifkan pencadangan otomatis cloud Android.
-- Tidak mengubah data referensi. Referensi hanya dibaca untuk saran pengisian.
-- Tidak membagikan berkas sendiri. Setiap pembagian ke aplikasi lain memerlukan tindakan dan konfirmasi eksplisit dari pengguna.
-
-## Penggunaan di Lapangan
-
-1. Instal APK dan buka aplikasi. Tidak ada izin yang diminta saat pertama kali dibuka. Izin akses berkas (Android 11+: Kelola Semua File, Android 7–10: izin penyimpanan biasa) baru diminta saat pertama kali mengekspor Excel, membuat berkas cadangan, atau mengimpor rujukan.
-2. Impor referensi bersifat opsional. Bila memiliki berkas rujukan lama dalam format Excel atau CSV, pilih sheet yang relevan satu per satu (misalnya `RT 03`, `RT 04`, dan `RT 05`). Jangan mengimpor sheet rekapitulasi. Kolom dipetakan langsung di layar. Impor ulang diperbolehkan kapan saja. Layar Referensi menampilkan isi setiap berkas yang telah diimpor serta menyediakan pembersihan data referensi.
-3. Saat pertama kali dibuka, tentukan lokasi kerja: pilih Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan, atau ketik secara manual, atau lewati untuk diisi kemudian. RT dan RW ditentukan langsung oleh petugas sesuai penugasan. Setiap pergantian RT atau RW membuat snapshot di ruang privat, serta menulis cadangan zip dan salinan Excel otomatis di folder publik bila izin berkas sudah diberikan. Beranda menampilkan ringkasan jumlah warga dan catatan tanpa NIK per RT.
-4. Daftar Warga adalah layar utama pendataan. Tekan `Tambah` di sudut kanan atas atau tombol tambah pada celah baris untuk menyisipkan warga baru, tahan ikon urutan untuk mengubah posisi susunan, dan geser kartu ke kiri untuk menghapus. Penomoran pada ekspor Excel mengikuti urutan susunan ini.
-5. Cari Warga: ketik nama minimal 3 huruf. Bagian `Sudah Diinput` menampilkan data yang telah tersimpan. Bagian `Referensi` menampilkan saran dari berkas rujukan untuk mempercepat pengisian data baru. Tombol `Tambah Warga` selalu tersedia untuk input langsung. Mode pencarian tanggal lahir menampilkan seluruh kecocokan dengan memprioritaskan RT aktif.
-6. Formulir mengutamakan nama lengkap, NIK, jenis kelamin, serta tempat dan tanggal lahir. NIK boleh dikosongkan bila belum tersedia pada dokumen. Validasi format NIK (panjang 16 digit, kesesuaian tanggal lahir dan jenis kelamin, deteksi NIK terdaftar) hanya pengingat ketelitian dan tidak memblokir penyimpanan. Kolom keterangan mendukung kode cepat maupun catatan bebas, lihat tabel di bawah.
-7. Riwayat menampilkan 20 pencatatan terakhir. Jurnal mencatat setiap perubahan secara permanen per hari dan mendukung pengembalian versi sebelumnya serta pembatalan penghapusan warga. Hasil ekspor Excel berupa berkas DPS per RT (atau satu berkas gabungan), lihat tabel berikutnya.
-
-## Hasil Ekspor Excel
-
-Menekan `Buat File Excel` menghasilkan berkas-berkas berikut di satu subfolder baru pada `ekspor/`. Temuan (duplikat NIK, duplikat nama, tanpa NIK) tidak lagi jadi berkas tersendiri, melainkan sheet tambahan di dalam berkas DPS yang sama.
-
-| Berkas | Sheet | Isi |
-| --- | --- | --- |
-| `DPS_<kode>_<desa>_RT<nn>_RW<mm>_<tanggal>.xlsx` | `RT <nn>`, sheet temuan bila ada, `INFO` | Satu berkas per RT (bila opsi gabungan mati) |
-| `DPS_GABUNGAN_<kode>_RW<mm>_<tanggal>.xlsx` | Satu sheet per RT, sheet temuan bila ada, `INFO` | Seluruh RT dalam satu berkas (bila opsi gabungan aktif) |
-
-Sheet data memakai sepuluh kolom: `NO`, `NAMA`, `NIK`, `JENIS KELAMIN`, `TEMPAT LAHIR`, `TANGGAL LAHIR`, `DESA`, `RT`, `RW`, `KETERANGAN`. Nomor `NO` mulai dari 1 di setiap RT. Sheet `INFO` memuat Provinsi, Kabupaten/Kota, Kecamatan, Desa/Kelurahan, Kode wilayah, RT, RW, Jumlah warga, Tanpa NIK, waktu ekspor, sumber kode wilayah, dan versi aplikasi. Nilai INFO dibaca dari snapshot tersimpan, bukan dari pack wilayah.
-
-Sheet temuan (`DUPLIKAT NIK`, `DUPLIKAT NAMA`, `TANPA NIK`) hanya muncul bila kategorinya berisi. Nomor `NO` pada sheet temuan memakai nomor urut warga di RT masing-masing.
-
-Ekspor otomatis saat pindah RT menulis salinan DPS yang sama ke `ekspor/otomatis/` (10 terbaru) tanpa sheet temuan.
-
-### Kode keterangan
-
-Kolom `KETERANGAN` tetap teks bebas. Kode berikut dikenali sebagai pilihan cepat di formulir:
-
-| Kode | Arti |
+| Kebutuhan | Yang tersedia |
 | --- | --- |
-| TMS | Tidak Memenuhi Syarat |
-| PD | Pindah Domisili |
-| B | Baru |
-| MD | Meninggal Dunia |
+| Mengatur wilayah kerja | Pilihan provinsi hingga desa dari data wilayah bawaan, isian manual, serta beberapa RT / RW dalam satu wilayah kerja. |
+| Mencatat warga | Formulir identitas, keterangan, persentase kelengkapan, draf warga baru, dan **Simpan & Lanjut** untuk pendataan berurutan. |
+| Menata daftar | Sisip sebelum atau sesudah warga, ubah urutan, penanda warna, pencarian, dan filter keterangan. |
+| Mencari data | Pencarian nama dengan toleransi variasi ejaan atau pencarian tanggal lahir, dengan prioritas RT aktif. |
+| Memakai data lama | Impor `.xlsx` atau `.csv`, pilih lembar dan petakan kolom, lalu gunakan referensi untuk membantu pengisian. Referensi yang memenuhi persyaratan isian dapat dijadikan data warga satu per satu atau sekaligus. |
+| Memeriksa isian | Pengingat format NIK, kesesuaian tanggal lahir dan jenis kelamin, daftar duplikat NIK atau nama, serta catatan tanpa NIK. |
+| Menyiapkan hasil | Excel per RT atau gabungan, lembar temuan, kop opsional, dan tanda bukti untuk warga terpilih. |
+| Menelusuri perubahan | Riwayat terbaru, jurnal perubahan, salinan data otomatis, perbandingan isi, dan pemulihan cadangan. |
 
-## Data dan Keamanan
+TilikSuara membantu pencatatan, bukan menentukan hak pilih. Data tetap perlu dicocokkan dengan dokumen kependudukan. Aplikasi tidak menghitung kelayakan berdasarkan usia dan tidak mengambil foto dokumen.
 
-```mermaid
-flowchart LR
-    subgraph P["Ruang privat aplikasi · tanpa izin · hilang saat uninstall"]
-        DB[(pantarlih.db<br/>SQLite WAL)]
-        J["journal/<br/>satu JSONL per tanggal<br/>append-only, tidak dihapus"]
-        S["snapshot/<br/>20 terbaru"]
-        IM["import/<br/>raw · parsed · ready"]
-        R["recovered/<br/>database lama<br/>log crash dan error"]
-    end
+## Mulai Menggunakan
 
-    subgraph U["Folder publik Documents · butuh izin · bertahan"]
-        EX["ekspor/<br/>satu subfolder per ekspor"]
-        EO["ekspor/otomatis/<br/>10 terbaru"]
-        CD["cadangan/<br/>cadangan_stamp.zip<br/>10 terbaru"]
-        IP["impor/"]
-    end
+1. **Pasang APK dan tentukan lokasi kerja.** Pilih wilayah dari daftar atau isi secara manual. Aplikasi tidak meminta izin penyimpanan saat pertama dibuka.
+2. **Tambahkan RT / RW di Beranda.** Pilih RT yang sedang dikerjakan. Ringkasan jumlah warga dan isian tanpa NIK tersedia pada kartu wilayah kerja.
+3. **Impor referensi jika diperlukan.** Buka **Referensi → Impor Berkas**, pilih Excel atau CSV, lalu periksa pemetaan kolom. Untuk berkas dengan beberapa lembar, impor lembar data RT satu per satu.
+4. **Mulai dari Daftar Warga.** Tekan **Tambah**, cari warga yang sudah tercatat atau referensi yang sesuai, lalu lengkapi formulir. NIK boleh dikosongkan jika belum tersedia. Pengingat NIK tidak menghalangi penyimpanan, sedangkan NIK ganda meminta konfirmasi.
+5. **Periksa dan ekspor.** Buka **Ekspor & Pemulihan** untuk memeriksa duplikat dan membuat Excel. Urutan hasil ekspor mengikuti susunan warga yang disimpan.
+6. **Buat cadangan sebelum selesai.** Gunakan **Buat Snapshot Sekarang**, izinkan akses berkas agar salinan ZIP tersimpan di luar aplikasi, lalu salin cadangan secara berkala ke tempat yang aman.
 
-    DB -. "salin saat ganti RT" .-> S
-    S --> CD
-    J --> CD
-    DB --> EX
-    DB -. "otomatis saat ganti RT" .-> EO
-    IP --> IM
-    CD == "pulihkan kapan saja" ==> DB
+Pada formulir, keterangan dapat berupa catatan bebas atau pilihan cepat: **TMS** (Tidak Memenuhi Syarat), **PD** (Pindah Domisili), **B** (Baru), dan **MD** (Meninggal Dunia).
 
-    style P fill:#F5F5EF
-    style U fill:#E7F3EE
+## Ekspor dan Tanda Bukti
+
+### Rekap DPS
+
+Menu **Ekspor & Pemulihan** menyediakan pilihan RT aktif atau semua RT pada RW aktif, satu berkas per RT atau satu berkas gabungan, serta kop di atas tabel.
+
+| Isi berkas Excel | Keterangan |
+| --- | --- |
+| Lembar RT | Nomor, nama, NIK, jenis kelamin, tempat dan tanggal lahir, desa, RT, RW, serta keterangan. Nomor dimulai dari 1 pada setiap RT. |
+| Lembar temuan | `DUPLIKAT NIK`, `DUPLIKAT NAMA`, dan `TANPA NIK` muncul jika ada data yang perlu diperiksa. |
+| `INFO` | Identitas wilayah, jumlah warga, waktu ekspor, dan informasi aplikasi. |
+
+Setiap ekspor manual masuk ke folder baru di `ekspor/`. Berkas dapat dibuka dengan aplikasi spreadsheet atau dibagikan setelah konfirmasi. Membuat berkas tidak otomatis mengirimkannya.
+
+### Tanda Bukti
+
+Dari menu **Daftar Warga → Tanda Bukti**, pilih warga dan lengkapi informasi cetak untuk menghasilkan berkas Excel. Status perkawinan, pilihan dokumen, serta nama kepala rumah tangga, petugas, dan penerima hanya dipakai untuk tanda bukti tersebut. Isian ini tidak menambah atau mengubah data utama warga.
+
+## Privasi dan Penyimpanan
+
+APK release tidak memiliki izin internet. Data utama, jurnal, salinan data, dan arsip impor disimpan di ruang privat aplikasi. Pencadangan otomatis Android dinonaktifkan dalam konfigurasi aplikasi.
+
+| Lokasi | Isi dan penggunaan |
+| --- | --- |
+| Ruang privat aplikasi | Data warga dan referensi, jurnal perubahan, snapshot, serta arsip impor dan pemulihan. Pendataan tidak memerlukan izin penyimpanan publik. |
+| `Documents/Pantarlih<Desa>_<kode>/ekspor/` | Excel DPS dan tanda bukti. Salinan Excel otomatis berada di `otomatis/`. |
+| `Documents/Pantarlih<Desa>_<kode>/cadangan/` | Cadangan ZIP berisi salinan basis data dan jurnal perubahan. |
+| `Documents/Pantarlih<Desa>_<kode>/impor/` | Tempat menaruh berkas referensi agar mudah ditemukan. |
+
+Nama folder menyesuaikan desa dan kode wilayah yang tersedia. Nama `Pantarlih` tetap digunakan agar kompatibel dengan berkas dari versi sebelumnya.
+
+Izin akses berkas baru diminta saat menggunakan ekspor, impor, atau pencadangan ke folder publik. Android 11 ke atas menggunakan izin **Kelola Semua File**, sementara Android 7–10 menggunakan izin penyimpanan. Berpindah RT tidak membuka permintaan izin.
+
+**Data dan cadangan tidak dienkripsi oleh aplikasi.** Gunakan kunci layar, simpan salinan cadangan di tempat aman, dan pilih penerima berkas dengan cermat. Aplikasi lain yang dipilih untuk membuka atau membagikan Excel dapat memiliki akses internet sendiri.
+
+**Menghapus aplikasi atau menghapus data aplikasi akan menghilangkan data privat.** Cadangan yang sudah tersimpan di folder publik terpisah dari data tersebut. Pastikan ZIP cadangan tersedia dan telah disalin sebelum mengganti perangkat atau menghapus aplikasi. Excel adalah rekap, bukan pengganti cadangan pemulihan.
+
+## Cadangan dan Pemulihan
+
+Perubahan data dicatat ke jurnal sebelum diterapkan ke basis data. Saat aplikasi dibuka, catatan yang belum diterapkan dapat diputar ulang. Jurnal juga dipakai untuk membangun ulang data saat diperlukan.
+
+- Saat berpindah RT aktif, aplikasi membuat **snapshot** atau salinan data di ruang privat. Setelah izin berkas tersedia, aplikasi juga membuat cadangan ZIP dan ekspor Excel otomatis.
+- Aplikasi menyimpan **20 snapshot terbaru**, **10 cadangan ZIP terbaru**, dan **10 hasil ekspor otomatis terbaru**. Ekspor manual tidak mengikuti rotasi ini.
+- **Snapshot** menyediakan pratinjau, perbandingan dengan data aktif, dan pemulihan ke salinan yang dipilih.
+- **Jurnal** menyediakan penelusuran perubahan, pemeriksaan catatan, pengembalian versi, dan pembatalan penghapusan warga.
+- **Pulihkan dari Cadangan** memuat ZIP yang sebelumnya dibuat aplikasi. Data aktif diganti dengan isi cadangan, sehingga perubahan setelah cadangan dibuat tidak muncul pada hasil pemulihan. Data sebelumnya diamankan di ruang privat untuk keperluan pemulihan lanjutan.
+
+Cadangan pada ponsel yang sama belum melindungi dari kehilangan atau kerusakan perangkat. Salin ZIP terbaru secara berkala, misalnya ke komputer melalui USB.
+
+## Pengembangan
+
+Proyek menggunakan Flutter, SQLite melalui `sqflite`, dan paket `excel`. Versi aplikasi serta batas SDK tersedia di [`pubspec.yaml`](pubspec.yaml), dependensi terkunci di [`pubspec.lock`](pubspec.lock), dan konfigurasi Android berada di [`android/app/build.gradle.kts`](android/app/build.gradle.kts).
+
+Siapkan Flutter yang kompatibel dengan dependensi terkunci, Android SDK yang sesuai konfigurasi proyek, dan **JDK 17**.
+
+```sh
+flutter pub get
+flutter analyze
+flutter test --concurrency=1
+flutter build apk --release --split-per-abi
 ```
 
-Ruang privat tidak membutuhkan izin apa pun:
+Jalankan tes secara berurutan karena pengujian SQLite memakai `sqflite_common_ffi`. Tes meliputi aturan data, urutan warga, jurnal dan pemulihan, impor-ekspor, serta perilaku layar. Beberapa tes impor dengan berkas pribadi hanya berjalan jika berkas tersedia lokal. Berkas tersebut tidak dibundel ke APK.
 
-```text
-pantarlih.db           SQLite (WAL)
-journal/               satu JSONL per tanggal, append-only, tidak pernah dihapus
-snapshot/              20 salinan database terbaru, rotasi otomatis
-import/raw/            berkas sumber utuh, subfolder unik per percobaan
-import/parsed/         data sel mentah sebelum normalisasi
-import/ready/         data warga hasil normalisasi siap pakai
-recovered/             database lama, direktori sementara cadangan_masuk, log crash dan error
-```
+APK hasil build berada di `build/app/outputs/flutter-apk/`. Pilih varian ABI yang sesuai perangkat. Untuk mengembangkan pada perangkat yang sudah berisi data, buat cadangan terlebih dahulu dan pertahankan identitas paket serta kunci penandatanganan saat memperbarui.
 
-Folder publik `Documents/Pantarlih<Desa>_<kode>/` hanya untuk pertukaran berkas dan hanya disentuh setelah pengguna memberi izin penyimpanan:
+> **Penandatanganan APK:** konfigurasi release saat ini menggunakan kunci debug Android untuk pemasangan langsung. Kunci tersebut bergantung pada lingkungan build, sehingga build dari komputer lain belum tentu dapat memperbarui instalasi yang sama. Distribusi jangka panjang memerlukan kunci penandatanganan tetap yang disimpan dengan aman. Mengganti kunci tidak otomatis kompatibel dengan instalasi lama, dan menghapus aplikasi untuk mengatasi masalah tanda tangan akan menghapus data privatnya.
 
-```text
-ekspor/                hasil ekspor Excel pengguna, satu subfolder per ekspor
-ekspor/otomatis/       salinan Excel saat berpindah RT atau RW, 10 terbaru
-cadangan/              cadangan_<stamp>.zip berisi snapshot dan seluruh jurnal, 10 terbaru
-impor/                 tempat meletakkan berkas rujukan agar mudah ditemukan aplikasi
-```
+### Peta Kode
 
-Catatan keamanan:
+| Lokasi | Peran |
+| --- | --- |
+| `lib/main.dart` | Inisialisasi aplikasi dan alur pertama kali dibuka. |
+| `lib/core/` | Format, normalisasi nama, pemeriksaan NIK, dan keterangan. |
+| `lib/data/store.dart` | Penyimpanan data, jurnal, snapshot, dan pemulihan. |
+| `lib/data/schema.dart`, `lib/data/migrate.dart` | Skema dan migrasi data. |
+| `lib/data/storage.dart`, `lib/data/exchange.dart` | Penyimpanan privat, izin, folder pertukaran, dan cadangan ZIP. |
+| `lib/data/spreadsheets.dart` | Impor referensi, ekspor DPS, dan tanda bukti. |
+| `lib/data/wilayah.dart`, `lib/data/journal.dart` | Data wilayah dan pembacaan jurnal. |
+| `lib/ui/common.dart` | Komponen bersama dan konteks wilayah kerja. |
 
-- Data privat terhapus bila aplikasi dicopot. Berkas cadangan di folder publik tetap aman dan dapat dipulihkan kapan saja karena memuat snapshot database dan seluruh jurnal.
-- Berkas cadangan tidak terenkripsi. Amankan perangkat dengan kunci layar dan salin folder cadangan berkala ke komputer lewat kabel USB.
-- Folder `recovered/` memuat `crash_<stamp>.log` dan `error_<stamp>.log` yang dapat menyertakan data pribadi dari pesan exception. Berkas ini tersimpan di ruang privat dan tidak pernah dikirim ke mana pun karena aplikasi tidak memiliki akses jaringan.
-- Izin yang diminta adalah akses berkas menyeluruh (Android 11+: Kelola Semua File, Android 7–10: izin penyimpanan biasa). Izin seluas ini dipilih karena aplikasi menulis ke folder Documents yang dipilih pengguna, bukan ke folder khusus aplikasi. Ini salah satu alasan aplikasi hanya didistribusikan lewat sideload dan bukan Play Store. Izin tidak pernah diminta saat aplikasi dibuka, hanya saat ekspor, impor, atau pencadangan yang diminta pengguna. Pergantian RT memeriksa izin secara diam-diam dan tidak pernah membuka dialog.
-- Nama internal `pantarlih` (nama database, nama folder publik, nama entri zip) dipertahankan demi kompatibilitas dengan cadangan yang sudah ada di perangkat. Hanya nama tampilan yang berubah menjadi TilikSuara.
-- Berkas rujukan pribadi di `data-exel/` diabaikan Git dan tidak dibundel ke APK (nama direktori historis, dipertahankan agar konsisten dengan `.gitignore` dan tes). Impor membutuhkan berkas di perangkat. Tes dengan berkas rujukan asli berjalan bila berkas tersedia lokal, tes sintetis tetap berjalan tanpa data pribadi.
+### Peta Layar
 
-## Ketahanan Data
-
-Setiap aksi CGROGUAE melalui satu antrean terserialisasi dengan satu transaksi SQLite. Di dalam transaksi itu jurnal JSONL ditulis dan di-flush ke disk dahulu, baru perubahan diterapkan ke database. Gagal menulis jurnal berarti aksi dibatalkan. Gagal database setelah jurnal tertulis berarti aplikasi mengunci input dan meminta bangun ulang dari jurnal, bukan input ulang.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as Petugas
-    participant A as Aplikasi
-    participant JF as journal/*.jsonl
-    participant DB as pantarlih.db
-
-    U->>A: Simpan warga
-    A->>A: Susun event lengkap<br/>(op, ts, schema_v, seluruh kolom)
-    A->>JF: Tulis satu baris, flush ke disk
-    Note over JF: Jurnal adalah sumber kebenaran.<br/>Gagal di sini, aksi dibatalkan.
-    JF-->>A: berhasil
-    A->>DB: Terapkan dalam transaksi SQLite yang sama
-    DB-->>A: commit
-    A-->>U: Tersimpan
-
-    rect rgb(245,245,239)
-    Note over A,DB: Saat aplikasi dibuka berikutnya
-    A->>DB: Event mana yang terakhir diterapkan?
-    A->>JF: Baca baris setelah checkpoint itu
-    A->>DB: Putar ulang yang belum tercermin
-    Note over A: Baris rusak dilaporkan dan dilewati,<br/>pemulihan tidak berhenti
-    end
-```
-
-- Saat aplikasi dibuka, jurnal yang belum tercermin di database diputar ulang. Database yang hilang atau rusak dibangun ulang otomatis dari jurnal.
-- Checkpoint (`setelan.jurnal_checkpoint`) mencatat id event terakhir yang diterapkan sehingga luncuran berikutnya melewati berkas lama. Checkpoint hanya maju bila pemutaran bersih, baris rusak terus dicoba ulang.
-- Layar Snapshot menampilkan salinan database (jumlah warga, tanpa NIK, posisi jurnal) dengan pratinjau isi, perbandingan dengan data aktif, dan pemulihan ke titik waktu tertentu.
-- Layar Jurnal menelusuri riwayat harian, menguji keutuhan data (tombol Periksa), mengembalikan versi sebelumnya, dan membatalkan penghapusan warga.
-- Pemulihan snapshot mencatat event `RESTORE` berisi id event terakhir pada snapshot itu. Pemutaran ulang melewati rentang event yang dibatalkan pemulihan tersebut, sehingga rebuild menghasilkan keadaan yang sama dan tidak mengulang yang sudah dibatalkan.
-- Pemulihan dari cadangan memakai `cadangan_<stamp>.zip` dari folder publik. Database dan jurnal aktif diamankan ke `recovered/` dahulu, tidak ada yang hilang.
-- Baris JSONL rusak dilaporkan dan dilewati tanpa menghentikan pemulihan.
-- NIK kosong maupun belum 16 digit tetap tersimpan. Peringatan format dan deteksi duplikat hanya pengingat.
-- Urutan warga (`urut_sort`) memakai penomoran renggang kelipatan 1000 sehingga penyisipan tidak mengubah baris lain. Penataan ulang otomatis berjalan saat celah habis.
-- Data referensi hanya-baca di aplikasi tanpa relasi kaku ke tabel warga, sehingga dapat dimuat ulang atau dibersihkan kapan saja.
-- Normalisasi pencarian nama menangani variasi ejaan umum bahasa Indonesia.
-- Pengurai Excel tangguh terhadap format tabel dan sel kosong dengan tetap menyimpan berkas asli di arsip.
-- Data wilayah Kemendagri dibundel lokal (`assets/wilayah.db`) sebagai referensi statis baca-saja. Pilihan wilayah tersimpan sebagai snapshot di tabel `lokasi` dan tidak terpengaruh bila pack diperbarui.
-
-## Arsitektur
-
-Skema database v7 (`lib/data/schema.dart` adalah satu-satunya tempat bentuk skema didefinisikan, `lib/data/migrate.dart` menaikkan database lama bertahap):
-
-```mermaid
-erDiagram
-    warga {
-        int id PK
-        int urut_sort "renggang 1000"
-        int grup_id "cadangan, sengaja tidak dipakai"
-        string nik "boleh kosong"
-        string nama
-        string nama_norm
-        string jenis_kelamin "L atau P"
-        string tempat_lahir
-        string tgl_lahir
-        string desa "snapshot nama"
-        string kode_wilayah "snapshot kode"
-        int rt
-        int rw
-        string keterangan "teks bebas"
-        string warna
-    }
-    referensi {
-        int id PK
-        int urut_asli
-        string nama
-        string nama_norm
-        string nik_lama "boleh tersamar"
-        string tgl_lahir_raw
-        string desa
-        int rt
-        int rw
-        string kode_wilayah
-        string sumber_file
-        int sumber_baris
-    }
-    lokasi {
-        string kode PK
-        string nama_desa
-        string nama_kec
-        string nama_kab
-        string nama_prov
-        string kode_kec
-        string nik_prefix
-        string sumber_versi
-        int manual
-    }
-    log {
-        int id PK
-        string ts
-        string op
-        string tabel
-        int row_id
-        string payload "event JSON penuh"
-        int schema_v
-    }
-    setelan {
-        string kunci PK
-        string nilai
-    }
-    urutan_id {
-        string tabel PK
-        int terakhir
-    }
-
-    warga ||..o| lokasi : "kode_wilayah, tanpa foreign key"
-    referensi ||..o| lokasi : "kode_wilayah, tanpa foreign key"
-    log ||..|| warga : "mencatat setiap perubahan"
-```
-
-Tiga hal yang tidak muat di diagram: `referensi` sengaja tanpa relasi kaku ke `warga` sehingga dapat dibersihkan kapan saja, `wilayah.db` adalah database terpisah yang read-only dan tidak pernah masuk jurnal, dan `schemaBaseVersion = 7` berarti instalasi baru langsung memakai bentuk final sementara database lama naik bertahap lewat `builtinUpgrades`. Dua view (`v_duplikat_nik` per NIK, `v_duplikat_nama` per nama dalam satu RW) mendasari laporan duplikat.
-
-Peta layar (Beranda adalah hub):
-
-```mermaid
-flowchart TD
-    ST([Layar mulai]) --> LK[Pilih Lokasi Kerja]
-    ST --> BR
-    LK --> BR[Beranda]
-
-    BR --> DW[Daftar Warga]
-    BR --> RF[Referensi]
-    BR --> RW[Riwayat]
-    BR --> EP[Ekspor & Pemulihan]
-    BR --> LK
-
-    DW --> CW[Cari Warga]
-    CW --> FW[Warga Baru /<br/>Ubah Data Warga]
-    DW --> FW
-
-    RF --> IR[Impor Referensi]
-    EP --> JR[Jurnal]
-    EP --> SN[Snapshot]
-    JR --> FW
-    SN --> FW
-    RW --> FW
-
-    style BR fill:#194B3C,color:#fff
-```
-
-Tabel berkas ke judul layar (diuji otomatis oleh `test/ui_conventions_test.dart`, setiap berkas layar wajib muncul di sini):
-
-| Berkas | Judul |
+| Berkas | Layar |
 | --- | --- |
 | `lib/ui/home.dart` | Beranda |
 | `lib/ui/lokasi_screen.dart` | Pilih Lokasi Kerja |
 | `lib/ui/rt_list_screen.dart` | Daftar Warga |
 | `lib/ui/search_screen.dart` | Cari Warga |
-| `lib/ui/survey_form.dart` | Warga Baru, Ubah Data Warga |
-| `lib/ui/history_screen.dart` | Riwayat · 20 Terakhir, Duplikat NIK, Duplikat Nama |
-| `lib/ui/referensi_screen.dart` | Referensi |
+| `lib/ui/survey_form.dart` | Warga Baru dan Ubah Data Warga |
+| `lib/ui/referensi_screen.dart` | Referensi dan Belum Diinput |
 | `lib/ui/import_screen.dart` | Impor Referensi |
+| `lib/ui/history_screen.dart` | Riwayat, Duplikat NIK, dan Duplikat Nama |
 | `lib/ui/admin_screen.dart` | Ekspor & Pemulihan |
-| `lib/ui/journal_screen.dart` | Jurnal (plus rincian hari dan rincian catatan) |
-| `lib/ui/snapshot_screen.dart` | Snapshot (plus Isi Snapshot dan Bandingkan Snapshot) |
-| `lib/ui/tanda_bukti_screen.dart` | Tanda Bukti |
-| `lib/ui/pengaturan_screen.dart` | Pengaturan |
+| `lib/ui/snapshot_screen.dart` | Snapshot, Isi Snapshot, dan Bandingkan Snapshot |
+| `lib/ui/journal_screen.dart` | Jurnal dan rincian catatan |
+| `lib/ui/tanda_bukti_screen.dart` | Tanda Bukti dan Konfigurasi Tanda Bukti |
 
-Tanggung jawab berkas:
+Antarmuka menggunakan bahasa Indonesia. Pesan kesalahan harus menjelaskan tindakan yang bisa dilakukan pengguna, tanpa menampilkan rincian teknis. Saat melaporkan masalah atau mengirim perubahan, gunakan data contoh dan hindari menyertakan NIK, berkas warga, cadangan, atau log pribadi.
 
-| Berkas | Tanggung jawab |
-| --- | --- |
-| `lib/main.dart` | Entry, layar mulai, penulisan `crash_<stamp>.log` privat |
-| `lib/data/store.dart` | Satu-satunya penulis database dan jurnal, replay, snapshot, pemulihan |
-| `lib/data/schema.dart` | Bentuk skema v7 |
-| `lib/data/migrate.dart` | Migrasi event dan database lama |
-| `lib/data/journal.dart` | Model baca jurnal untuk layar |
-| `lib/data/exchange.dart` | Folder publik, tulis dan pulihkan cadangan zip |
-| `lib/data/storage.dart` | Akar data privat, nama folder desa, izin penyimpanan |
-| `lib/data/spreadsheets.dart` | Impor dan ekspor Excel |
-| `lib/data/wilayah.dart` | Pack wilayah read-only dan snapshot lokasi |
-| `lib/core/` | Format, nama, NIK, keterangan, info versi (murni, tanpa I/O) |
+## Data Wilayah dan Lisensi
 
-## Membangun dan Menjalankan
+Nama dan kode wilayah dibundel untuk penggunaan offline dari proyek [WILAYAH oleh Cahya DSN](https://github.com/cahyadsn/wilayah), berlisensi MIT. Asal versi data dicatat di [`third_party/wilayah/SOURCE.txt`](third_party/wilayah/SOURCE.txt), dengan lisensi sumber di [`third_party/wilayah/LICENSE`](third_party/wilayah/LICENSE). Panduan aset wilayah tersedia di [`docs/wilayah.md`](docs/wilayah.md).
 
-Toolchain yang terbukti membangun: Flutter 3.47.4 channel stable, Dart 3.13.3, JDK 17, `compileSdk = 37`, `minSdk = 24`, NDK mengikuti `flutter.ndkVersion`. `pubspec.yaml` membatasi Dart `>=3.3.0 <4.0.0`. Dependensi dikunci di `pubspec.lock`.
+Memperbarui aset wilayah tidak otomatis mengubah nama wilayah pada data warga yang sudah disimpan.
 
-```sh
-flutter pub get
-flutter analyze
-flutter test --concurrency=1   # sqflite_common_ffi berbagi direktori sementara, tes paralel membuatnya flaky
-flutter run                    # pengembangan: build debug, mendukung hot reload
-flutter build apk --release --split-per-abi   # produksi
-```
-
-Ukuran terukur 18 September 2026 (build penuh dengan pack wilayah nasional, `assets/wilayah.db` sekitar 13 MB): `app-arm64-v8a-release.apk` sekitar 24 MB, `app-debug.apk` sekitar 172 MB. Angka debug besar karena JIT dan hanya untuk pengembangan, jangan dipasang di lapangan.
-
-APK produksi ada di `build/app/outputs/flutter-apk/` (satu APK per ABI, `arm64-v8a` untuk HP modern dan `armeabi-v7a` untuk HP lama). Build release lokal memakai signing key debug Android sehingga cocok untuk sideload perangkat tunggal, bukan publikasi Play Store. Gunakan keystore produksi yang dipertahankan untuk distribusi jangka panjang. Jangan uninstall untuk memperbarui, pasang APK bertanda tangan sama di atas versi lama.
-
-Catatan kompatibilitas: UI memakai `ReorderableListView.onReorder` dan `DropdownButtonFormField.value` agar mesin dengan Flutter lebih lama tetap dapat mengompilasi. `value` sudah deprecated di Flutter modern dan pemakaiannya ditandai `// ignore: deprecated_member_use` yang disengaja. `flutter analyze` bersih karena penekanan itu, bukan karena bebas deprecation. Batas bawah Dart dinaikkan bila penekanan ini sudah lebih mengganggu daripada manfaatnya.
-
-## Konvensi UI
-
-- Semua teks antarmuka berbahasa Indonesia dan tidak mengandung titik koma (`;`).
-- Tanpa huruf kapital semua (ALL CAPS). Judul dan tombol memakai Title Case (`Tambah Warga`, `Daftar Warga`, `Buat File Excel`). Aksi pembatal atau sekunder memakai Title Case atau kapital kalimat (`Batal`, `Tutup`, `Coba minta izin lagi`).
-- Judul selalu nama halaman dalam Title Case, lihat tabel berkas ke judul di atas. Subtitle boleh memuat satu baris konteks (tanggal di Beranda, hitungan catatan di Jurnal dan Snapshot).
-- Penggabung bagian teks memakai titik tengah dengan spasi (` · `), konsisten di seluruh layar.
-- Format RT dan RW selalu dua digit dengan garis miring berjarak (`RT 03 / RW 02`).
-- Aturan titik koma, elipsis, dan titik tengah ditegakkan otomatis oleh `test/ui_conventions_test.dart`, begitu pula kelengkapan tabel judul layar dan larangan spasi ganda di dalam string antarmuka.
-
-## Pengujian
-
-| Berkas tes | Cakupan |
-| --- | --- |
-| `test/core_test.dart` | Normalisasi nama, fuzzy matching, tanggal DD-first, NIK sebagai peringatan |
-| `test/store_test.dart` | Sisip, geser, renumber, duplikat, replay identik termasuk `urut_sort`, baris jurnal terpotong, database hilang, kegagalan tulis jurnal, snapshot dan perubahan sesi |
-| `test/storage_test.dart` | Nama folder desa, akar data privat, folder pertukaran, rotasi cadangan |
-| `test/search_screen_test.dart`, `test/rt_list_screen_test.dart` | Layar Cari dan Daftar Warga |
-| `test/wilayah_test.dart` | Isi pack wilayah, `WilayahRepo`, ketahanan pack rusak |
-| `test/app_info_test.dart` | Versi aplikasi sinkron antara `pubspec.yaml` dan kode |
-| `test/ui_conventions_test.dart` | Aturan string UI dan kelengkapan tabel judul layar di README ini |
-| `test/widget_test.dart` | Luncuran aplikasi |
-
-Sebelum dipakai di lapangan, uji singkat di HP sasaran: izin, impor, simpan, sisip, ekspor, dan pemulihan. Tes impor 504 baris memakai berkas rujukan asli dan dilewati bila berkas tidak tersedia lokal.
-
-## Data Wilayah dan Atribusi
-
-Pack wilayah Kemendagri dibundel sebagai aset baca-saja (`assets/wilayah.db`, 91.599 baris: 38 provinsi, 514 kabupaten/kota, 7.285 kecamatan, 83.762 desa). Detail bentuk data, skema pack, cara membangun ulang, dan keputusan desain ada di [`docs/wilayah.md`](docs/wilayah.md).
-
-**Memperbarui pack tidak pernah mengubah data yang sudah tersimpan.** Nama wilayah pada setiap baris warga dan pada tabel `lokasi` adalah snapshot.
-
-Sumber: [cahyadsn/wilayah](https://github.com/cahyadsn/wilayah) oleh Cahya DSN, lisensi MIT, mengikuti Kepmendagri No. 300.2.2-2430 Tahun 2025. Teks lisensi sumber ada di `third_party/wilayah/LICENSE`, SHA dan tanggal unduh di `third_party/wilayah/SOURCE.txt`.
-
-## Lisensi
-
-Aplikasi ini berlisensi MIT, lihat berkas `LICENSE`. Data nama dan kode wilayah yang dibundel berasal dari proyek WILAYAH (<https://github.com/cahyadsn/wilayah>), Copyright (c) 2017-2025 Cahya DSN, lisensi MIT.
+Kode aplikasi menggunakan [Lisensi MIT](LICENSE).
