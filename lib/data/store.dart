@@ -306,6 +306,19 @@ class AppStore extends ChangeNotifier {
 
   Future<RecordMap> setLokasi(RecordMap fields) async {
     return _commit('INSERT', 'lokasi', (txn, ts) async {
+      final settings = await txn.query('setelan',
+          where: 'kunci = ?', whereArgs: ['kode_wilayah_aktif']);
+      final active = settings.isEmpty ? '' : teks(settings.single['nilai']);
+      if (active.isNotEmpty && active != teks(fields['kode'])) {
+        final data = await txn.rawQuery('''
+          SELECT EXISTS(SELECT 1 FROM warga)
+            OR EXISTS(SELECT 1 FROM referensi) AS ada''');
+        if (intValue(data.single['ada']) != 0) {
+          throw AppException('Aplikasi ini menyimpan data untuk satu desa. '
+              'Desa tidak bisa diganti selama data warga atau referensi masih ada. '
+              'Selesaikan pendataan dan buat cadangan sebelum menyiapkan data desa lain.');
+        }
+      }
       return _full(lokasiColumns, {
         ...fields,
         'manual': intValue(fields['manual']),
