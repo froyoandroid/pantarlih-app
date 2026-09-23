@@ -37,3 +37,16 @@ data-exel/
 # State tooling agen lokal, bukan data aplikasi dan bukan riwayat proyek.
 .flutter_mcp/
 .pi/
+
+# Berkas kerja lokal, konfigurasi agen, dan hasil audit bukan isi rilis.
+/artifact/
+/AGENTS.md
+/.mcp.json
+/chopin.sh
+/SECURITY_AUDIT.md
+*.log
+
+# Kredensial lokal tidak boleh ikut dipublikasikan.
+.env
+.env.*
+!.env.example
