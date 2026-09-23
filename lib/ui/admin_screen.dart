@@ -62,8 +62,8 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> share(List<File> selected) async {
-    if (!await confirm(context, 'Bagikan data pribadi?',
-        'Berkas memuat NIK, nama, dan tanggal lahir. Pilih penerima tepercaya, aplikasi lain yang Anda pilih dapat mengirimkan berkas ke internet.',
+    if (!await confirm(context, 'Bagikan Data Pribadi?',
+        'Berkas berisi NIK, nama, dan tanggal lahir. Pilih penerima yang tepercaya. Aplikasi yang dipilih untuk membagikan berkas dapat mengirimkannya ke internet.',
         action: 'Pilih Penerima')) {
       return;
     }
@@ -88,8 +88,8 @@ class _AdminScreenState extends State<AdminScreen> {
       feedback(context, lampau, error: true);
       return;
     }
-    if (!await confirm(context, 'Pulihkan dari cadangan?',
-        'Database dan jurnal sekarang diganti dengan isi ${file.name}. Keduanya diamankan dulu ke folder recovered. Semua yang diketik setelah cadangan itu dibuat hilang dari daftar.',
+    if (!await confirm(context, 'Pulihkan dari Cadangan?',
+        'Data dan riwayat perubahan saat ini akan diganti dengan isi ${file.name}. Perubahan setelah cadangan dibuat tidak akan muncul di daftar. Salinan data sebelumnya tetap disimpan di dalam aplikasi.',
         action: 'Pulihkan', dangerous: true)) {
       return;
     }
@@ -106,7 +106,7 @@ class _AdminScreenState extends State<AdminScreen> {
       session: widget.session,
       title: 'Ekspor & Pemulihan',
       child: ListView(padding: const EdgeInsets.all(20), children: [
-        const Text('Pemeriksaan data',
+        const Text('Pemeriksaan Data',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         Card(
             child: ListTile(
@@ -140,23 +140,24 @@ class _AdminScreenState extends State<AdminScreen> {
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text('Semua RT di RW ${widget.session.rw}'),
-            subtitle: const Text('Nonaktif: hanya RT aktif'),
+            subtitle: const Text('Matikan untuk mengekspor RT aktif saja'),
             value: allRt,
             onChanged: busy ? null : (v) => setState(() => allRt = v)),
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Gabungan, Satu Sheet Per RT'),
-            subtitle: const Text('Nonaktif: satu berkas per RT'),
+            title: const Text('Gabungan, Satu Lembar Per RT'),
+            subtitle:
+                const Text('Matikan untuk membuat berkas terpisah per RT'),
             value: combined,
             onChanged: busy ? null : (v) => setState(() => combined = v)),
         SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Sertakan Kop di Atas Tabel'),
-            subtitle: const Text('Header tabel bergeser ke baris 7.'),
+            subtitle: const Text('Tambahkan identitas wilayah di atas tabel'),
             value: kop,
             onChanged: busy ? null : (v) => setState(() => kop = v)),
         const Notice(
-            'Urutan mengikuti nomor sisip, bukan waktu input. Nomor di berkas mulai 1 di tiap RT. Duplikat NIK, duplikat nama, dan daftar tanpa NIK jadi sheet tambahan di dalam berkas DPS yang sama.'),
+            'Urutan mengikuti susunan warga yang disimpan. Penomoran dimulai dari 1 pada setiap RT. Jika ditemukan, NIK ganda, nama ganda, dan warga tanpa NIK ditampilkan pada lembar tambahan dalam berkas yang sama.'),
         FilledButton.icon(
             onPressed: busy
                 ? null
@@ -170,7 +171,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               rt: allRt ? null : widget.session.rt,
                               combined: combined,
                               kop: kop);
-                      return '${files.length} berkas Excel dibuat di ${folder.label}/ekspor. Belum dibagikan ke siapa pun.';
+                      return '${files.length} berkas Excel tersimpan di folder ekspor. Berkas belum dibagikan ke siapa pun.';
                     }),
             icon: const Icon(Icons.table_view_outlined),
             label: const Text('Buat File Excel')),
@@ -205,9 +206,7 @@ class _AdminScreenState extends State<AdminScreen> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         Notice(widget.session.wilayah.available
             ? '${pack['kepmendagri'] ?? '—'}\n${pack['jumlah_total'] ?? '—'} wilayah tersedia untuk dipilih'
-            : 'Paket wilayah tidak terbaca'
-                '${widget.session.wilayah.alasanGagal == null ? '' : ': ${widget.session.wilayah.alasanGagal!.replaceAll(';', ',')}'}.'
-                ' Mode manual tetap berfungsi.'),
+            : 'Daftar wilayah belum dapat dibuka. Lokasi kerja tetap dapat diisi secara manual.'),
         if (missingKode > 0)
           OutlinedButton.icon(
               onPressed: busy
@@ -216,7 +215,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       final kode = widget.session.kodeWilayah;
                       if (kode == null || kode.isEmpty) {
                         feedback(context,
-                            'Pilih lokasi kerja dulu sebelum menetapkan kode pada warga lama.',
+                            'Pilih lokasi kerja terlebih dahulu untuk melengkapi kode wilayah pada data warga lama.',
                             error: true);
                         return;
                       }
@@ -229,8 +228,8 @@ class _AdminScreenState extends State<AdminScreen> {
                       if (!context.mounted) return;
                       if (!await confirm(
                           context,
-                          'Tetapkan kode wilayah untuk warga lama?',
-                          '$missingKode warga tanpa kode akan diisi $kode.\n\n$ringkas\n\nIni bukan tebakan otomatis. Anda harus yakin warga lama berasal dari desa yang sekarang dipilih.',
+                          'Tetapkan Kode Wilayah untuk Warga Lama?',
+                          '$missingKode warga akan diberi kode wilayah $kode.\n\n$ringkas\n\nPastikan semua warga ini berasal dari desa yang sedang dipilih sebelum melanjutkan.',
                           action: 'Tetapkan')) {
                         return;
                       }
@@ -243,10 +242,10 @@ class _AdminScreenState extends State<AdminScreen> {
               icon: const Icon(Icons.pin_drop_outlined),
               label: const Text('Tetapkan Kode Wilayah untuk Warga Lama')),
         const SizedBox(height: 28),
-        const Text('Ketahanan & Pemulihan',
+        const Text('Cadangan & Pemulihan',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
-            'Setiap aksi dicatat ke jurnal sebelum disimpan ke database. Snapshot menyimpan 20 salinan terbaru secara otomatis. Berkas cadangan zip yang memuat snapshot dan jurnal tersimpan di folder cadangan publik saat izin berkas tersedia. Catatan jurnal tidak pernah dihapus.',
+            'Jurnal menyimpan riwayat perubahan data. Snapshot adalah salinan data pada waktu tertentu, dengan 20 salinan terbaru tersimpan di dalam aplikasi. Setelah izin berkas tersedia, salinan data dan jurnal juga disimpan dalam cadangan ZIP di luar aplikasi saat berpindah RT.',
             icon: Icons.shield_outlined),
         OutlinedButton.icon(
             onPressed: busy
@@ -257,7 +256,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           await widget.session.folderPertukaran(minta: true);
                       final zip = await tulisCadangan(
                           widget.session.store, f, folder!.cadangan);
-                      return 'Snapshot tersimpan. Cadangan ${zip.uri.pathSegments.last} ditulis ke ${folder.label}/cadangan.';
+                      return 'Snapshot tersimpan. Berkas ${zip.uri.pathSegments.last} tersedia di folder cadangan.';
                     }),
             icon: const Icon(Icons.save_alt),
             label: const Text('Buat Snapshot Sekarang')),
@@ -266,19 +265,19 @@ class _AdminScreenState extends State<AdminScreen> {
             onPressed: busy
                 ? null
                 : () async {
-                    if (!await confirm(context, 'Bangun ulang dari jurnal?',
-                        'Database saat ini dipindahkan ke recovered, tidak dihapus. Semua jurnal diputar ulang. Baris rusak dicatat ke laporan dan tidak menghentikan pemulihan.',
-                        action: 'Bangun Ulang', dangerous: true)) {
+                    if (!await confirm(context, 'Pulihkan dari Jurnal?',
+                        'Data aktif akan disusun kembali dari riwayat perubahan. Catatan yang rusak akan dilewati, sehingga sebagian data mungkin belum kembali. Salinan data saat ini tetap disimpan di dalam aplikasi. Periksa hasilnya setelah pemulihan selesai.',
+                        action: 'Pulihkan', dangerous: true)) {
                       return;
                     }
                     await run(() async {
                       final result = await widget.session.store.rebuild();
                       await widget.session.load();
-                      return '$result\nDatabase lama diamankan ke folder recovered.${result.failurePath == null ? '' : '\nSebagian baris gagal, laporan disimpan ke folder recovered.'}';
+                      return '$result\nSalinan data sebelumnya tetap tersimpan di dalam aplikasi.${result.failurePath == null ? '' : '\nSebagian catatan belum berhasil dipulihkan. Periksa kembali data warga.'}';
                     });
                   },
             icon: const Icon(Icons.restore),
-            label: const Text('Bangun Ulang Database')),
+            label: const Text('Pulihkan dari Jurnal')),
         const SizedBox(height: 10),
         OutlinedButton.icon(
             onPressed: busy ? null : _pulihkanDariCadangan,
@@ -320,27 +319,27 @@ class _AdminScreenState extends State<AdminScreen> {
                             builder: (_) =>
                                 JournalScreen(session: widget.session))))),
         const SizedBox(height: 28),
-        const Text('Folder pertukaran',
+        const Text('Penyimpanan Berkas',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-        Notice(
-            'Excel, cadangan, dan berkas impor disimpan di ${widget.session.labelFolderPertukaran}. Database utama, jurnal, dan snapshot tersimpan di ruang privat aplikasi tanpa memerlukan izin. Izin penyimpanan publik hanya diminta saat Anda melakukan ekspor atau impor, setelah itu cadangan otomatis tersimpan di folder pertukaran setiap pergantian RT.',
+        const Notice(
+            'Excel, cadangan, dan berkas impor berada di folder pertukaran pada penyimpanan perangkat. Data utama tetap tersimpan di dalam aplikasi. Izin akses berkas hanya diminta saat ekspor, impor, atau membuat cadangan. Setelah diizinkan, cadangan otomatis dibuat saat berpindah RT.',
             icon: Icons.folder_outlined),
         const Text(
-            'Salin folder cadangan lewat kabel USB secara berkala. Berkas tidak terenkripsi, simpan di lokasi yang aman. Data di dalam aplikasi ikut hilang bila aplikasi dihapus, cadangan di folder publik tidak.',
+            'Cadangan di luar aplikasi tidak dienkripsi. Simpan di tempat aman dan salin secara berkala, misalnya ke komputer melalui kabel USB. Menghapus aplikasi atau data aplikasi akan menghapus data di dalamnya. Cadangan yang sudah dibuat di folder publik tetap terpisah.',
             style: TextStyle(fontSize: 12, color: Colors.black54)),
         const SizedBox(height: 28),
         const Text('Tentang',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         const Notice(
-            'Mode offline. Tidak ada jaringan keluar, foto KK, penilaian umur, atau keputusan kelayakan di aplikasi ini.',
+            'TilikSuara bekerja tanpa internet dan menyimpan data di perangkat. Aplikasi membantu pencatatan, tidak memotret dokumen atau menentukan hak pilih warga.',
             icon: Icons.shield_outlined),
         const Notice(
-            'TilikSuara memakai data wilayah administrasi dari proyek WILAYAH oleh Cahya DSN (github.com/cahyadsn/wilayah), lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Nama desa pada data yang sudah tersimpan adalah snapshot dan tidak berubah saat pack wilayah diperbarui.',
+            'Data wilayah berasal dari proyek Wilayah oleh Cahya DSN dengan lisensi MIT, sesuai Kepmendagri No. 300.2.2-2430 Tahun 2025. Pembaruan daftar wilayah tidak mengubah nama desa pada data warga yang sudah disimpan.',
             icon: Icons.info_outline),
         const SizedBox(height: 32),
         const Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Made by Firenza',
+          Text('Dikembangkan oleh Firenza',
               style: TextStyle(fontSize: 11, color: Colors.black45)),
           Text('2026 - Kalitorong',
               style: TextStyle(fontSize: 11, color: Colors.black45)),
