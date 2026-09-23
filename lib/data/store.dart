@@ -1302,10 +1302,11 @@ class AppStore extends ChangeNotifier {
     return report;
   }
 
-  /// (dari, event_id) for every RESTORE event: ids strictly between the two
-  /// were undone by that rollback. Cheap substring filter before decoding.
+  /// (dari, event_id) for effective RESTORE events. Restoring a newer
+  /// snapshot can undo a previous rollback itself, so evaluate the newest
+  /// events first and discard rollbacks inside a later rollback's range.
   Future<List<(int, int)>> _rentangPulih(List<File> files) async {
-    final out = <(int, int)>[];
+    final ranges = <(int, int)>[];
     for (final file in files) {
       await for (final line in file
           .openRead()
@@ -1319,13 +1320,22 @@ class AppStore extends ChangeNotifier {
           }
           final data = event['data'];
           final id = event['event_id'];
-          if (data is Map && id is int) out.add((intValue(data['dari']), id));
+          if (data is Map && id is int) {
+            ranges.add((intValue(data['dari']), id));
+          }
         } catch (_) {
           // A damaged RESTORE line is reported by pass two like any other.
         }
       }
     }
-    return out;
+    ranges.sort((a, b) => b.$2.compareTo(a.$2));
+    final active = <(int, int)>[];
+    for (final range in ranges) {
+      if (!active.any((r) => range.$2 > r.$1 && range.$2 < r.$2)) {
+        active.add(range);
+      }
+    }
+    return active;
   }
 
   String _tanggalBerkasJurnal(File file) {
