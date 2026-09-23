@@ -6,6 +6,8 @@
     <application
         android:label="TilikSuara"
         android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:requestLegacyExternalStorage="true"
         android:name="${applicationName}"
         android:icon="@drawable/ic_pantarlih">
