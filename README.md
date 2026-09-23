@@ -4,6 +4,8 @@
 
 TilikSuara membantu petugas mencatat data warga untuk Daftar Pemilih Sementara (DPS), memeriksa isian, dan menyiapkan rekap Excel. Dirancang untuk satu petugas di satu perangkat Android, dengan data yang tersimpan di ponsel.
 
+Satu ruang kerja digunakan untuk **satu desa**, dengan beberapa RT / RW. Desa tidak dapat diganti selama masih ada data warga atau referensi, agar rekap dari desa yang berbeda tidak tercampur.
+
 **Android 7.0+ · Tanpa akun · Sepenuhnya offline · Lisensi MIT**
 
 [Mulai Menggunakan](#mulai-menggunakan) · [Fitur](#fitur) · [Ekspor](#ekspor-dan-tanda-bukti) · [Privasi](#privasi-dan-penyimpanan) · [Pengembangan](#pengembangan)
@@ -97,6 +99,8 @@ flutter build apk --release --split-per-abi
 ```
 
 Jalankan tes secara berurutan karena pengujian SQLite memakai `sqflite_common_ffi`. Tes meliputi aturan data, urutan warga, jurnal dan pemulihan, impor-ekspor, serta perilaku layar. Beberapa tes impor dengan berkas pribadi hanya berjalan jika berkas tersedia lokal. Berkas tersebut tidak dibundel ke APK.
+
+Impor memeriksa isi ZIP dan Excel sebelum diproses, termasuk ukuran setelah diekstrak dan jumlah sel yang perlu dimuat. Jika berkas terlalu besar, pisahkan menjadi beberapa berkas yang lebih kecil atau hapus baris dan kolom kosong yang jauh dari tabel.
 
 APK hasil build berada di `build/app/outputs/flutter-apk/`. Pilih varian ABI yang sesuai perangkat. Untuk mengembangkan pada perangkat yang sudah berisi data, buat cadangan terlebih dahulu dan pertahankan identitas paket serta kunci penandatanganan saat memperbarui.
 
