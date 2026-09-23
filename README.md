@@ -8,7 +8,7 @@ Satu ruang kerja digunakan untuk **satu desa**, dengan beberapa RT / RW. Desa ti
 
 **Android 7.0+ · Tanpa akun · Sepenuhnya offline · Lisensi MIT**
 
-[Mulai Menggunakan](#mulai-menggunakan) · [Alur Pendataan](#alur-pendataan) · [Ekspor](#ekspor-dan-tanda-bukti) · [Privasi](#privasi-dan-penyimpanan) · [Pengembangan](#pengembangan)
+[Mulai Menggunakan](#mulai-menggunakan) · [Alur Pendataan](#alur-pendataan) · [Ekspor](#ekspor-dan-tanda-bukti) · [Privasi](#privasi-dan-penyimpanan) · [Rencana](#rencana-pengembangan) · [Pengembangan](#pengembangan)
 
 ## Fitur
 
@@ -138,6 +138,28 @@ Perubahan warga, referensi, lokasi, dan wilayah kerja dicatat ke jurnal sebelum 
 - **Pulihkan dari Cadangan** memeriksa salinan database dan memutar ulang jurnal ZIP di ruang sementara sebelum mengganti data aktif. Hasilnya mengikuti catatan terakhir dalam ZIP, yang bisa lebih baru daripada snapshot di dalamnya. Perubahan yang hanya ada di perangkat setelah ZIP dibuat tidak ikut terbawa. Database dan jurnal sebelumnya diamankan, dan kegagalan penggantian ditangani dengan pengembalian pasangan lama.
 
 Cadangan pada ponsel yang sama belum melindungi dari kehilangan atau kerusakan perangkat. Salin ZIP terbaru secara berkala, misalnya ke komputer melalui USB.
+
+## Rencana Pengembangan
+
+Daftar ini mencatat pekerjaan yang belum selesai dan fitur yang direncanakan. Pengembangan tetap mengutamakan penggunaan offline, ketahanan data, dan kendali pengguna atas berkas pribadi.
+
+### Prioritas Sebelum Rilis Publik
+
+- [ ] **Bersihkan data pribadi dari repo dan riwayat Git.** Ganti seluruh contoh pengujian dengan data buatan, bersihkan commit lama beserta branch dan tag terkait, lalu periksa ulang sebelum publikasi.
+- [ ] **Siapkan penandatanganan rilis jangka panjang.** Tentukan kunci rilis yang tetap dan alur pembaruan yang menjaga kompatibilitas serta data instalasi lama.
+- [ ] **Perluas pengujian perangkat.** Uji izin berkas, impor, ekspor, dan pemulihan pada beberapa versi Android, termasuk saat ruang penyimpanan hampir habis atau aplikasi tertutup mendadak.
+
+### Fitur Berikutnya
+
+- [ ] **Profil Petugas.** Simpan nama petugas, wilayah penugasan, dan preferensi secara lokal. Gunakan profil untuk mengisi identitas petugas pada tanda bukti tanpa mengetik ulang.
+- [ ] **Impor Tabel Dinamis.** Tingkatkan pengenalan header dan variasi susunan kolom, simpan pola pemetaan yang bisa dipakai ulang, serta sediakan pratinjau beberapa lembar sebelum impor.
+- [ ] **OCR Offline.** Baca teks dari foto dokumen yang dipilih pengguna di perangkat. Tampilkan hasil untuk diperiksa dan dikoreksi sebelum disimpan, tanpa mengunggah dokumen atau menyimpan foto secara otomatis.
+- [ ] **Ruang Kerja Terpisah.** Dukung beberapa penugasan atau desa dengan data warga, referensi, draf, jurnal, dan cadangan yang terpisah. Perpindahan ruang kerja harus selalu memperjelas data yang sedang aktif.
+- [ ] **Pemeriksaan Impor Ulang.** Tampilkan calon duplikat dan perubahan terhadap referensi yang sudah ada, lalu biarkan pengguna memilih baris yang akan ditambahkan, diperbarui, atau dilewati.
+- [ ] **Cadangan Terenkripsi.** Lindungi isi cadangan dengan kata sandi, verifikasi berkas sebelum pemulihan, dan jelaskan bahwa kata sandi yang hilang tidak dapat dipulihkan oleh aplikasi.
+- [ ] **Pemilihan Folder Tanpa Akses Berkas Menyeluruh.** Gunakan pemilih folder sistem untuk ekspor dan cadangan, termasuk penanganan saat akses folder dicabut atau lokasi tidak lagi tersedia.
+- [ ] **Ekspor PDF dan Tata Letak Cetak.** Tambahkan keluaran siap cetak untuk tanda bukti dan rekap, dengan pratinjau serta pengaturan ukuran kertas.
+- [ ] **Aksesibilitas dan Kenyamanan Pendataan.** Perbaiki dukungan ukuran teks besar, pembaca layar, navigasi keyboard, dan tampilan pada layar kecil.
 
 ## Pengembangan
 
