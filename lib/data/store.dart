@@ -31,6 +31,17 @@ class RecoveryReport {
   List<String> details = [];
   bool showNotice = false;
   String get fingerprint => details.join('\n');
+
+  /// Safe display text. Raw diagnostic details belong only in private logs.
+  String get pesanPengguna {
+    final summary = '$processed catatan diperiksa, $applied diterapkan'
+        '${dilewati > 0 ? ', $dilewati dilewati sesuai pemulihan sebelumnya' : ''}.';
+    if (failed == 0) return 'Riwayat perubahan utuh. $summary';
+    return '$failed catatan perubahan belum dapat dibaca. $summary\n\n'
+        'Periksa data warga sebelum melanjutkan. Jika ada data yang belum '
+        'kembali, pulihkan dari cadangan lain yang masih utuh.';
+  }
+
   @override
   String toString() =>
       '$processed baris diproses · $applied diterapkan · $failed gagal'
@@ -131,14 +142,14 @@ class AppStore extends ChangeNotifier {
       db = await _openDatabase(dbPath);
     } catch (e) {
       _catatDetail('open', e);
-      throw AppException('Database tidak dapat dibuka. Data Anda aman. '
-          'Gunakan pemulihan dari jurnal.');
+      throw AppException('Data belum bisa dibuka. '
+          'Coba pulihkan dari jurnal atau gunakan cadangan yang masih utuh.');
     }
     // Fase 2: integrity. Still recoverable, the file itself is suspect.
     final check = await db.rawQuery('PRAGMA quick_check');
     if (check.any((row) => row.values.first != 'ok')) {
-      throw AppException('Pemeriksaan integritas database gagal. Data Anda '
-          'aman. Gunakan pemulihan dari jurnal.');
+      throw AppException('Data belum lolos pemeriksaan. '
+          'Coba pulihkan dari jurnal atau gunakan cadangan yang masih utuh.');
     }
     await _muatKolom();
     // Fase 3: journal replay and cleanup on a healthy, open database.
@@ -167,7 +178,7 @@ class AppStore extends ChangeNotifier {
       }
     } catch (e) {
       _catatDetail('open-fase3', e);
-      throw AppException('Database sehat tetapi pembaruan isi belum selesai. '
+      throw AppException('Pembaruan data belum selesai. '
           'Buka ulang aplikasi untuk mencoba lagi.');
     }
   }
@@ -278,14 +289,7 @@ class AppStore extends ChangeNotifier {
 
   Future<String> journalReportText() async {
     final report = startupRecovery;
-    if (report == null || report.details.isEmpty) {
-      return 'Tidak ada laporan jurnal rusak.';
-    }
-    final prefix = '${root.path}/';
-    return [
-      for (final line in report.details)
-        line.startsWith(prefix) ? line.substring(prefix.length) : line
-    ].join('\n');
+    return report?.pesanPengguna ?? 'Tidak ada masalah pada riwayat perubahan.';
   }
 
   Future<void> _deleteFailureLogs() async {
@@ -416,7 +420,7 @@ class AppStore extends ChangeNotifier {
       Future<RecordMap> Function(Transaction txn, String ts) prepare,
       {List<RecordMap> Function(RecordMap payload)? extras}) async {
     if (_recoveryRequired) {
-      throw AppException('Pulihkan database dari jurnal sebelum melanjutkan.');
+      throw AppException('Pulihkan data dari jurnal sebelum melanjutkan.');
     }
     var journalWritten = false;
     try {
@@ -455,8 +459,8 @@ class AppStore extends ChangeNotifier {
         _recoveryRequired = true;
         _catatDetail('commit', e);
         throw AppException(
-            'Jurnal sudah tersimpan, tetapi database gagal diperbarui. '
-            'Jangan input ulang, bangun ulang dari jurnal.');
+            'Riwayat perubahan sudah tersimpan, tetapi data belum berhasil diperbarui. '
+            'Jangan isi ulang. Gunakan Pulihkan dari Jurnal.');
       }
       rethrow;
     }
@@ -1168,7 +1172,7 @@ class AppStore extends ChangeNotifier {
 
   Future<File> snapshot() => exclusive(() async {
         if (_recoveryRequired) {
-          throw AppException('Pulihkan database sebelum membuat snapshot.');
+          throw AppException('Pulihkan data sebelum membuat snapshot.');
         }
         final result = await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
         // Some SQLite builds return a null busy column; null != 0 is true
@@ -1499,7 +1503,7 @@ class AppStore extends ChangeNotifier {
   Future<RecoveryReport> restoreSnapshot(File file) => exclusive(() async {
         if (_recoveryRequired) {
           throw AppException(
-              'Pulihkan database dari jurnal sebelum memulihkan snapshot.');
+              'Pulihkan data dari jurnal sebelum memulihkan snapshot.');
         }
         final snap = await _bukaBacaSaja(file);
         int dari;

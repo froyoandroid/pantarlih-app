@@ -70,11 +70,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       icon: Icons.menu_book_outlined),
                   if (busy) const LinearProgressIndicator(),
                   if (hasil != null)
-                    Notice(
-                        hasil!.failed == 0
-                            ? 'Jurnal utuh. ${hasil!}'
-                            : 'Jurnal bermasalah. ${hasil!}\n\n${hasil!.details.take(20).join('\n')}${hasil!.details.length > 20 ? '\ndan ${hasil!.details.length - 20} baris lainnya' : ''}',
-                        warning: hasil!.failed > 0),
+                    Notice(hasil!.pesanPengguna, warning: hasil!.failed > 0),
                   if (hari!.isEmpty)
                     const EmptyState('Jurnal Masih Kosong',
                         'Catatan perubahan data akan muncul di sini setelah Anda menyimpan warga.'),
