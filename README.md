@@ -10,6 +10,14 @@ Satu ruang kerja digunakan untuk **satu desa**, dengan beberapa RT / RW. Desa ti
 
 [Mulai Menggunakan](#mulai-menggunakan) · [Alur Pendataan](#alur-pendataan) · [Ekspor](#ekspor-dan-tanda-bukti) · [Privasi](#privasi-dan-penyimpanan) · [Rencana](#rencana-pengembangan) · [Pengembangan](#pengembangan)
 
+## Tampilan Aplikasi
+
+<p align="center">
+  <img src="docs/screenshots/splash.png" alt="Layar pembuka TilikSuara" width="240" />
+  <img src="docs/screenshots/beranda.png" alt="Beranda TilikSuara" width="240" />
+  <img src="docs/screenshots/lokasi.png" alt="Layar pilih lokasi kerja" width="240" />
+</p>
+
 ## Fitur
 
 | Kebutuhan | Yang tersedia |
