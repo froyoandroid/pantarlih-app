@@ -245,3 +245,5 @@ Nama dan kode wilayah dibundel untuk penggunaan offline dari proyek [WILAYAH ole
 Memperbarui aset wilayah tidak otomatis mengubah nama wilayah pada data warga yang sudah disimpan.
 
 Kode aplikasi menggunakan [Lisensi MIT](LICENSE).
+
+Proyek ini dikembangkan dengan bantuan AI.
