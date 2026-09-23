@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 import '../core/format.dart';
+import 'archive_safety.dart';
 import 'storage.dart';
 import 'store.dart';
 
@@ -110,7 +111,7 @@ Future<void> _rotasiCadangan(Directory dir, int keep) async {
 Future<RecoveryReport> pulihkanCadangan(AppStore store, Uint8List bytes) async {
   final Archive arsip;
   try {
-    arsip = ZipDecoder().decodeBytes(bytes, verify: true);
+    arsip = decodeArsipAman(bytes);
   } catch (_) {
     throw AppException('Berkas bukan cadangan Pantarlih yang utuh.');
   }

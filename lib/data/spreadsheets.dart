@@ -8,6 +8,7 @@ import '../core/app_info.dart';
 import '../core/format.dart';
 import '../core/nama.dart';
 import '../core/nik.dart';
+import 'archive_safety.dart';
 import 'store.dart';
 
 const importFields = <String, String>{
@@ -381,31 +382,95 @@ int _countUnquoted(String line, String mark) {
   return count;
 }
 
+// HARDCODED: excel exposes no decoding budget. XML and dense cell grids consume
+// much more memory than their ZIP data, so workbook imports need tighter limits.
+const _batasIsiBukuKerja = 20 * 1024 * 1024;
+const _batasSelBukuKerja = 1000000;
+
+int _bebanLembar(XmlDocument worksheet) {
+  var rows = 0;
+  var columns = 0;
+  var cells = 0;
+  var merged = 0;
+  Never tooLarge() => throw AppException(
+      'Lembar terlalu besar untuk dibuka. Hapus baris dan kolom kosong yang jauh dari data, lalu coba lagi.');
+  CellIndex position(String reference) {
+    // HARDCODED: XLSX cell references have at most three column letters and
+    // seven row digits. Check before parsing untrusted coordinates.
+    if (!RegExp(r'^\$?[A-Za-z]{1,3}\$?[1-9][0-9]{0,6}$').hasMatch(reference)) {
+      tooLarge();
+    }
+    return CellIndex.indexByString(reference.replaceAll(r'$', ''));
+  }
+
+  for (final row in worksheet.findAllElements('row')) {
+    final index = int.tryParse(row.getAttribute('r') ?? '') ?? 0;
+    if (index > rows) rows = index;
+    if (rows > _batasSelBukuKerja) tooLarge();
+  }
+  for (final cell in worksheet.findAllElements('c')) {
+    if (++cells > _batasSelBukuKerja) tooLarge();
+    final ref = cell.getAttribute('r');
+    if (ref == null) continue;
+    final index = position(ref);
+    if (index.rowIndex + 1 > rows) rows = index.rowIndex + 1;
+    if (index.columnIndex + 1 > columns) columns = index.columnIndex + 1;
+    if (rows * columns > _batasSelBukuKerja) tooLarge();
+  }
+  for (final merge in worksheet.findAllElements('mergeCell')) {
+    final range = (merge.getAttribute('ref') ?? '').split(':');
+    if (range.length != 2) continue;
+    final start = position(range.first);
+    final end = position(range.last);
+    merged += ((end.rowIndex - start.rowIndex).abs() + 1) *
+        ((end.columnIndex - start.columnIndex).abs() + 1);
+    if (merged > _batasSelBukuKerja) tooLarge();
+  }
+  final cost = rows * columns + cells + merged;
+  if (cost > _batasSelBukuKerja) tooLarge();
+  return cost;
+}
+
 Excel _decodeWorkbook(Uint8List bytes) {
   // openpyxl and other conforming writers use package-absolute relationship
   // targets. excel 4.x incorrectly prefixes those targets with "xl/" again.
   // Normalize ONLY the in-memory parsing copy; archive the original bytes.
-  final archive = ZipDecoder().decodeBytes(bytes);
+  final archive = decodeArsipAman(bytes, maxOutputBytes: _batasIsiBukuKerja);
   const relationshipPath = 'xl/_rels/workbook.xml.rels';
   final rel = archive.findFile(relationshipPath);
-  if (rel == null) return Excel.decodeBytes(bytes);
-  final doc = XmlDocument.parse(utf8.decode(rel.content as List<int>));
-  for (final element in doc.findAllElements('Relationship')) {
-    final target = element.getAttribute('Target');
-    if (target != null && target.startsWith('/xl/')) {
-      element.setAttribute('Target', target.substring(4));
+  final worksheetPaths = <String>{};
+  List<int>? replacement;
+  if (rel != null) {
+    final doc = XmlDocument.parse(utf8.decode(rel.content as List<int>));
+    for (final element in doc.findAllElements('Relationship')) {
+      var target = element.getAttribute('Target');
+      if (target != null && target.startsWith('/xl/')) {
+        target = target.substring(4);
+        element.setAttribute('Target', target);
+      }
+      if (target != null &&
+          (element.getAttribute('Type') ?? '').endsWith('/worksheet')) {
+        worksheetPaths.add('xl/$target');
+      }
     }
+    replacement = utf8.encode(doc.toXmlString());
   }
-  final replacement = utf8.encode(doc.toXmlString());
   final normalized = Archive();
+  var workbookCost = 0;
   for (final file in archive.files) {
-    if (file.name == relationshipPath) {
+    if (file.name == relationshipPath && replacement != null) {
       normalized.addFile(
           ArchiveFile(relationshipPath, replacement.length, replacement));
-    } else if (file.name.startsWith('xl/worksheets/') &&
-        file.name.endsWith('.xml')) {
+    } else if (worksheetPaths.contains(file.name) ||
+        (file.name.startsWith('xl/worksheets/') &&
+            file.name.endsWith('.xml'))) {
       final worksheet =
           XmlDocument.parse(utf8.decode(file.content as List<int>));
+      workbookCost += _bebanLembar(worksheet);
+      if (workbookCost > _batasSelBukuKerja) {
+        throw AppException(
+            'Buku kerja terlalu besar untuk dibuka. Pisahkan data menjadi beberapa berkas, lalu coba lagi.');
+      }
       for (final cell in worksheet.findAllElements('c')) {
         if (cell.getAttribute('t') != 'inlineStr') continue;
         final textNodes = cell.findAllElements('t');
