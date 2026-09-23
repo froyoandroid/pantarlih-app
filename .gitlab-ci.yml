@@ -1,3 +1,6 @@
+stages:
+  - verify
+
 default:
   image: ghcr.io/cirruslabs/flutter:3.47.4
 

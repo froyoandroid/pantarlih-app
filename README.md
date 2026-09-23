@@ -145,7 +145,7 @@ Daftar ini mencatat pekerjaan yang belum selesai dan fitur yang direncanakan. Pe
 
 ### Prioritas Sebelum Rilis Publik
 
-- [ ] **Bersihkan data pribadi dari repo dan riwayat Git.** Ganti seluruh contoh pengujian dengan data buatan, bersihkan commit lama beserta branch dan tag terkait, lalu periksa ulang sebelum publikasi.
+- [x] **Bersihkan data pribadi dari repo dan riwayat Git.** Suite contoh yang memuat data warga dikeluarkan dan riwayat branch publik telah diperiksa ulang.
 - [ ] **Siapkan penandatanganan rilis jangka panjang.** Tentukan kunci rilis yang tetap dan alur pembaruan yang menjaga kompatibilitas serta data instalasi lama.
 - [ ] **Perluas pengujian perangkat.** Uji izin berkas, impor, ekspor, dan pemulihan pada beberapa versi Android, termasuk saat ruang penyimpanan hampir habis atau aplikasi tertutup mendadak.
 
