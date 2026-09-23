@@ -29,20 +29,29 @@ class MainActivity : FlutterActivity() {
                     "openFile" -> {
                         val path = call.argument<String>("path")
                         val mime = call.argument<String>("mime") ?: "*/*"
-                        if (path == null || !File(path).isFile) {
+                        if (path == null) {
                             result.error("NOT_FOUND", "Berkas tidak ditemukan", null)
                             return@setMethodCallHandler
                         }
-                        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", File(path))
-                        val intent =
-                            Intent(Intent.ACTION_VIEW)
-                                .setDataAndType(uri, mime)
-                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         try {
+                            val file = File(path)
+                            if (!file.isFile) {
+                                result.error("NOT_FOUND", "Berkas tidak ditemukan", null)
+                                return@setMethodCallHandler
+                            }
+                            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+                            val intent =
+                                Intent(Intent.ACTION_VIEW)
+                                    .setDataAndType(uri, mime)
+                                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             startActivity(intent)
                             result.success(true)
                         } catch (e: ActivityNotFoundException) {
                             result.error("NO_APP", "Tidak ada aplikasi pembuka", null)
+                        } catch (e: IllegalArgumentException) {
+                            result.error("INVALID_FILE", "Berkas tidak dapat dibuka", null)
+                        } catch (e: SecurityException) {
+                            result.error("ACCESS_DENIED", "Berkas tidak dapat dibuka", null)
                         }
                     }
 

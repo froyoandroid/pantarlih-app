@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-path name="ekspor" path="." />
+    <!-- HARDCODED: FileProvider requires literal paths. These match Android's
+         DIRECTORY_DOCUMENTS and the localized fallback in storage.dart. -->
+    <external-path name="ekspor" path="Documents/" />
+    <external-path name="ekspor_lokal" path="Dokumen/" />
 </paths>
